@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import csv
 import os 
 import sys 
+import shutil
 from matplotlib.widgets import Slider
 
 import tkinter as tk
@@ -353,9 +354,17 @@ def calculation_of_section_0_5(row):
     d_l_BP.append(cubspline(3, rel_h, h_H, d_l_2)/200)
     d_l_BP.append(cubspline(3, rel_h, h_H, d_l_3)/200)
     d_l_BP.append(cubspline(3, rel_h, h_H, d_l_a)/200)
+    denominator_le = bezier(4, elipse_LE * d_l_BP[0], m_BP)
+    if abs(denominator_le) < 1e-9:
+        FAK_m_LE = 1.0
+    else:
+        FAK_m_LE = elipse_LE * d_l_BP[0] / denominator_le
     
-    FAK_m_LE = elipse_LE*d_l_BP[0]/bezier(4, elipse_LE*d_l_BP[0], m_BP)
-    FAK_m_TE = (1-elipse_TE*d_l_BP[3])/bezier(4, 1-elipse_TE*d_l_BP[3], m_BP)
+    denominator_te = bezier(4, elipse_TE * d_l_BP[3], m_BP)
+    if abs(denominator_te) < 1e-9:
+        FAK_m_TE = 1.0
+    else:
+        FAK_m_TE = elipse_TE * d_l_BP[3] / denominator_te
     
     t_LE = []
     for i in range(len(LE_TE_fac_1)):
@@ -496,7 +505,6 @@ def calculation_of_section_0_5(row):
             #lower side
             m_prime_l = helping_list_m + m_prime_l[0:pos_m_prime_max]
             R_theta_s_prime_l = helping_list_R + R_theta_s_prime_l[0:pos_m_prime_max]
-            print("2")
 
     elif m_prime_min == m_prime_l[pos_m_prime_min_l]:
         pos_m_prime_min = pos_m_prime_min_l
@@ -602,7 +610,7 @@ def calculation_of_section_0_5(row):
     coa3.append(sum(coa3))
 
     m_prime_cntr = coa1[124]/coa3[124]
-    Rtet_prime_cntr = coa2[124]/coa3[124]
+    #Rtet_prime_cntr = coa2[124]/coa3[124]
 
     if row == 1:
         k = 2
@@ -662,8 +670,17 @@ def calculation_of_section(rel_h, row):
     d_l_BP.append(cubspline(3, rel_h, h_H, d_l_a)/100)
     
 
-    FAK_m_LE = elipse_LE*d_l_BP[0]/bezier(4, elipse_LE*d_l_BP[0], m_BP)
-    FAK_m_TE = (1-elipse_TE*d_l_BP[3])/bezier(4, 1-elipse_TE*d_l_BP[3], m_BP)
+    denominator_le = bezier(4, elipse_LE * d_l_BP[0], m_BP)
+    if abs(denominator_le) < 1e-9:
+        FAK_m_LE = 1.0
+    else:
+        FAK_m_LE = elipse_LE * d_l_BP[0] / denominator_le
+    
+    denominator_te = bezier(4, elipse_TE * d_l_BP[3], m_BP)
+    if abs(denominator_te) < 1e-9:
+        FAK_m_TE = 1.0
+    else:
+        FAK_m_TE = elipse_TE * d_l_BP[3] / denominator_te
 
     t_LE = []
     for i in range(len(LE_TE_fac_1)):
@@ -825,8 +842,7 @@ def calculation_of_section(rel_h, row):
             #lower side
             m_prime_l = helping_list_m + m_prime_l[0:pos_m_prime_max]
             R_theta_s_prime_l = helping_list_R + R_theta_s_prime_l[0:pos_m_prime_max]
-            print("2")
-
+        
     elif m_prime_min == m_prime_l[pos_m_prime_min_l]:
         pos_m_prime_min = pos_m_prime_min_l
         if m_prime_max == m_prime_u[pos_m_prime_max_u]:
@@ -887,20 +903,7 @@ def calculation_of_section(rel_h, row):
         print("ne")
 
     # activate for plotting of blade geometry
-    """
-    plt.scatter(m_prime_u, R_theta_s_prime_u, s = 3)
-    plt.plot(m_prime_u, R_theta_s_prime_u) 
-    plt.scatter(m_prime, R_theta_s_prime, s = 3)
-    plt.plot(m_prime_l, R_theta_s_prime_l)
-    plt.scatter(m_prime_l, R_theta_s_prime_l, s = 3)
-    plt.plot(m_prime, R_theta_s_prime)
-    plt.xlabel("m' [-]")
-    plt.ylabel("R\u03b8 [-]")
-    plt.xlim(-0.005,0.015)
-    plt.ylim(-0.01,0.0025)
-    plt.axis('equal')
-    plt.show()
-    """
+
     
     dif_list_len_u = len(m_prime_u)-125
     
@@ -2352,30 +2355,7 @@ def create_multall_dat(NROW, section, levels, rotor_data, stator_data):
 
         x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
         
-        """
-        #xRtheta_plot(Rtheta_new, R_new, x_new)
-        Rtheta_new_low = []
-        for i in range(len(Rtheta_new)):
-            Rtheta_new_low.append([])
-        
-        for i in range(len(d_new)):
-            for j in range(len(d_new[i])):
-                Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
 
-        for i in range(len(levels)):
-            for j in range(len(x_new[0])-1):
-                if x_new[i][j]>x_new[i][j+1]:
-                    print("To many J Values")
-
-        for i in range(len(levels)):
-            plt.plot(x_new[i], Rtheta_new[i])
-            plt.plot(x_new[i], Rtheta_new_low[i])
-            plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-            plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
-
-        plt.axis('equal')
-        plt.show()
-        """
 
         write_coordinates(x_new, Rtheta_new, d_new, R_new, output, row, a, b, JM)
         
@@ -2406,25 +2386,7 @@ def create_multall_dat(NROW, section, levels, rotor_data, stator_data):
             Z_S = 0.95
 
             x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
-            """
-            Rtheta_new_low = []
-            for i in range(len(Rtheta_new)):
-                Rtheta_new_low.append([])
-        
-            for i in range(len(d_new)):
-                for j in range(len(d_new[i])):
-                    Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
-            
-            for i in range(len(levels)):
-                plt.plot(x_new[i], Rtheta_new[i])
-                plt.plot(x_new[i], Rtheta_new_low[i])
-                plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-                plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
 
-            plt.xlabel("x [m]")
-            plt.ylabel("R\u03b8 [m]")
-            plt.show()
-            """
             #xRtheta_plot(Rtheta_new, R_new, x_new)
 
             write_head_row(output, row, JM, JLE, JTE, section, section, NSEC)
@@ -2484,31 +2446,7 @@ def create_multall_dat(NROW, section, levels, rotor_data, stator_data):
         m_LE_0_5, m_TE_0_5, m_cntr_0_5, m_prime_cntr = mLE_TE_cntr(row)
 
         x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
-        """
-        #xRtheta_plot(Rtheta_new, R_new, x_new)
-        Rtheta_new_low = []
-        for i in range(len(Rtheta_new)):
-            Rtheta_new_low.append([])
-        
-        for i in range(len(d_new)):
-            for j in range(len(d_new[i])):
-                Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
-        
-        for i in range(len(levels)):
-            for j in range(len(x_new[0])-1):
-                if x_new[i][j]>x_new[i][j+1]:
-                    print("negative Volumes")
 
-        
-        for i in range(len(levels)):
-            plt.plot(x_new[i], Rtheta_new[i])
-            plt.plot(x_new[i], Rtheta_new_low[i])
-            plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-            plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
-
-        plt.axis('equal')
-        plt.show()
-        """
         if NROW == 1:
             plt.show()
         
@@ -2545,29 +2483,7 @@ def create_multall_dat(NROW, section, levels, rotor_data, stator_data):
             x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
             
             #xRtheta_plot(Rtheta_new, R_new, x_new)
-            """
-            Rtheta_new_low = []
-            for i in range(len(Rtheta_new)):
-                Rtheta_new_low.append([])
-
-            for i in range(len(d_new)):
-                for j in range(len(d_new[i])):
-                    Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
-            
-            for i in range(len(levels)):
-                for j in range(len(x_new[0])-1):
-                    if x_new[i][j]>x_new[i][j+1]:
-                        print("negative Volumes")
-            
-            for i in range(len(levels)):
-                plt.plot(x_new[i], Rtheta_new[i])
-                plt.plot(x_new[i], Rtheta_new_low[i])
-                plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-                plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
-            
-            plt.show()
-            """
-        
+      
             write_head_row(output, row, JM, JLE, JTE, RPM, section, NSEC)
             write_coordinates(x_new, Rtheta_new, d_new, R_new, output, row, a, b, JM)
             Q3D_information(output)

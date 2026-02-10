@@ -1,0 +1,19 @@
+For each level h/H = [0, 0.2, 0.5, 0.8, 1.0], there are four control points for the blade angle beta_S and the thickness d/l. The first and last control points for the blade angle beta_S are determined by radial equilibrium.
+
+1st to 4th control points for beta_S for all levels:
+143.75, 149.7, 151.54, 156.42, 159.01
+122.01, 135.75, 144.97, 152.68, 156.75
+130.79, 141.38, 147.63, 154.19, 157.66
+65.42, 99.43, 127.88, 142.96, 150.87
+
+1st to 4th control points for d/l for all levels:
+1.852,2.046,2.025,1.845,1.326
+6.601,7.263,7.425,6.372,5.116
+1.369,1.535,1.485,1.342,0.947
+0.805,0.921,0.945,0.838,0.568
+
+m* for all levels:
+0.0, 0.0, 0.0, 0.0, 0.0
+0.3, 0.3, 0.3, 0.3, 0.3
+0.7, 0.7, 0.7, 0.7, 0.7
+1.0, 1.0, 1.0, 1.0, 1.0

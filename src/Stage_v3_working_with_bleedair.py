@@ -9,7 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import os 
-import sys 
+import sys
+import shutil 
 from matplotlib.widgets import Slider
 
 import tkinter as tk
@@ -17,7 +18,7 @@ from tkinter import ttk, filedialog, Label, Toplevel
 
 
 from Fixed_radii_Meanline_GUI_v4 import meanline 
-from Cubspline_function import cubspline
+from Cubspline_function_v2 import cubspline
 from Radial_equilibrium import radial_equilibrium_R, radial_equilibrium_S
 from Bezier_curve import bezier
 from Interpolation import intpol, intp_new
@@ -57,33 +58,37 @@ mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, 
 h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
 h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
 
+
+
+
+
 #Radial distribution of Temperature:
+def plot_temp_alpha_beta(T_Plot, beta_R_Plot, alpha_S_Plot):
+    #Temp plot
+    if T_Plot == 1:
+        plt.plot(T_S_out, h_rel, label = "T_out'")
+        plt.plot(T_R_in, h_rel, label = 'T_in"')
+        plt.plot(T_R_out, h_rel, label = "T_out'' = T_in'")
+        plt.legend()
+        plt.show()
+        
+    #Beta plot
+    if beta_R_Plot == 1:
+        plt.plot(beta_blade_R_in, h_rel, label = "beta_blade_R_in'")
+        plt.plot(beta_blade_R_out, h_rel, label = "beta_blade_R_out'")
+        plt.plot(beta_R_in, h_rel, label = "beta_R_in'")
+        plt.plot(beta_R_out, h_rel, label = "beta_R_out''")
+        plt.legend()
+        plt.show()
 
-T_Plot = 0
-if T_Plot == 1:
-    plt.plot(T_S_out, h_rel, label = "T_out'")
-    plt.plot(T_R_in, h_rel, label = 'T_in"')
-    plt.plot(T_R_out, h_rel, label = "T_out'' = T_in'")
-    plt.legend()
-    plt.show()
-    
-beta_R_Plot = 0
-if beta_R_Plot == 1:
-    plt.plot(beta_blade_R_in, h_rel, label = "beta_blade_R_in'")
-    plt.plot(beta_blade_R_out, h_rel, label = "beta_blade_R_out'")
-    plt.plot(beta_R_in, h_rel, label = "beta_R_in'")
-    plt.plot(beta_R_out, h_rel, label = "beta_R_out''")
-    plt.legend()
-    plt.show()
-
-alpha_S_Plot = 0
-if alpha_S_Plot == 1:
-    plt.plot(alpha_S_in, h_rel, label = "alpha_S_in'")
-    plt.plot(alpha_S_out, h_rel, label = "alpha_S_out'")
-    plt.plot(beta_blade_S_in, h_rel, label = "beta_blade_S_in''")
-    plt.plot(beta_blade_S_out, h_rel, label = "beta_blade_S_out''")
-    plt.legend()
-    plt.show()
+    # Alpha plot
+    if alpha_S_Plot == 1:
+        plt.plot(alpha_S_in, h_rel, label = "alpha_S_in'")
+        plt.plot(alpha_S_out, h_rel, label = "alpha_S_out'")
+        plt.plot(beta_blade_S_in, h_rel, label = "beta_blade_S_in''")
+        plt.plot(beta_blade_S_out, h_rel, label = "beta_blade_S_out''")
+        plt.legend()
+        plt.show()
 
 
 
@@ -245,6 +250,132 @@ def bezier_control_points(file, row, angle_in, angle_out, chord_length):
             file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
             file.write("1.0, 1.0, 1.0, 1.0, 1.0\n") 
 
+def create_default_profiles(self):
+    
+    if not os.path.exists("bezier_control_points_R.txt"):
+        print("Generiere default Rotor File")
+        chord_length_R =  np.interp(h_H, h_rel, l_R) # Interpoliert die Sehnenlänge für die Standard Abschnitte
+        bezier_control_points("bezier_control_points_R.txt", 1, beta_blade_R_in, beta_blade_R_out, chord_length_R)
+    if not os.path.exists("bezier_control_points_S.txt"):
+        print("Generiere default Stator File")
+        chord_length_S =  np.interp(h_H, h_rel, l_S)
+        bezier_control_points("bezier_control_points_S.txt", 2, beta_blade_S_in, beta_blade_S_out, chord_length_S)
+    
+def save_profile(source_filename):
+        if not os.path.exists(source_filename):
+            return
+        
+        root_dialog = tk.Tk()
+        root_dialog.withdraw()
+        
+        filepath = filedialog.asksaveasfilename(
+            parent=root_dialog,
+            title=f"Save Profile '{source_filename} as",
+            defaultextension=".txt",
+            filetypes=(("Text Files", "*.txt"),("All files", "*.*"))
+        )
+        
+        root_dialog.destroy()
+        
+        if not filepath:
+            return
+        
+        try:
+            shutil.copy(source_filename, filepath)
+            print(f"Profil erfolgreich gespeichert in {filepath}")
+        except Exception as e:
+            print(f"Error {e} beim speichern")                                                        
+
+def run_main_logic(settings):
+    
+    # Benötigte Parameter aus settings extrahieren
+    #Settings = read_parameters_from_file('Settings.txt')
+    main_choice = settings.get('main_choice', 'default')
+    #path = settings.get("output_folder", ".")
+    #NROW = int(settings.get("nrow", 2))
+    levels_input = settings.get("levels", "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
+    h_H = [0.0, 0.2, 0.5, 0.8, 1.0] # Standard Werte für die Abschnitte
+    
+    
+    try: 
+        levels_input = [float(x.strip()) for x in levels_input.split(',')] # Liest die Levels ein und wandelt sie in eine Liste von Float-Werten um
+    except:
+        levels_input = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    
+    #chord_length_R = np.interp(h_H, h_rel, l_R) # Interpoliert die Sehnenlänge für die Standard Abschnitte
+    #chord_length_S = np.interp(h_H, h_rel, l_S) 
+
+    
+    if main_choice == 'adjust': # Anpassung der Bézier Punkte
+        try:
+            
+            section_idx_str = settings['adjust_section_idx']
+            section_idx_float = float(section_idx_str)
+            section_idx = h_H.index(section_idx_float)
+            
+            row_str = settings['adjust_row']
+            parameter_str = settings['adjust_parameter']
+            h_val = h_H[section_idx] 
+            is_rotor = row_str == 'Rotor' # True für Rotor, False für Stator
+            row_num = 1 if is_rotor else 2 # 1 für Rotor, 2 für Stator
+            bcp_file = "bezier_control_points_R.txt" if is_rotor else "bezier_control_points_S.txt"
+            bcp_header = "beta_S" if is_rotor else "alpha_S"
+               
+            with open(bcp_file, 'r') as file:
+                lines = file.readlines()
+        
+            beta_points_all = []
+            d_l_points_all = []
+        
+            for i, line in enumerate(lines): #"enumerate" gibt sowohl den Index als auch den Wert der Zeile zurück
+                if line.strip().startswith(f"1st to 4th control points for {bcp_header}"): # sucht nach der Zeile mit dem Header
+                    raw_data =[lines[i+j+1].strip().split(',') for j in range(4)] # Liest die nächsten 4 Zeilen ein und teilt sie bei Kommas
+                    beta_points_all = [[float(raw_data[j][k]) for j in range(4)] for k in range(5)] # Transponieren der Daten zur weiteren Benutzung
+                    break
+    
+            for i, line in enumerate(lines):
+                if line.strip().startswith(f"1st to 4th control points for d/l"):
+                    raw_data =[lines[i+j+1].strip().split(',') for j in range(4)]
+                    d_l_points_all = [[float(raw_data[j][k]) for j in range(4)] for k in range(5)]
+                    break
+            
+            print(f"Debugging: Gelesener Parameter ist: {parameter_str}")
+    
+            # Je nach ausgewähltem Parameter die entsprechenden Bézier-Punkte anpassen
+            if parameter_str == 'Angle':
+                print(f"Adjustments for Angle in row {row_str}, section: {h_val}")
+                original_points = beta_points_all[section_idx] # Liste der Bézier-Punkte für den ausgewählten Abschnitt
+                new_points = adjustBezierCurve_beta(original_points) # Ruft die Funktion zum Anpassen der Bézier-Punkte auf
+                beta_points_all[section_idx] = new_points # Aktualisiert die Bézier-Punkte in der Liste
+    
+            elif parameter_str == 'Thickness':
+                print(f"Adjustments for Thickness in row {row_str}, section: {h_val}")
+                chord, *_ = calculation_of_section(h_val, row_num) #
+                original_points = d_l_points_all[section_idx]
+                new_points = adjustBezierCurve_d(original_points, chord)
+                d_l_points_all[section_idx] = new_points 
+
+            # Speichern der aktualisierten Bézier-Punkte zurück in die Datei
+            with open(bcp_file, "w+", newline='') as file:
+                file.write("For each level h/H = [0, 0.2, 0.5, 0.8, 1.0]\n\n")
+                file.write(f"1st to 4th control points for {bcp_header} for all levels:\n")
+                for i in range(4):
+                    file.write(','.join(map(str, [beta_points_all[j][i] for j in range(5)])) + '\n')
+                file.write("\n1st to 4th control points for d/l for all levels:\n")
+                for i in range(4):
+                    file.write(','.join(map(str, [d_l_points_all[j][i] for j in range(5)])) + '\n')
+                file.write("\n")
+                file.write("m* for all levels:\n")
+                file.write("0.0,0.0,0.0,0.0,0.0\n0.3,0.3,0.3,0.3,0.3\n0.7,0.7,0.7,0.7,0.7\n1.0,1.0,1.0,1.0,1.0\n")  
+                
+            print(f"Veränderungen wurden gespeichert in {bcp_file}")
+            save_profile(bcp_file)
+                              
+        except(IOError, IndexError, ValueError) as e:
+            print(f"Error {e}")
+            return                                                          
+
+
 # general values, ellipis of LE and TE
 def overall_values(row, z_R, l_R, l_S):
     if row == 1:
@@ -270,6 +401,8 @@ def overall_values(row, z_R, l_R, l_S):
 
     return z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE
 
+'''
+Old bezier control points from csv read
 # Bézier control points from csv file
 def blade_metal_BP(ROW):
     beta_M_e, beta_M_2, beta_M_3, beta_M_a, d_l_e, d_l_2, d_l_3, d_l_a = [], [], [], [], [], [], [], []   #beta_M_e: Liste mit Schaufeleintrittswinkel (Metall) für alle relativen Höhen aus h/H 
@@ -320,6 +453,60 @@ def blade_metal_BP(ROW):
                     m_star_BP[3].append(float(value))
 
     return beta_M_a, beta_M_2, beta_M_3,  beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP
+'''
+
+# Bézier control points from csv file new
+def blade_metal_BP(ROW):
+    # beta_M_e, beta_M_2, beta_M_3, beta_M_a = [], [], [], []
+    # d_l_e, d_l_2, d_l_3, d_l_a = [], [], [], []
+    # m_star_BP = [[], [], [], []] 
+    
+    if ROW == 1:
+        BCPfile = "bezier_control_points_R.txt"
+        angle_header = "1st to 4th control points for beta_S for all levels:"
+    elif ROW == 2:
+        BCPfile = "bezier_control_points_S.txt"
+        angle_header = "1st to 4th control points for alpha_S for all levels:"
+    else:
+        return [], [], [], [], [], [], [], [], [[], [], [], []]
+        
+    
+    try:
+        with open(BCPfile, 'r') as file:
+            lines = file.readlines()
+    except (FileNotFoundError) as e:
+        print(f"Fehler beim lesen {BCPfile}: {e}")
+        return [], [], [], [], [], [], [], [], [[], [], [], []]
+    
+    def find_and_read_data(header_text):
+        data_block = []
+        header_found_at = -1
+        
+        
+        for i, line in enumerate(lines):
+            if line.strip() == header_text:
+                header_found_at = i
+      
+                break
+            
+        
+        if header_found_at != -1 and len(lines) >= header_found_at + 5:
+            for i in range(1, 5):
+                data_row = [float(val) for val in lines[header_found_at + i].strip().split(',')]
+                data_block.append(data_row)
+            
+        return data_block
+    
+    
+    angle_data = find_and_read_data(angle_header)
+    d_l_data = find_and_read_data("1st to 4th control points for d/l for all levels:") 
+    m_star_data = find_and_read_data("m* for all levels:")
+    
+    beta_M_e, beta_M_2, beta_M_3, beta_M_a = (angle_data + [[]]*4)[:4] # stellt sicher, dass immer 4 Listen zurückgegeben werden, wenn weniger als 4 vorhanden sind wird aufgefüllt mit leeren Listen
+    d_l_e, d_l_2, d_l_3, d_l_a = (d_l_data + [[]]*4)[:4]
+    m_star_BP = (m_star_data + [[]]*4)[:4]
+    
+    return beta_M_a, beta_M_3, beta_M_2, beta_M_e, d_l_a, d_l_3, d_l_2, d_l_e, m_star_BP 
 
 #Section to fix center of gravity for all sections
 #Calculation for h/H = 0.5 cut
@@ -2285,6 +2472,10 @@ def read_parameters_from_file(filename):
                    
             print(f"Levels = {levels}")
             print(f"Folder = {output_folder}")
+            
+        return use_default_rotor_bezier, use_default_stator_bezier, adjust_rotor_thickness, adjust_rotor_angle, adjust_stator_thickness, adjust_stator_angle, \
+        output_folder, levels, nrow, show_section_plot, show_angle_distribution_plots, enable_bleed_air, rotor_patches_data, stator_patches_data, \
+        inlet_area, inlet_dist, outlet_area, outlet_dist   
 
     except FileNotFoundError:
         print("File not found. Please ensure the Setting.txt exists.")
@@ -2763,6 +2954,11 @@ def adjustBezierCurve_beta(BezierPoints):
 
     print(f"New Bézier Point: {beta}")
     return BezierPoints
+
+
+
+#Area change due to the rotor
+
 
 #area to change rotor:
 length = []

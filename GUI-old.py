@@ -3,6 +3,8 @@ from tkinter import ttk
 from tkinter import *
 from tkinter import filedialog
 
+
+
 def render_gui():
     
     window = tk.Tk()
@@ -31,7 +33,7 @@ def render_gui():
 def oneD_Gui():
     global entries
 
-    read_initial_values('Thermo_Initial_Values.txt')
+
 
     root = tk.Tk()
     root.title("Thermodynamic Initial Values")

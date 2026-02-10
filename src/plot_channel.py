@@ -8,7 +8,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-from Cubspline_function import cubspline
+from Cubspline_function_v2 import cubspline
 
 Pi = math.pi
 

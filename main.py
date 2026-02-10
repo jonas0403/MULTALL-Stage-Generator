@@ -75,3 +75,24 @@ use_default_rotor_bezier, use_default_stator_bezier, adjust_rotor_thickness, adj
 channel calculation
 '''
 x_values, r_values, m_prime_values, x0 = channel(h_H,stage, float(inlet_area), float(inlet_dist), float(outlet_area), float(outlet_dist), fixed_radius_type)
+
+
+
+
+'''
+Possibly not used
+'''
+#area to change rotor:
+length = []
+h = [0.0 , 0.2, 0.5, 0.8, 1.0]
+row = 1
+for k in range(len(h)):
+    i = h[k]
+    chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
+    length.append(chord)
+
+if use_default_rotor_bezier == 1:
+    bezier_control_points("bezier_control_points_R.txt", 1, beta_blade_R_in, beta_blade_R_out, length)
+
+if use_default_stator_bezier == 1:
+    bezier_control_points("bezier_control_points_S.txt", 2, beta_blade_S_in, beta_blade_S_out, length)

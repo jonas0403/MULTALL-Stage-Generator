@@ -1,0 +1,1 @@
+output_folder = C:/Users/Luca1/sciebo/Geometriegenerator/Studenten/deFrancesco/Analyse/Profil 2 mit Spalt 1,8mm

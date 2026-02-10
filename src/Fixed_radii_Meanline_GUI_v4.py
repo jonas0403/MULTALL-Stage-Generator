@@ -25,7 +25,7 @@ os.chdir(scriptpath)
 from Thermodynamic_calc_GUI import Thermo
 from plot_channel import plot_channel
 from Functions_losses import xi_ac_pro, xi_ac_te, xi_a_cl, xi_ac_inc, xi_a_sec, xi_ac_ma, diffusion, angle_blade_in, angle_blade_out, Re 
-from Cubspline_function import cubspline
+from Cubspline_function_v2 import cubspline
 
 Pi = math.pi
 
@@ -532,7 +532,7 @@ def run_diameter_gui(i_st):
         
     # Read Initial Data from File
     initial_data = read_diameter(SETTINGS_FILE)    
-    app = diameter_gui(root, i_st, on_close, initial_data)
+    diameter_gui(root, i_st, on_close, initial_data)
     root.mainloop()
     print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type={fixed_radius_type}, plot_channel_contour={plot_channel_contour}")
     return D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour

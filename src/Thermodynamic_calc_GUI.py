@@ -7,7 +7,9 @@ import math
 import tkinter as tk
 import os
 import sys
+
 from tkinter import ttk
+from pathlib import Path
 
 wdpath = os.getcwd()
    
@@ -15,9 +17,11 @@ wdpath = os.getcwd()
 
 scriptpath = os.path.dirname(sys.argv[0])
 
+current_dir = Path(__file__).parent.parent
+static_folder = current_dir/ "static"
+
 #print(scriptpath)
 os.chdir(scriptpath)
-
 
 def read_initial_values(filename):
     global p_t_in, T_t_in, mflow, R, cp, TPR
@@ -36,11 +40,13 @@ def read_initial_values(filename):
                 cp = float(line[5:])
             elif line.startswith('TPR = '):
                 TPR = float(line[6:])
+                
+
 
 def create_gui():
     global entries
 
-    read_initial_values('Thermo_Initial_Values.txt')
+    read_initial_values(static_folder / 'Thermo_Initial_Values.txt')
 
     root = tk.Tk()
     root.title("Thermodynamic Initial Values")
@@ -70,7 +76,7 @@ def create_gui():
             for var_name in entries.keys():
                 globals()[var_name] = float(entries[var_name][0].get())
             
-            with open('Thermo_Initial_Values.txt', 'w') as file:
+            with open(static_folder / 'Thermo_Initial_Values.txt', 'w') as file:
                 file.write(f"p_t_in = {p_t_in}\n")
                 file.write(f"T_t_in = {T_t_in}\n")
                 file.write(f"mflow = {mflow}\n")
@@ -89,7 +95,8 @@ def create_gui():
 def Thermo(GUI_On):
     global p_t_in, T_t_in, mflow, R, cp, TPR
 
-    read_initial_values('Thermo_Initial_Values.txt')
+    
+    read_initial_values(static_folder / 'Thermo_Initial_Values.txt')
     if GUI_On == 1:
         create_gui()
 
@@ -215,5 +222,5 @@ def Thermo(GUI_On):
     
     return mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, TPR
 
-if __name__ == "__main__":
-    results = Thermo(GUI_On = 1)
+#if __name__ == "__main__":
+    #results = Thermo(GUI_On = 1)
