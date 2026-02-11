@@ -12,7 +12,7 @@ from tkinter import ttk, filedialog, Label, Toplevel
 from pathlib import Path
 #from matplotlib.widgets import Slider
 
-from Stage_v3_working_with_bleedair import create_default_profiles, run_main_logic, calculation_of_section
+#from Stage_v3_working_with_bleedair import create_default_profiles, calculation_of_section
 from Cubspline_function_v2 import cubspline
 from Thermodynamic_calc_GUI import Thermo
 
@@ -46,7 +46,7 @@ class CompressorGui:
     def zeroD_tab(self, window):
             ttk.Label(window, text="This is the 0D Settings tab").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
             ### Thermodynamic Parameters Tab
-            global entries
+           
 
             read_initial_values(static_folder/ "Thermo_Initial_Values.txt")
 
@@ -68,28 +68,42 @@ class CompressorGui:
 
             def save_and_initialize():
                 try:
+                    current_values_thermo = {}
                     for var_name in entries.keys():
-                        globals()[var_name] = float(entries[var_name][0].get())
+                        val = float(entries[var_name][0].get())
+                        globals()[var_name] = val
+                        current_values_thermo[var_name] = val
                 
                     with open('Thermo_Initial_Values.txt', 'w') as file:
-                        file.write(f"p_t_in = {p_t_in}\n")
-                        file.write(f"T_t_in = {T_t_in}\n")
-                        file.write(f"mflow = {mflow}\n")
-                        file.write(f"R = {R}\n")
-                        file.write(f"cp = {cp}\n")
-                        file.write(f"TPR = {TPR}\n")
-
+                        file.write(f"p_t_in = {current_values_thermo['p_t_in']}\n")
+                        file.write(f"T_t_in = {current_values_thermo['T_t_in']}\n")
+                        file.write(f"mflow = {current_values_thermo['mflow']}\n")
+                        file.write(f"R = {current_values_thermo['R']}\n")
+                        file.write(f"cp = {current_values_thermo['cp']}\n")
+                        file.write(f"TPR = {current_values_thermo['TPR']}\n")
+                        
                     print("Parameters saved and initialized.")
+                    
+                    self.Thermodata =  Thermo(
+                        current_values_thermo['p_t_in'],
+                        current_values_thermo['T_t_in'],
+                        current_values_thermo['mflow'],
+                        current_values_thermo['R'],
+                        current_values_thermo['cp'],
+                        current_values_thermo['TPR']
+                    )
+                    print("Calculation of Thermodynamic Data completed.") 
                 except ValueError:
                     print("Please enter valid numbers for all conditions.")
                     
-                self.Thermodata =  Thermo(p_t_in, T_t_in, mflow, R, cp, TPR)
+                
                 
 
-            ttk.Button(window, text="Save and Initialize Parameters", command=save_and_initialize).grid(row=len(params)+1, column=0, columnspan=2, pady=10)       
+            ttk.Button(window, text="Save and Initialize Parameters", command=save_and_initialize).grid(row=len(params)+1, column=0, columnspan=2, pady=10)
+            save_and_initialize()       
             
 
-    def oneD_tab(self, i_st_val):
+    def oneD_tab(self, window, i_st_val):
             
         '''
         Define Names for Settings.json and Lockfile
@@ -121,12 +135,12 @@ class CompressorGui:
         # Create reverse mapping
         gui_to_var_map = {v: k for k, v in var_name_to_gui_map.items()}
         
-        LOCK_FILE = 'static/settings.lock'
-        SETTINGS_FILE = 'static/Diameter_Values.txt'
+        LOCK_FILE = static_folder/"settings.lock"
+        SETTINGS_FILE = static_folder/"Diameter_Values.txt"
 
 
 
-        ttk.Label(self, text="This is the meanline Settings tab").grid
+        ttk.Label(window, text="This is the meanline Settings tab").grid
         
         
     
@@ -186,7 +200,7 @@ class CompressorGui:
                     messagebox.showerror("Error", f"An unexpected error occurred: {e}")
                 
                 
-            def update_default_diameters(*args):
+            def update_default_diameters(args):
                 # This function is called when the fixed_radius_type changes
                 current_type = type_var.get()
                 default_val = "0.508" # Default for shroud/hub, adjust as needed
@@ -711,9 +725,9 @@ class CompressorGui:
 
         def create_gui():
             global entries
-            read_initial_values(static_folder/ "Thermo_Initial_Values.txt")
+            read_initial_values(static_folder/ "Meanline_Initial_Values.txt")
 
-            root = self
+            root = window
             
             #ttk.Label(root, text="Meanline Parameter Initialization").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
             #root.Label(self, text="Meanline Parameter Initialization").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
@@ -770,7 +784,7 @@ class CompressorGui:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
 
             ttk.Button(root, text="Save and Initialize Parameters", command=save_and_initialize).pack(pady=10)
-            ttk.Button(root, text="Change the Channelcontour", command=run_diameter_gui).pack(pady=10)
+            ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val)).pack(pady=10)
 
         
         
@@ -1192,7 +1206,7 @@ class CompressorGui:
         notebook.add(grid, text="Grid-Settings")
         notebook.add(other, text="Other-Settings")
         
-        self.zeroD_tab(self, zeroD)
+        self.zeroD_tab(zeroD)
         self.oneD_tab(oneD, i_st_val = 3,)
         #threeD_tab(threeD)
         
@@ -1243,4 +1257,4 @@ class Tooltip:
     
 if __name__ == "__main__":
     my_gui = CompressorGui()
-    my_gui.render_gui(my_gui)
+    my_gui.render_gui()
