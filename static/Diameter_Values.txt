@@ -1,0 +1,5 @@
+Fixed Radius Typ = mean
+D_f1 = [0.51, 0.51, 0.51]
+D_f2 = [0.51, 0.51, 0.51]
+D_f3 = [0.51, 0.51, 0.51]
+Plot Channel Contour = True
