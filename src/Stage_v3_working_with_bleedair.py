@@ -16,9 +16,8 @@ from matplotlib.widgets import Slider
 import tkinter as tk
 from tkinter import ttk, filedialog, Label, Toplevel
 
-
-from Fixed_radii_Meanline_GUI_v4 import meanline 
 from Cubspline_function_v2 import cubspline
+from Fixed_radii_Meanline_GUI_v4 import meanline 
 from Radial_equilibrium import radial_equilibrium_R, radial_equilibrium_S
 from Bezier_curve import bezier
 from Interpolation import intpol, intp_new
@@ -44,22 +43,6 @@ LOCK_FILE = 'settings.lock'
 h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
 LE_shift = 0.025
 Pi = math.pi
-
-# define grid size
-JM = 111
-JLE = 26
-JTE = 96
-
-
-# values from meanline calculation
-mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, l_R, l_S, l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, z_R, z_S, beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, fixed_radius_type = meanline(GUI_On=1)
-
-# values from radial equilibrium
-h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
-h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
-
-
-
 
 
 #Radial distribution of Temperature:
@@ -288,6 +271,28 @@ def save_profile(source_filename):
 
 def run_main_logic(settings):
     
+    global mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3
+    global D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3
+    global cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, l_R, l_S
+    global l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, z_R, z_S
+    global beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, fixed_radius_type
+    global h_rel, l_S_rad, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S
+    global l_R_rad, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
+
+    results_meanline = meanline(GUI_On=0)
+
+    (mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3, 
+    D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, 
+    cm1, cm2, cm3, delta_h_t, l_R, l_S, l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, 
+    z_R, z_S, beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, 
+    fixed_radius_type) = results_meanline
+
+    # values from radial equilibrium
+    h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
+    h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
+    print("Successfully calculated meanline and radial equilibrium")
+
+    
     # Benötigte Parameter aus settings extrahieren
     #Settings = read_parameters_from_file('Settings.txt')
     main_choice = settings.get('main_choice', 'default')
@@ -367,13 +372,183 @@ def run_main_logic(settings):
                 file.write("\n")
                 file.write("m* for all levels:\n")
                 file.write("0.0,0.0,0.0,0.0,0.0\n0.3,0.3,0.3,0.3,0.3\n0.7,0.7,0.7,0.7,0.7\n1.0,1.0,1.0,1.0,1.0\n")  
-                
+            
+            channel(results_meanline)    
             print(f"Veränderungen wurden gespeichert in {bcp_file}")
             save_profile(bcp_file)
+            
                               
         except(IOError, IndexError, ValueError) as e:
             print(f"Error {e}")
-            return                                                          
+            return  
+    
+    #area to change rotor:
+# length = []
+# h = [0.0 , 0.2, 0.5, 0.8, 1.0]
+# row = 1
+# for k in range(len(h)):
+#     i = h[k]
+#     chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
+#     length.append(chord)
+
+# #print(f"chordlength of 5 segments of rotor (approx):{length}")
+
+
+# if use_default_rotor_bezier == 1:
+#     bezier_control_points("bezier_control_points_R.txt", 1, beta_blade_R_in, beta_blade_R_out, length)
+
+# if use_default_stator_bezier == 1:
+#     bezier_control_points("bezier_control_points_S.txt", 2, beta_blade_S_in, beta_blade_S_out, length)
+
+
+
+
+
+# #metal angle Bezierpoint for the new rotor design: 
+# beta_S_BP_R_new = [[] for _ in range(5)]
+# d_l_BP_R_new = [[] for _ in range(5)]
+
+# with open('bezier_control_points_R.txt', 'r') as file:
+#     beta_S_read = [[] for _ in range(4)] 
+#     d_l_read = [[] for _ in range(4)]  
+
+#     csv_reader = csv.reader(file)
+    
+#     # Skip all non-relevant lines (descriptive text)
+#     for row in csv_reader:
+#         if row and row[0].strip().startswith("1st to 4th control points for beta_S"):
+#             break
+
+#     # Read the next 4 rows for beta_S (control points)
+#     for i in range(4):
+#         row = next(csv_reader)
+#         beta_S_read[i] = [float(val) for val in row]
+
+#     for i in range(5):
+#         beta_S_BP_R_new[i] = [beta_S_read[0][i], beta_S_read[1][i], beta_S_read[2][i], beta_S_read[3][i]]
+
+#     # Skip until reaching d/l section
+#     for row in csv_reader:
+#         if row and row[0].strip().startswith("1st to 4th control points for d/l"):
+#             break
+
+#     # Read the next 4 rows for d/l (control points)
+#     for i in range(4):
+#         row = next(csv_reader)
+#         d_l_read[i] = [float(val) for val in row]
+
+#     for i in range(5):
+#         d_l_BP_R_new[i] = [d_l_read[0][i], d_l_read[1][i], d_l_read[2][i], d_l_read[3][i]]
+
+# if adjust_rotor_thickness == 1:
+#     for i in range(5):
+#         d_l_BP_R_new[i] = adjustBezierCurve_d(d_l_BP_R_new[i], length[i])
+
+# if adjust_rotor_angle == 1:
+#     for i in range(5):
+#         beta_S_BP_R_new[i] = adjustBezierCurve_beta(beta_S_BP_R_new[i])
+
+# with open('bezier_control_points_R.txt', "w+") as file:
+#     file.write("For each level h/H = [0, 0.2, 0.5, 0.8, 1.0], there are four control points for the blade angle beta_S and the thickness d/l. The first and last control points for the blade angle beta_S are determined by radial equilibrium.\n\n")
+
+#     file.write("1st to 4th control points for beta_S for all levels:\n")
+#     for i in range(4):
+#         file.write(f"{beta_S_BP_R_new[0][i]},{beta_S_BP_R_new[1][i]},{beta_S_BP_R_new[2][i]},{beta_S_BP_R_new[3][i]},{beta_S_BP_R_new[4][i]}\n")
+
+#     file.write("\n")
+#     file.write("1st to 4th control points for d/l for all levels:\n")
+
+#     for i in range(4):
+#         file.write(f"{d_l_BP_R_new[0][i]},{d_l_BP_R_new[1][i]},{d_l_BP_R_new[2][i]},{d_l_BP_R_new[3][i]},{d_l_BP_R_new[4][i]}\n")
+                    
+#     file.write("\n")
+#     file.write("m* for all levels:\n")
+    
+#     file.write("0.0, 0.0, 0.0, 0.0, 0.0\n")
+#     file.write("0.3, 0.3, 0.3, 0.3, 0.3\n")
+#     file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
+#     file.write("1.0, 1.0, 1.0, 1.0, 1.0\n")
+    
+
+#     # area to change stator:
+#     length = []
+#     row = 2
+#     for k in range(len(h)):
+#         i = h[k]
+#         chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
+#         length.append(chord)
+
+#     #print(f"Chordlength of 5 segments of stator (approx):{length}")
+
+#     #metal angle Bezierpoint for the new stator design: 
+#     beta_S_BP_S_new = [[] for _ in range(5)]
+#     d_l_BP_S_new = [[] for _ in range(5)]
+
+#     with open('bezier_control_points_S.txt', 'r') as file:
+#         beta_S_read = [[] for _ in range(4)] 
+#         d_l_read = [[] for _ in range(4)]  
+
+#         csv_reader = csv.reader(file)
+        
+#         # Skip all non-relevant lines (descriptive text)
+#         for row in csv_reader:
+#             if row and row[0].strip().startswith("1st to 4th control points for alpha_S"):
+#                 break
+
+#         # Read the next 4 rows for beta_S (control points)
+#         for i in range(4):
+#             row = next(csv_reader)
+#             beta_S_read[i] = [float(val) for val in row]
+
+#         for i in range(5):
+#             beta_S_BP_S_new[i] = [beta_S_read[0][i], beta_S_read[1][i], beta_S_read[2][i], beta_S_read[3][i]]
+
+#         # Skip until reaching d/l section
+#         for row in csv_reader:
+#             if row and row[0].strip().startswith("1st to 4th control points for d/l"):
+#                 break
+
+#         # Read the next 4 rows for d/l (control points)
+#         for i in range(4):
+#             row = next(csv_reader)
+#             d_l_read[i] = [float(val) for val in row]
+
+#         for i in range(5):
+#             d_l_BP_S_new[i] = [d_l_read[0][i], d_l_read[1][i], d_l_read[2][i], d_l_read[3][i]]
+
+#     if adjust_stator_thickness == 1:
+#         for i in range(5):
+#             d_l_BP_S_new[i] = adjustBezierCurve_d(d_l_BP_S_new[i], length[i])
+
+#     if adjust_stator_angle == 1:
+#         for i in range(5):
+#             beta_S_BP_S_new[i] = adjustBezierCurve_beta(beta_S_BP_S_new[i])
+
+#     with open('bezier_control_points_S.txt', "w+") as file:
+#         file.write("For each level h/H = [0, 0.2, 0.5, 0.8, 1.0], there are four control points for the blade angle beta_S and the thickness d/l. The first and last control points for the blade angle beta_S are determined by radial equilibrium.\n\n")
+
+#         file.write("1st to 4th control points for alpha_S for all levels:\n")
+#         for i in range(4):
+#             file.write(f"{beta_S_BP_S_new[0][i]},{beta_S_BP_S_new[1][i]},{beta_S_BP_S_new[2][i]},{beta_S_BP_S_new[3][i]},{beta_S_BP_S_new[4][i]}\n")
+
+#         file.write("\n")
+#         file.write("1st to 4th control points for d/l for all levels:\n")
+
+#         for i in range(4):
+#             file.write(f"{d_l_BP_S_new[0][i]},{d_l_BP_S_new[1][i]},{d_l_BP_S_new[2][i]},{d_l_BP_S_new[3][i]},{d_l_BP_S_new[4][i]}\n")
+                        
+#         file.write("\n")
+#         file.write("m* for all levels:\n")
+        
+#         file.write("0.0, 0.0, 0.0, 0.0, 0.0\n")
+#         file.write("0.3, 0.3, 0.3, 0.3, 0.3\n")
+#         file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
+#         file.write("1.0, 1.0, 1.0, 1.0, 1.0\n")
+
+#     # 0: all sections or any number between 1 and NSECS
+#     section = 0   
+#     print(f"rotor_patches = {rotor_patches_data}")
+                                                           
 
 
 # general values, ellipis of LE and TE
@@ -2350,10 +2525,11 @@ class CompressorGUI:
 
         print("Parameters saved successfully.")
 
-
-root = tk.Tk() 
-app = CompressorGUI(root) 
-root.mainloop()
+if __name__ == "__main__":
+    
+    root = tk.Tk() 
+    app = CompressorGUI(root) 
+    root.mainloop()
 
 
 
@@ -2485,7 +2661,7 @@ NROW = nrow
 
 # values from channel calculation
 global x_values, r_values, m_prime_values, x0 
-x_values, r_values, m_prime_values, x0 = channel(h_H,stage, float(inlet_area), float(inlet_dist), float(outlet_area), float(outlet_dist), fixed_radius_type)
+#x_values, r_values, m_prime_values, x0 = channel(h_H,stage, float(inlet_area), float(inlet_dist), float(outlet_area), float(outlet_dist), fixed_radius_type)
 
 path = output_folder
 
@@ -2957,232 +3133,65 @@ def adjustBezierCurve_beta(BezierPoints):
 
 
 
-#Area change due to the rotor
-
-
-#area to change rotor:
-length = []
-h = [0.0 , 0.2, 0.5, 0.8, 1.0]
-row = 1
-for k in range(len(h)):
-    i = h[k]
-    chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
-    length.append(chord)
-
-#print(f"chordlength of 5 segments of rotor (approx):{length}")
-
-
-if use_default_rotor_bezier == 1:
-    bezier_control_points("bezier_control_points_R.txt", 1, beta_blade_R_in, beta_blade_R_out, length)
-
-if use_default_stator_bezier == 1:
-    bezier_control_points("bezier_control_points_S.txt", 2, beta_blade_S_in, beta_blade_S_out, length)
-
-
-
-
-
-#metal angle Bezierpoint for the new rotor design: 
-beta_S_BP_R_new = [[] for _ in range(5)]
-d_l_BP_R_new = [[] for _ in range(5)]
-
-with open('bezier_control_points_R.txt', 'r') as file:
-    beta_S_read = [[] for _ in range(4)] 
-    d_l_read = [[] for _ in range(4)]  
-
-    csv_reader = csv.reader(file)
-    
-    # Skip all non-relevant lines (descriptive text)
-    for row in csv_reader:
-        if row and row[0].strip().startswith("1st to 4th control points for beta_S"):
-            break
-
-    # Read the next 4 rows for beta_S (control points)
-    for i in range(4):
-        row = next(csv_reader)
-        beta_S_read[i] = [float(val) for val in row]
-
-    for i in range(5):
-        beta_S_BP_R_new[i] = [beta_S_read[0][i], beta_S_read[1][i], beta_S_read[2][i], beta_S_read[3][i]]
-
-    # Skip until reaching d/l section
-    for row in csv_reader:
-        if row and row[0].strip().startswith("1st to 4th control points for d/l"):
-            break
-
-    # Read the next 4 rows for d/l (control points)
-    for i in range(4):
-        row = next(csv_reader)
-        d_l_read[i] = [float(val) for val in row]
-
-    for i in range(5):
-        d_l_BP_R_new[i] = [d_l_read[0][i], d_l_read[1][i], d_l_read[2][i], d_l_read[3][i]]
-
-if adjust_rotor_thickness == 1:
-    for i in range(5):
-        d_l_BP_R_new[i] = adjustBezierCurve_d(d_l_BP_R_new[i], length[i])
-
-if adjust_rotor_angle == 1:
-    for i in range(5):
-        beta_S_BP_R_new[i] = adjustBezierCurve_beta(beta_S_BP_R_new[i])
-
-with open('bezier_control_points_R.txt', "w+") as file:
-    file.write("For each level h/H = [0, 0.2, 0.5, 0.8, 1.0], there are four control points for the blade angle beta_S and the thickness d/l. The first and last control points for the blade angle beta_S are determined by radial equilibrium.\n\n")
-
-    file.write("1st to 4th control points for beta_S for all levels:\n")
-    for i in range(4):
-        file.write(f"{beta_S_BP_R_new[0][i]},{beta_S_BP_R_new[1][i]},{beta_S_BP_R_new[2][i]},{beta_S_BP_R_new[3][i]},{beta_S_BP_R_new[4][i]}\n")
-
-    file.write("\n")
-    file.write("1st to 4th control points for d/l for all levels:\n")
-
-    for i in range(4):
-        file.write(f"{d_l_BP_R_new[0][i]},{d_l_BP_R_new[1][i]},{d_l_BP_R_new[2][i]},{d_l_BP_R_new[3][i]},{d_l_BP_R_new[4][i]}\n")
-                    
-    file.write("\n")
-    file.write("m* for all levels:\n")
-    
-    file.write("0.0, 0.0, 0.0, 0.0, 0.0\n")
-    file.write("0.3, 0.3, 0.3, 0.3, 0.3\n")
-    file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
-    file.write("1.0, 1.0, 1.0, 1.0, 1.0\n")
-    
-
-# area to change stator:
-length = []
-row = 2
-for k in range(len(h)):
-    i = h[k]
-    chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
-    length.append(chord)
-
-#print(f"Chordlength of 5 segments of stator (approx):{length}")
-
-#metal angle Bezierpoint for the new stator design: 
-beta_S_BP_S_new = [[] for _ in range(5)]
-d_l_BP_S_new = [[] for _ in range(5)]
-
-with open('bezier_control_points_S.txt', 'r') as file:
-    beta_S_read = [[] for _ in range(4)] 
-    d_l_read = [[] for _ in range(4)]  
-
-    csv_reader = csv.reader(file)
-    
-    # Skip all non-relevant lines (descriptive text)
-    for row in csv_reader:
-        if row and row[0].strip().startswith("1st to 4th control points for alpha_S"):
-            break
-
-    # Read the next 4 rows for beta_S (control points)
-    for i in range(4):
-        row = next(csv_reader)
-        beta_S_read[i] = [float(val) for val in row]
-
-    for i in range(5):
-        beta_S_BP_S_new[i] = [beta_S_read[0][i], beta_S_read[1][i], beta_S_read[2][i], beta_S_read[3][i]]
-
-    # Skip until reaching d/l section
-    for row in csv_reader:
-        if row and row[0].strip().startswith("1st to 4th control points for d/l"):
-            break
-
-    # Read the next 4 rows for d/l (control points)
-    for i in range(4):
-        row = next(csv_reader)
-        d_l_read[i] = [float(val) for val in row]
-
-    for i in range(5):
-        d_l_BP_S_new[i] = [d_l_read[0][i], d_l_read[1][i], d_l_read[2][i], d_l_read[3][i]]
-
-if adjust_stator_thickness == 1:
-    for i in range(5):
-        d_l_BP_S_new[i] = adjustBezierCurve_d(d_l_BP_S_new[i], length[i])
-
-if adjust_stator_angle == 1:
-    for i in range(5):
-        beta_S_BP_S_new[i] = adjustBezierCurve_beta(beta_S_BP_S_new[i])
-
-with open('bezier_control_points_S.txt', "w+") as file:
-    file.write("For each level h/H = [0, 0.2, 0.5, 0.8, 1.0], there are four control points for the blade angle beta_S and the thickness d/l. The first and last control points for the blade angle beta_S are determined by radial equilibrium.\n\n")
-
-    file.write("1st to 4th control points for alpha_S for all levels:\n")
-    for i in range(4):
-        file.write(f"{beta_S_BP_S_new[0][i]},{beta_S_BP_S_new[1][i]},{beta_S_BP_S_new[2][i]},{beta_S_BP_S_new[3][i]},{beta_S_BP_S_new[4][i]}\n")
-
-    file.write("\n")
-    file.write("1st to 4th control points for d/l for all levels:\n")
-
-    for i in range(4):
-        file.write(f"{d_l_BP_S_new[0][i]},{d_l_BP_S_new[1][i]},{d_l_BP_S_new[2][i]},{d_l_BP_S_new[3][i]},{d_l_BP_S_new[4][i]}\n")
-                    
-    file.write("\n")
-    file.write("m* for all levels:\n")
-    
-    file.write("0.0, 0.0, 0.0, 0.0, 0.0\n")
-    file.write("0.3, 0.3, 0.3, 0.3, 0.3\n")
-    file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
-    file.write("1.0, 1.0, 1.0, 1.0, 1.0\n")
-
-# 0: all sections or any number between 1 and NSECS
-section = 0   
-print(f"rotor_patches = {rotor_patches_data}")
-create_multall_dat(NROW, section, levels, rotor_patches_data, stator_patches_data)
-
 # section to create a plot of geometry, blade angle and thickniss distribution 
-if show_section_plot == 1:
-    length = []
-    row = 1
-    for k in range(len(h)):
-            h = [0.0 , 0.2, 0.5, 0.8, 1.0]
-            farben = ["pink", "blue", "green", "red", "black"]
-            i = h[k]
-            chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
-            plt.plot(m_star_u, R_theta_s_star_u, color = farben[k], label = f"{h[k]*100}%")
-            plt.plot(m_star_l, R_theta_s_star_l, color = farben[k])
-            plt.legend()  
-
-     
-    if NROW == 2:    
-        length = []
-        row = 2
-        for k in range(len(h)):
-            h = [0.0 , 0.2, 0.5, 0.8, 1.0]
-            farben = ["pink", "blue", "green", "red", "black"]
-            i = h[k]
-            chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
-            #length.append(chord)
-            plt.plot(m_star_u, R_theta_s_star_u, color = farben[k], label = f"{h[k]*100}%")
-            plt.plot(m_star_l, R_theta_s_star_l, color = farben[k])
+def show_plots():
+    global z_R, l_R, l_S, i_st, show_section_plot, show_angle_distribution_plots
+    global length, row, h, farben
     
-    plt.xlabel("x [mm]")
-    plt.ylabel("R\u03b8 [mm]") 
-             
-    plt.show()
-
-if show_angle_distribution_plots == 1:
-    row = 1
-    for k in range(len(h)):
-            h = [0.0 , 0.2, 0.5, 0.8, 1.0]
-            farben = ["pink", "blue", "green", "red", "black"]
-            i = h[k]
-            chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
-            plt.plot(m_prime, beta_S, label = f"{h[k]*100}%", color = farben[k])
-            plt.scatter(m_BP, beta_BP, color = farben[k])
-            plt.legend() 
-     
-    if NROW == 2:    
+    if show_section_plot == 1:
         length = []
-        row = 2
+        row = 1
         for k in range(len(h)):
-            h = [0.0 , 0.2, 0.5, 0.8, 1.0]
-            farben = ["pink", "blue", "green", "red", "black"]
-            i = h[k]
-            chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
-            plt.plot(m_prime, beta_S, label = f"{h[k]*100}%", color = farben[k])
-            plt.scatter(m_BP, beta_BP, color = farben[k])
-             
+                h = [0.0 , 0.2, 0.5, 0.8, 1.0]
+                farben = ["pink", "blue", "green", "red", "black"]
+                i = h[k]
+                chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
+                plt.plot(m_star_u, R_theta_s_star_u, color = farben[k], label = f"{h[k]*100}%")
+                plt.plot(m_star_l, R_theta_s_star_l, color = farben[k])
+                plt.legend()  
 
-    plt.xlabel('x/s [%]')
-    plt.ylabel("blade angle [°]")           
-    plt.show()
+        
+        if NROW == 2:    
+            length = []
+            row = 2
+            for k in range(len(h)):
+                h = [0.0 , 0.2, 0.5, 0.8, 1.0]
+                farben = ["pink", "blue", "green", "red", "black"]
+                i = h[k]
+                chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
+                #length.append(chord)
+                plt.plot(m_star_u, R_theta_s_star_u, color = farben[k], label = f"{h[k]*100}%")
+                plt.plot(m_star_l, R_theta_s_star_l, color = farben[k])
+        
+        plt.xlabel("x [mm]")
+        plt.ylabel("R\u03b8 [mm]") 
+                
+        plt.show()
+
+    if show_angle_distribution_plots == 1:
+        row = 1
+        for k in range(len(h)):
+                h = [0.0 , 0.2, 0.5, 0.8, 1.0]
+                farben = ["pink", "blue", "green", "red", "black"]
+                i = h[k]
+                chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
+                plt.plot(m_prime, beta_S, label = f"{h[k]*100}%", color = farben[k])
+                plt.scatter(m_BP, beta_BP, color = farben[k])
+                plt.legend() 
+        
+        if NROW == 2:    
+            length = []
+            row = 2
+            for k in range(len(h)):
+                h = [0.0 , 0.2, 0.5, 0.8, 1.0]
+                farben = ["pink", "blue", "green", "red", "black"]
+                i = h[k]
+                chord, m_star, R_theta_s_star, m_star_u, R_theta_s_star_u, m_star_l, R_theta_s_star_l, m_prime, m_prime_u, m_prime_l, m_BP, beta_S, beta_BP, d_l, d_l_BP, R_theta_s_prime, R_theta_s_prime_u, R_theta_s_prime_l, Rtet_prime_cntr, R_theta_s_prime_2, R_theta_s_prime_2_l, R_theta_s_prime_2_u, R_theta_s_star_2, R_theta_s_star_l_2, R_theta_s_star_u_2 = calculation_of_section(i, row)
+                plt.plot(m_prime, beta_S, label = f"{h[k]*100}%", color = farben[k])
+                plt.scatter(m_BP, beta_BP, color = farben[k])
+                
+
+        plt.xlabel('x/s [%]')
+        plt.ylabel("blade angle [°]")           
+        plt.show()
 

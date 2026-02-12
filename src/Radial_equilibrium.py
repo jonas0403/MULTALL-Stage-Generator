@@ -12,7 +12,7 @@ Pi = math.pi
 
 
 from Functions_losses import  angle_blade_in, angle_blade_out 
-from Fixed_radii_Meanline_GUI_v4 import meanline
+
 
 
 
@@ -77,12 +77,8 @@ def rad_eq_cu(appr, position, r, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref, Dh
 
     return cu
 
-
-# values from meanline calculation
-mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, l_R, l_S, l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, z_R, z_S, beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, fixed_radius_type = meanline(GUI_On=1)
-
 #calculation of reference valuess
-def references(stage):
+def references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3):
     cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = [], [], [], [], []
     for cu_list in [cu1, cu2, cu3]:
         cu_ref_in.append(cu_list[stage-1]) 
@@ -107,7 +103,7 @@ def references(stage):
 def radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3):
     
     h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
-    D_m1, D_m2, D_m3, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = references(stage)
+    cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3)
     
     dh = 0.05
     h_rel = np.arange(0.0, 1.0 + dh, dh)

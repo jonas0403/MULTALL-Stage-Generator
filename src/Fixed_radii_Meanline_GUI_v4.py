@@ -1,4 +1,4 @@
-# Author: Jonas Scholz
+# Author: Jonas Scholz (modified by Luca De Francesco)
 # Based on Code by Marco Wiens
 # Version: 17.07.2025
 # Meanline calculation 1-Dimensional
@@ -22,18 +22,15 @@ wdpath = os.getcwd()
 scriptpath = os.path.dirname(sys.argv[0])
 os.chdir(scriptpath)
 
-from Thermodynamic_calc_GUI import Thermo
+#from Thermodynamic_calc_GUI import Thermo
 from plot_channel import plot_channel
 from Functions_losses import xi_ac_pro, xi_ac_te, xi_a_cl, xi_ac_inc, xi_a_sec, xi_ac_ma, diffusion, angle_blade_in, angle_blade_out, Re 
 from Cubspline_function_v2 import cubspline
 
 Pi = math.pi
 
-
-
-# from OD-Thermo:
-mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR = Thermo(GUI_On = 1)
-
+# from OD-Thermo: 
+# GUI 
 parameters_sections = {
     'General Parameters': ['n', 'psi_h', 'phi_1', 'phi_2', 'phi_3'],
     'Rotor Parameters': ['z_R', 'l_R', 'd_R_l_R', 'd_Cl_R', 'd_TE_R', 'incidence_R'],
@@ -696,7 +693,7 @@ def create_gui():
 
     root.mainloop()
 
-def meanline(GUI_On):
+def meanline(GUI_On, thermo_data=None):
        
     global n,  psi_h, phi_1, phi_2, phi_3
     global z_R, l_R, d_R_l_R, d_Cl_R, d_TE_R, incidence_R
@@ -707,6 +704,23 @@ def meanline(GUI_On):
     D_f2 = None
     D_f3 = None
     plot_channel_contour = None
+    
+    if thermo_data is not None:
+        print("No thermo_data provided. Please enter the required thermodynamic data.")
+
+        try:
+            (mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR) = thermo_data
+            
+            if kappa is None or kappa == 0:
+                    kappa = cp / (cp - R)
+        except ValueError as e:
+            print(f"Error in thermo_data: {e}")
+            from Thermodynamic_calc_GUI import Thermo
+            mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR = Thermo()
+    else:
+        print("No thermo_data provided. Please enter the required thermodynamic data through the GUI.")
+        from Thermodynamic_calc_GUI import Thermo
+        mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR = Thermo()
 
     read_initial_values("Meanline_Initial_Values.txt")
     

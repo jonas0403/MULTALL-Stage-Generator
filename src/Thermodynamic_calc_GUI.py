@@ -92,11 +92,11 @@ def create_gui():
 
     root.mainloop()
     
-def Thermo(GUI_On):
-    global p_t_in, T_t_in, mflow, R, cp, TPR
+def Thermo(p_t_in=None, T_t_in=None, mflow=None, R=None, cp=None, TPR=None, GUI_On=0):
+    #global p_t_in, T_t_in, mflow, R, cp, TPR
 
     
-    read_initial_values(static_folder / 'Thermo_Initial_Values.txt')
+    #read_initial_values(static_folder / 'Thermo_Initial_Values.txt')
     if GUI_On == 1:
         create_gui()
 

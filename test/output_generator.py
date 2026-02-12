@@ -82,6 +82,21 @@ def grid_adaption(grid_count, max=20, beta=2 ): # Erstellung von Gridabständen 
     
     return scaled_spacings
 
+def create_bleed_air_card(NROW, file, rotor_data, stator_data):
+    print(f"file={file}")
+    with open(file, "a") as file:
+        if len(rotor_data) != 0 or len(stator_data) != 0:
+            file.write("NBLEED\n")
+            file.write(f"{len(rotor_data)}\n")
+            for patches in rotor_data:
+                file.write('\t'.join(patches)+ '\n')
+            # Write Stator Bleedair Patches in NROW != 1
+            if NROW != 1:
+                file.write("NBLEED\n")
+                file.write(f"{len(stator_data)}\n")
+                for patches in stator_data:
+                    file.write('\t'.join(patches)+ '\n')
+
 ## Multall .dat File schreiben
 def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels):
     section = 0
