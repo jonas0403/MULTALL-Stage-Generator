@@ -103,7 +103,7 @@ class CompressorGui:
             save_and_initialize()       
             
 
-    def oneD_tab(self, window, i_st_val):
+    def oneD_tab(self, parent_frame, i_st_val):
             
         '''
         Define Names for Settings.json and Lockfile
@@ -136,12 +136,7 @@ class CompressorGui:
         gui_to_var_map = {v: k for k, v in var_name_to_gui_map.items()}
         
         LOCK_FILE = static_folder/"settings.lock"
-        SETTINGS_FILE = static_folder/"Diameter_Values.txt"
-
-
-
-        ttk.Label(window, text="This is the meanline Settings tab").grid
-        
+        SETTINGS_FILE = static_folder/"Diameter_Values.txt"       
         
     
         '''
@@ -727,7 +722,7 @@ class CompressorGui:
             global entries
             read_initial_values(static_folder/ "Meanline_Initial_Values.txt")
 
-            root = window
+            root = parent_frame
             
             #ttk.Label(root, text="Meanline Parameter Initialization").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
             #root.Label(self, text="Meanline Parameter Initialization").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
@@ -1218,7 +1213,7 @@ class CompressorGui:
         notebook.add(other, text="Other-Settings")
                 
         self.zeroD_tab(zeroD)
-        self.oneD_tab(oneD, i_st_val = 3,)
+        self.oneD_tab(oneD, i_st_val = 3)
         #self.threeD_tab(threeD)
                 
                 
