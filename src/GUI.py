@@ -42,7 +42,10 @@ def read_initial_values(filename):
 
 class CompressorGui:
                 
-    ## Tab_Entrys
+    
+    '''
+    0D_tab and related functions
+    '''
     def zeroD_tab(self, window):
             ttk.Label(window, text="This is the 0D Settings tab").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
             ### Thermodynamic Parameters Tab
@@ -102,7 +105,9 @@ class CompressorGui:
             ttk.Button(window, text="Save and Initialize Parameters", command=save_and_initialize).grid(row=len(params)+1, column=0, columnspan=2, pady=10)
             save_and_initialize()       
             
-
+    '''
+    1D-Tab and related functions
+    '''
     def oneD_tab(self, parent_frame, i_st_val):
             
         '''
@@ -785,54 +790,294 @@ class CompressorGui:
         
         # Starts and creates the meanline gui inside of the window
         create_gui()
+    
+    '''
+    3D-Tab and related functions
+    '''    
+    # region 3D Helper Methods (3D-Tab and related functions)
+    
+               
+    def threeD_tab(self, parent_frame):
+        
                 
-    def threeD_tab(self, window):
-        ttk.Label(window, text="Stage-Settings").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
-        
-        self.bleed_air_data = {
-            'rotor': {'patches': [], 'count': 0},
-            'stator': {'patches': [], 'count': 0}
-        }
-        self.rotor_patch_entries = []
-        self.stator_patch_entries = []
-        
-        self.inlet_area_var = tk.DoubleVar()
-        self.inlet_dist_var = tk.DoubleVar()
-        self.outlet_area_var = tk.DoubleVar()
-        self.outlet_dist_var = tk.DoubleVar()
+            self.bleed_air_data = {
+                'rotor': {'patches': [], 'count': 0},
+                'stator': {'patches': [], 'count': 0}
+            }
+            self.rotor_patch_entries = []
+            self.stator_patch_entries = []
+            
+            self.inlet_area_var = tk.DoubleVar()
+            self.inlet_dist_var = tk.DoubleVar()
+            self.outlet_area_var = tk.DoubleVar()
+            self.outlet_dist_var = tk.DoubleVar()
 
-        self.main_choice = tk.StringVar(value="default")
-        self.specs = {
-        "section_idx": tk.StringVar(),
-        "row": tk.StringVar(),
-        "parameter": tk.StringVar()
-        }
+            self.main_choice = tk.StringVar(value="default")
+            self.specs = {
+            "section_idx": tk.StringVar(),
+            "row": tk.StringVar(),
+            "parameter": tk.StringVar()
+            }
+            
+            self.show_section_plot_var = tk.BooleanVar(value=False) # Neue Variable für Abschnittsverteilung
+            self.show_angle_dist_plot_var = tk.BooleanVar(value=False) # Neue Variable für Winkelverteilung
+            
+            self.use_default_rotor_bezier_var = tk.BooleanVar(value=False)
+            self.use_default_stator_bezier_var = tk.BooleanVar(value=False)
+            self.adjust_rotor_thickness_var = tk.BooleanVar(value=False)
+            self.adjust_rotor_angle_var = tk.BooleanVar(value=False)
+            self.adjust_stator_thickness_var = tk.BooleanVar(value=False)
+            self.adjust_stator_angle_var = tk.BooleanVar(value=False)
+            
+            self.enable_bleed_air_var = tk.BooleanVar(value=False)
+            self.enable_bleed_air_var.trace_add("write", self.update_bleed_air_display)
+            
+            ttk.Label(parent_frame, text="3D Profile Generation and Visualization").pack(pady=10)
+            self.sub_notebook = ttk.Notebook(parent_frame)
+            self.sub_notebook.pack(fill='both', expand=True, padx=10, pady=5)
+            
+            self.parameters_frame = ttk.Frame(self.sub_notebook, padding=10)
+            self.plot_options_frame = ttk.Frame(self.sub_notebook, padding=10)
+            self.bleed_air_frame = ttk.Frame(self.sub_notebook, padding=10)
+            self.inlet_outlet_frame = ttk.Frame(self.sub_notebook, padding=10)
+            self.output_frame = ttk.Frame(self.sub_notebook, padding=10)
+            
+            self.sub_notebook.add(self.parameters_frame, text="Profile Parameters")
+            self.sub_notebook.add(self.plot_options_frame, text="Plot Options")
+            self.sub_notebook.add(self.bleed_air_frame, text="Bleed Air")
+            self.sub_notebook.add(self.inlet_outlet_frame, text="Inlet/Outlet")
+            #self.sub_notebook.add(self.output_frame, text="Output Settings")
+            
+            self.setup_parameters_tab()
+            self.setup_plot_options_tab()
+            self.create_bleed_input_widget()
+            self.setup_inlet_outlet_tab()
+            #self.setup_output_tab() 
+                    
+            ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open)
+            self.save_button = ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open) 
+            self.save_button.pack(pady=10, padx=10, fill='x')
+            
+            self.load_settings()
+            
+            self.check_button_states()
         
-        # Variablen für die Eingabefelder
-        self.show_section_plot_var = tk.BooleanVar(value=False) # Neue Variable für Abschnittsverteilung
-        self.show_angle_dist_plot_var = tk.BooleanVar(value=False) # Neue Variable für Winkelverteilung
+    def setup_inlet_outlet_tab(self):
+        self.inlet_outlet_title_frame = ttk.Frame(self.inlet_outlet_frame)
+        self.inlet_outlet_title_frame.pack(fill='x', padx=10, pady=10)
         
-        # Fügt Tab listen ein
-        self.notebook = ttk.Notebook(self.window)  
-        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        self.inlet_outlet_title_label = ttk.Label (self.inlet_outlet_title_frame, text="Inlet and Outlet Geometry Definition")
+        self.inlet_outlet_title_label.pack(side='left', padx= (0, 5))
         
-        self.parameters_frame = ttk.Frame(self.notebook, padding=10)
-        self.plot_options_frame = ttk.Frame(self.notebook, padding=10)
+        self.inlet_outlet_help = ttk.Label(self.inlet_outlet_title_frame, text= "?", cursor="question_arrow")
+        self.inlet_outlet_help.pack(side='left', padx=(5, 0))
+        self.inlet_outlet_help_text = "Define the geometry parameters of the Inlet and Outlet Area"
+        Tooltip(self.inlet_outlet_help, self.inlet_outlet_help_text)
         
-        self.notebook.add(self.parameters_frame, text="Parameters")
-        self.notebook.add(self.plot_options_frame, text="Plot Options")
+        self.inlet_frame = ttk.LabelFrame(self.inlet_outlet_frame, text="Inlet Area Definition")
+        self.inlet_frame.pack(fill='x', padx=10, pady=10)
         
-        # Füllt die Tabs mit Inhalt
-        self.setup_parameters_tab()
-        self.setup_plot_options_tab()
+        # Inlet 
+        self.inlet_area_label = ttk.Label(self.inlet_frame, text="Inlet Area")
+        self.inlet_area_label.grid(row=0, column=0, padx=5, pady=5, sticky='w')
         
-        ttk.Button(self.root, text="Save and Initialize", command=self.run_action_and_stay_open)
-        self.save_button = ttk.Button(self.window, text="Save and Initialize", command=self.run_action_and_stay_open) # Button zum Speichern und Initialisieren
-        self.save_button.pack(pady=10, padx=10, fill='x')
+        # Area
+        self.inlet_area_help = ttk.Label(self.inlet_frame, text= "?", cursor="question_arrow")
+        self.inlet_area_help.grid(row=0, column=2, padx=(5, 0))
+        self.inlet_area_help_text = "Enter the Size of the Inlet as a factor of the Diameter of the first Blade Row. Default = 1 (same Size as the Diameter of the first Blade Row)"
+        Tooltip(self.inlet_area_help, self.inlet_area_help_text)
         
-        self.load_settings()
+        self.inlet_area_entry = ttk.Entry(self.inlet_frame, width=10, textvariable=self.inlet_area_var)
+        self.inlet_area_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        self.check_button_states() # Initialer Check der Button-Zustände
+        # Distanz
+        self.inlet_dist_label = ttk.Label(self.inlet_frame, text="Inlet Distance")
+        self.inlet_dist_label.grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        
+        self.inlet_dist_help = ttk.Label(self.inlet_frame, text= "?", cursor="question_arrow")
+        self.inlet_dist_help.grid(row=1, column=2, padx=(5, 0))
+        self.inlet_dist_help_text = "Enter the Distanz of the Inlet to the first stage as a factor of the first Blade length. Default = 2 (length between the Inlet and the first Blade Row is equal to two times the Blade length) "
+        Tooltip(self.inlet_dist_help, self.inlet_dist_help_text)
+        
+        self.inlet_dist_entry = ttk.Entry(self.inlet_frame, width=10, textvariable=self.inlet_dist_var)
+        self.inlet_dist_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+        # Outlet        
+        self.outlet_frame = ttk.LabelFrame(self.inlet_outlet_frame, text="Outlet Area Definition")
+        self.outlet_frame.pack(fill='x', padx=10, pady=10)
+        
+        # Area
+        self.outlet_area_label = ttk.Label(self.outlet_frame, text="Outlet Area")
+        self.outlet_area_label.grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        
+        self.outlet_area_help = ttk.Label(self.outlet_frame, text= "?", cursor="question_arrow")
+        self.outlet_area_help.grid(row=0, column=2, padx=(5, 0))
+        self.outlet_area_help_text = "Enter the Size of the Outlet as a factor of the Diameter of the last Blade Row. Default = 1 (same Size as the Diameter of the last Blade Row)"
+        Tooltip(self.outlet_area_help, self.outlet_area_help_text)
+        
+        self.outlet_area_entry = ttk.Entry(self.outlet_frame, width=10, textvariable=self.outlet_area_var)
+        self.outlet_area_entry.grid(row=0, column=1, padx=5, pady=5)
+        
+        # Distanz
+        self.outlet_dist_label = ttk.Label(self.outlet_frame, text="Outlet Distance")
+        self.outlet_dist_label.grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        
+        self.outlet_dist_help = ttk.Label(self.outlet_frame, text= "?", cursor="question_arrow")
+        self.outlet_dist_help.grid(row=1, column=2, padx=(5, 0))
+        outlet_dist_help_text = "Enter the Distanz of the last Blade row to the Outlet as a factor of the last Blade length. Default = 2 (length between the last Blade Row and the Output is equal to two times the Blade length) "
+        Tooltip(self.outlet_dist_help, outlet_dist_help_text)
+        
+        self.outlet_dist_entry = ttk.Entry(self.outlet_frame, width=10, textvariable=self.outlet_dist_var)
+        self.outlet_dist_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+        # Save Button
+        self.save_button_inlet_outlet = ttk.Button(self.inlet_outlet_frame, text="Save", command=self.save_and_initialize)
+        self.save_button_inlet_outlet.pack(pady=10, side='bottom')
+        
+    ## Was ist mit args gemeint? Aus funktionsgründen erstmal übernommen :)
+    def update_bleed_air_display(self, *args):
+        if self.enable_bleed_air_var.get():
+            self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
+            self.create_bleed_input_widget()
+        else:
+            self.bleed_input_container.pack_forget()
+            
+    def create_bleed_input_widget(self):
+            # Clear existing Widgets
+            for widget in self.bleed_air_frame.winfo_children():
+                widget.destroy()
+                
+            # Split window into two sides for Rotor and Stator
+            self.rotor_frame = ttk.Frame(self.bleed_air_frame)
+            self.rotor_frame.pack(side='left', fill='both', expand=True, padx=5, pady=5)
+            
+            self.stator_frame = ttk.Frame(self.bleed_air_frame)
+            self.stator_frame.pack(side='right', fill='both', expand=True, padx=5, pady=5)
+            
+            # Add lables for both Rows
+            ttk.Label(self.rotor_frame, text="Rotor Bleed Air", style="Bold.TLabel").pack(anchor='w')
+            ttk.Label(self.stator_frame, text="Stator Bleed Air", style="Bold.TLabel").pack(anchor='w')
+            
+            # Add input for number of patches
+            self.rotor_patches_frame = ttk.Frame(self.rotor_frame)
+            self.rotor_patches_frame.pack(fill='x', padx=5, pady=5)
+            ttk.Label(self.rotor_patches_frame, text="Number of Bleed Air Patches").pack(side='left')
+            q_label_patches_rotor = ttk.Label(self.rotor_patches_frame, text="?", cursor="question_arrow")
+            q_label_patches_rotor.pack(side='left', padx=(5, 5))
+            Tooltip(q_label_patches_rotor, " Enter the number of Bleed air patches. Each patch is an area where a specific amout of air is bled from")
+            self.rotor_patches_entry = ttk.Entry(self.rotor_patches_frame, width=5)
+            self.rotor_patches_entry.pack(side='left')
+            self.rotor_patches_entry.bind('<Return>', lambda event: self.update_patches('rotor'))
+            # Insert loaded Patches
+            self.rotor_patches_entry.insert(0, str(self.bleed_air_data['rotor']['count']))
+            
+            self.stator_patches_frame = ttk.Frame(self.stator_frame)
+            self.stator_patches_frame.pack(fill='x', padx=5, pady=5)
+            ttk.Label(self.stator_patches_frame, text="Number of Bleed Air Patches").pack(side='left')
+            q_label_patches_stator = ttk.Label(self.stator_patches_frame, text="?", cursor="question_arrow")
+            q_label_patches_stator.pack(side='left', padx=(5, 5))
+            Tooltip(q_label_patches_stator, " Enter the number of Bleed air patches. Each patch is an area where a specific amout of air is bled from")
+            self.stator_patches_entry = ttk.Entry(self.stator_patches_frame, width=5)
+            self.stator_patches_entry.pack(side='left')
+            self.stator_patches_entry.bind('<Return>', lambda event: self.update_patches('stator'))
+            # Insert loaded Patches
+            self.stator_patches_entry.insert(0, str(self.bleed_air_data['stator']['count']))
+            
+            # Call update_patches to create coordinates in fields upon loading
+            self.update_patches('rotor')
+            self.update_patches('stator')
+        
+    def update_patches(self, blade_type):
+        if blade_type == 'rotor':
+            num_patches_str = self.rotor_patches_entry.get()
+            parent_frame = self.rotor_frame
+            # Save patches data in dedicated list
+            self.rotor_patch_entries.clear()
+            patches_data = self.bleed_air_data['rotor']['patches']
+        else:
+            num_patches_str = self.stator_patches_entry.get()
+            parent_frame = self.stator_frame
+            # Save patches data in dedicated list
+            self.stator_patch_entries.clear()
+            patches_data = self.bleed_air_data['stator']['patches']
+            
+        try:
+            num_patches = int(num_patches_str)
+            if num_patches < 0:
+                raise ValueError
+        except (ValueError, IndexError):
+            num_patches = 0
+            
+        # Remove previouse Patch Frames
+        for widget in parent_frame.winfo_children():
+            # Check if widget is in a patch inputframe
+            if isinstance(widget, ttk.LabelFrame):
+                widget.destroy()
+        
+        # Creat new Input widget for each Patch
+        for i in range(num_patches):
+            patch_frame = ttk.LabelFrame(parent_frame, text=f"Bleed Air Patch {i+1}")
+            patch_frame.pack(fill='x',padx=5, pady=5)
+            
+            patch_entries = []
+            
+            # I coordinates
+            i_label = ttk.Label(patch_frame, text="I start/end:")
+            i_label.grid(row=0,column=0,padx=5, pady=2, sticky='w')
+            i_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
+            i_q_label.grid(row=0, column=3, padx=2, pady=2, sticky='w')
+            Tooltip(i_q_label, " The I-Coordinates define the Spanwise direction. Choose Values between 1 and 37. If you want to have bleed air over the whole spane enter 1 and 37")
+            i_start_entry = ttk.Entry(patch_frame, width=5)
+            i_start_entry.grid(row=0, column=1, padx=5, pady=2)
+            i_end_entry = ttk.Entry(patch_frame, width=5)
+            i_end_entry.grid(row=0, column=2, padx=5, pady=2)
+            
+            # J coordinates
+            j_label = ttk.Label(patch_frame, text="J start/end:")
+            j_label.grid(row=1,column=0,padx=5, pady=2, sticky='w')
+            j_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
+            j_q_label.grid(row=1, column=3, padx=2, pady=2, sticky='w')
+            Tooltip(j_q_label, f"The J-Coordinates define the Axial direction. 1 is defined as the start of the Blade while {JTE} is defined as the End of the blade")
+            j_start_entry = ttk.Entry(patch_frame, width=5)
+            j_start_entry.grid(row=1, column=1, padx=5, pady=2)
+            j_end_entry = ttk.Entry(patch_frame, width=5)
+            j_end_entry.grid(row=1, column=2, padx=5, pady=2)
+            
+            # K coordinates
+            k_label = ttk.Label(patch_frame, text="K start/end:")
+            k_label.grid(row=2,column=0,padx=5, pady=2, sticky='w')
+            k_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
+            k_q_label.grid(row=2, column=3, padx=2, pady=2, sticky='w')
+            Tooltip(k_q_label, "The K-Coordinate is defined as the Radial direction with 1 being the Hub wall and 37 being the Shroud wall. If you only want Bleed air to be extracted from one of the wall enter 1 and 1 or 37 and 37. It is also possible to extract Bleed air from the Stators and Rotors")
+            k_start_entry = ttk.Entry(patch_frame, width=5)
+            k_start_entry.grid(row=2, column=1, padx=5, pady=2)
+            k_end_entry = ttk.Entry(patch_frame, width=5)
+            k_end_entry.grid(row=2, column=2, padx=5, pady=2)
+            
+            # Massflow
+            mflow_label = ttk.Label(patch_frame, text="Extraced Bleed Air (kg/s):")
+            mflow_label.grid(row=3, column=0, padx=5, pady=2, sticky='w')
+            mflow_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
+            mflow_q_label.grid(row=3, column=3, padx=2, pady=2, sticky='w')
+            Tooltip(mflow_q_label, "The massflow rate is defined in kg/s. Specify how much Bleed air you want to be extracted in this Bleed air patch")
+            massflow_entry = ttk.Entry(patch_frame, width=10)
+            massflow_entry.grid(row=3, column=1, columnspan=2, padx=5, pady=2)
+            
+            # Store Enter entries
+            patch_entries.extend([i_start_entry, i_end_entry, j_start_entry, j_end_entry, k_start_entry, k_end_entry, massflow_entry])
+            
+            # Insert loaded values if exisiting
+            if i < len(patches_data):
+                for idx, entry in enumerate(patch_entries):
+                    if idx < len(patches_data[i]):
+                        entry.insert(0,patches_data[i][idx])
+                        
+            if blade_type == 'rotor':
+                self.rotor_patch_entries.append(patch_entries)
+            else: 
+                self.stator_patch_entries.append(patch_entries)
+            
+
 
     def check_button_states(self):
         rotor_exists = os.path.exists("bezier_control_points_R.txt")
@@ -981,6 +1226,74 @@ class CompressorGui:
             shutil.copy(filepath, "bezier_control_points_S.txt")
             print(f"Stator Profile loaded: {filepath}")
 
+### Muss noch durch speicher Methode ersetzt werden. Hier nur aus Funktionsgründen kopiert
+    def save_and_initialize(self):
+        use_default_rotor_bezier = self.use_default_rotor_bezier_var.get()
+        use_default_stator_bezier = self.use_default_stator_bezier_var.get()
+        adjust_rotor_thickness = self.adjust_rotor_thickness_var.get()
+        adjust_rotor_angle = self.adjust_rotor_angle_var.get()
+        adjust_stator_thickness = self.adjust_stator_thickness_var.get()
+        adjust_stator_angle = self.adjust_stator_angle_var.get()
+        output_folder = self.output_folder_entry.get()
+        
+        levels = self.levels_entry.get()
+        nrow = self.nrow_entry.get()
+        
+        show_section_plot = self.show_section_plot_var.get()
+        show_angle_distribution_plots = self.show_angle_distribution_plots_var.get()
+        
+        inlet_area = self.inlet_area_var.get()
+        inlet_dist = self.inlet_dist_var.get()
+        outlet_area = self.outlet_area_var.get()
+        outlet_dist = self.outlet_dist_var.get()
+        
+        # Get bleed Air Settings
+        enable_bleed_air = self.enable_bleed_air_var.get()
+
+        with open('Setting.txt', 'w') as file:
+            file.write(f"use_default_rotor_bezier = {use_default_rotor_bezier}\n")
+            file.write(f"use_default_stator_bezier = {use_default_stator_bezier}\n")
+            file.write(f"adjust_rotor_thickness = {adjust_rotor_thickness}\n")
+            file.write(f"adjust_rotor_angle = {adjust_rotor_angle}\n")
+            file.write(f"adjust_stator_thickness = {adjust_stator_thickness}\n")
+            file.write(f"adjust_stator_angle = {adjust_stator_angle}\n")
+            file.write(f"output_folder = {output_folder}\n")
+            file.write(f"levels = {levels}\n")
+            file.write(f"nrow = {nrow}\n")
+            file.write(f"show_section_plot = {show_section_plot}\n")
+            file.write(f"show_angle_distribution_plots = {show_angle_distribution_plots}\n")
+            # Save Bleed Air data
+            file.write(f"enable_bleed_air = {enable_bleed_air}\n")
+            if enable_bleed_air:
+                file.write(f"rotor_patches = {len(self.rotor_patch_entries)}\n")
+                for i, entries in enumerate(self.rotor_patch_entries):
+                    i_start = entries[0].get()
+                    i_end= entries[1].get()
+                    j_start = entries[2].get()
+                    j_end= entries[3].get()
+                    k_start = entries[4].get()
+                    k_end= entries[5].get()
+                    massflow = entries[6].get()
+                    file.write(f"rotor_patch_{i+1} = {i_start}, {i_end}, {j_start}, {j_end}, {k_start}, {k_end}, {massflow}\n")
+                    
+                file.write(f"stator_patches = {len(self.stator_patch_entries)}\n")
+                for i, entries in enumerate(self.stator_patch_entries):
+                    i_start = entries[0].get()
+                    i_end= entries[1].get()
+                    j_start = entries[2].get()
+                    j_end= entries[3].get()
+                    k_start = entries[4].get()
+                    k_end= entries[5].get()
+                    massflow = entries[6].get()
+                    file.write(f"stator_patch_{i+1} = {i_start}, {i_end}, {j_start}, {j_end}, {k_start}, {k_end}, {massflow}\n")
+                    
+            file.write(f"inlet_area = {inlet_area}\n")
+            file.write(f"inlet_dist = {inlet_dist}\n")
+            file.write(f"outlet_area = {outlet_area}\n")
+            file.write(f"outlet_dist = {outlet_dist}\n")
+
+        print("Parameters saved successfully.")
+        
     def save_settings(self):
         with open('Settings.txt', 'w') as file:
             file.write(f"main_choice = {self.main_choice.get()}\n") # Holt sich die User Auswahl aus dem Radiobutton
@@ -1017,6 +1330,7 @@ class CompressorGui:
         except FileNotFoundError:
             self.levels_entry.insert(0, '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
             self.nrow_combo.set("Complete Stage (Rotor & Stator)")
+### Bis hier muss noch durch Lade Methode ersetzt werden. Hier nur aus Funktionsgründen kopiert
 
     def run_action_and_stay_open(self): # Speichert alles und schließt das Fesnter nicht
         settings = {
@@ -1186,7 +1500,133 @@ class CompressorGui:
         plt.xlabel('x/s [%]')
         plt.ylabel("thickness d [mm]")           
         plt.show()
+
+    # endregion
+    
+    def grid_definition_tab(self, parent_frame):
+
+        def browse_output_folder():
+            path = filedialog.askdirectory()
+            if path:            
+                output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
+                output_folder_entry.insert(0, path) # Neuer Pfad
+        
+        #loaded_levels = settings_loaded.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
+        #loaded_output = settings_loaded.get('output_folder', '')
+        
                 
+        data = { # Lade die Standartwerte
+            'nrow': tk.IntVar(value=2),
+            'h_H_plot': tk.DoubleVar(value=0.5),
+            'im_selection' : tk.StringVar(value=37),   # Default-Wert für IM
+            'km_selection' : tk.StringVar(value=37),   # Default-Wert für KM
+            'ref_chord_length': tk.DoubleVar(value=134.4),  # Default-Wert für Referenz-Sehnenlänge
+            'JM_grid_density': tk.IntVar(value=200),  # Default-Wert für Referenz-Gitterpunkte
+            'tip_clearance_rotor': tk.DoubleVar(value=1.3),  # Standardwert von 1.3mm
+            #'tip_clearance_stator': tk.DoubleVar(value=1.5),  # Standardwert von 1.5mm
+            'inlet_percentage': tk.DoubleVar(value=0.2),  # Standardwert von 20%
+            'outlet_percentage': tk.DoubleVar(value=0.15),  # Standardwert von 15%
+            'levels': tk.StringVar(value='0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00'),  # Standardwerte für die Ebenen
+            'output_folder': tk.StringVar(value=''),  # Standardwert für den Ausgabe
+            'show_plot': tk.BooleanVar(value=False),  # Standardwert für die Anzeige des Plots
+            'Q3D_mode': tk.BooleanVar(value=False)  # Standardwert für Q3D Modus
+        }
+        
+        main_frame = ttk.Frame(parent_frame, padding="10")
+        main_frame.pack(fill="both", expand=True)
+
+            
+        # Fügt Tab listen ein
+        notebook = ttk.Notebook(main_frame)  
+        notebook.pack(fill='both', expand=True, padx=10, pady=10)
+            
+        grid_tab = ttk.Frame(notebook, padding=10)
+        stage_tab = ttk.Frame(notebook, padding=10)
+            
+        notebook.add(grid_tab, text="Grid")
+        
+        def toggle_Q3D():
+            if data['Q3D_mode'].get():
+                KM_grid_combobox.set("2") # Setzt KM auf 2
+                KM_grid_combobox.config(state=tk.DISABLED) # Deaktiviert die Auswahl
+            else:
+                KM_grid_combobox.config(state=tk.NORMAL) # Aktiviert die Auswahl
+                KM_grid_combobox.set("37")  # Setzt KM zurück auf 37
+
+        settings_frame = ttk.LabelFrame(main_frame, text="Grid-Settings", padding="10")
+        settings_frame.pack(fill="x", expand=True, pady=5)
+        
+        settings_frame_stage = ttk.LabelFrame(main_frame, text="Stage-Settings", padding="10")
+        settings_frame_stage.pack(fill="x", expand=True, pady=5)
+            
+        # Füllt die Tabs mit Inhalt   
+        ttk.Label(stage_tab, text="Please define the levels (0.0 to 1.0):").grid(row=10, column=0, sticky="w", pady=5)
+        ttk.Entry(stage_tab, textvariable=data['levels'], width=50).grid(row=10, column=1, sticky="w", pady=5)
+
+        # Eingabefelder für Rotor- und Stator-Einstellungen
+        ttk.Label(grid_tab, text="Stage Components (1=R, 2=R+S):").grid(row=0, column=0, sticky="w", pady=5)
+        ttk.Entry(grid_tab, textvariable=data['nrow'], width=10).grid(row=0, column=1, sticky="w", pady=5)
+                
+        ttk.Label(grid_tab, text="Reference Chord Length [mm]:").grid(row=1, column=0, sticky="w", pady=5)
+        ttk.Entry(grid_tab, textvariable=data['ref_chord_length'], width=10).grid(row=1, column=1, sticky="w", pady=5)
+
+        # Gitterdichte-Auswahl IMxKM
+        ttk.Label(grid_tab, text="Grid Dimension (KM):").grid(row=2, column=0, sticky="w", pady=5)
+        im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
+        KM_grid_combobox = ttk.Combobox(grid_tab, textvariable=data['km_selection'], values=im_km_grid_options, state="readonly")
+        KM_grid_combobox.grid(row=2, column=1, sticky="w", pady=5)
+        KM_grid_combobox.set("37")  # Standardwert auf "37"
+        
+        Q3D_frame = ttk.LabelFrame(grid_tab, text="Q3D Mode", padding="10")
+        Q3D_frame.grid(row=9, column=0, columnspan=2, sticky="ew", pady=10, padx=5)
+        ttk.Checkbutton(
+            Q3D_frame,
+            text="Activate Q3D Mode (Sets KM to 2)",
+            variable=data['Q3D_mode'],
+            command=toggle_Q3D
+        ).grid(row=0, column=0, sticky="w")
+                
+        ttk.Label(grid_tab, text="Grid Dimension (IM):").grid(row=3, column=0, sticky="w", pady=5)
+        im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
+        IM_grid_combobox = ttk.Combobox(grid_tab, textvariable=data['im_selection'], values=im_km_grid_options, state="readonly")
+        IM_grid_combobox.grid(row=3, column=1, sticky="w", pady=5)
+        IM_grid_combobox.set("37")  # Standardwert auf "37"
+                   
+        ttk.Label(grid_tab, text="Fineness (Reference Points):").grid(row=5, column=0, sticky="w", pady=5)
+        JM_value = [i for i in range(8, 800, 8)]  # Generiert Werte von 8 bis 800 in 9er-Schritten
+        JM_grid_options = [str(i) for i in JM_value]
+        JM_grid_combobox = ttk.Combobox(grid_tab, textvariable=data['JM_grid_density'], values=JM_grid_options, state="readonly")
+        JM_grid_combobox.grid(row=5, column=1, sticky="w", pady=5)
+        JM_grid_combobox.set("296")  # Standardwert auf "300"
+                
+        ttk.Label(grid_tab, text="Inlet Points (% of JM):").grid(row=6, column=0, sticky="w", pady=5) 
+        ttk.Entry(grid_tab, textvariable=data['inlet_percentage'], width=10).grid(row=6, column=1, sticky="w", pady=5) 
+                                    
+        ttk.Label(grid_tab, text="Outlet Points (% of JM):").grid(row=7, column=0, sticky="w", pady=5) 
+        ttk.Entry(grid_tab, textvariable=data['outlet_percentage'], width=10).grid(row=7, column=1, sticky="w", pady=5)  
+                
+        ttk.Label(grid_tab, text="Tip clearance (mm):").grid(row=8, column=0, sticky="w", pady=5)
+        ttk.Entry(grid_tab, textvariable=data['tip_clearance_rotor'], width=10).grid(row=8, column=1, sticky="w", pady=5)
+
+        # ttk.Label(stage_tab, text="Output Folder:").grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        # output_folder_entry = ttk.Entry(stage_tab, textvariable=data['output_folder'] ,width=40)
+        # output_folder_entry.grid(row=0, column=1, sticky='ew')
+        # ttk.Button(stage_tab, text="Browse", command=browse_output_folder).grid(row=0, column=2)
+
+        plot_frame = ttk.LabelFrame(stage_tab, text="Plotting", padding="10")
+        plot_frame.grid(row=11, column=0, columnspan=3, sticky="ew", pady=10, padx=5)
+
+        #Menü für Plotting Height
+        ttk.Label(plot_frame, text="Please define Plotting Height (0 to 1.0)").grid(row=0, column=0, sticky="w", pady=5) 
+        ttk.Entry(plot_frame, textvariable=data['h_H_plot'], width=10).grid(row=0, column=1, sticky="w", pady=5)
+
+        
+        ttk.Checkbutton(
+            plot_frame, 
+            text="Plot Grid after Generation", 
+            variable=data["show_plot"] # Standardmäßig aktiviert
+        ).grid(row=0, column=3, sticky="w") 
+    
     def render_gui(self):
                 
         window = tk.Tk()
@@ -1214,7 +1654,8 @@ class CompressorGui:
                 
         self.zeroD_tab(zeroD)
         self.oneD_tab(oneD, i_st_val = 3)
-        #self.threeD_tab(threeD)
+        self.threeD_tab(threeD)
+        self.grid_definition_tab(grid)
                 
                 
                 
