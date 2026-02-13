@@ -20,7 +20,7 @@ from Thermodynamic_calc_GUI import Thermo
 current_dir = Path(__file__).parent.parent
 static_folder = current_dir/ "static"
 json_file = 'Populated_data.json'
-
+json_path = static_folder / json_file
 
 def read_initial_values(filename):
     global p_t_in, T_t_in, mflow, R, cp, TPR
@@ -48,7 +48,7 @@ class CompressorGui:
     Data gets prepopulated with rendering of the gui
     '''
     def loading_prepopulated_data(self):
-        json_path = static_folder / json_file
+        
         
         with open(json_path, 'r') as file:
             data = json.load(file)
@@ -66,69 +66,73 @@ class CompressorGui:
                 
     ## Tab_Entrys
     def zeroD_tab(self, window):
-            ttk.Label(window, text="This is the 0D Settings tab").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
-            ### Thermodynamic Parameters Tab
-           
+        '''
+        Thermodynamic Parameters Tab
+        '''
+        ttk.Label(window, text="This is the 0D Settings tab").grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky='w')
 
-            read_initial_values(static_folder/ "Thermo_Initial_Values.txt")
+        # old not used
+        #read_initial_values(static_folder/ "Thermo_Initial_Values.txt") 
+        #params = ['p_t_in', 'T_t_in', 'mflow', 'R', 'cp', 'TPR'] 
+        #window.add(window, text="Thermodynamic Parameters")  
+        #path = os.getcwd()
+        #print(path)
 
-            entries = {}
+        entries = {}
+        params = list(self.perpop_thermo_data.keys())
+        gui_names = ['p_t_in [Pa]', 'T_t_in [K]', 'mflow [kg/s]', 'R [J/kg*K]', 'cp [J/kg*K]', 'TPR [-]']
+        
+        for i, param in enumerate(params):
+            ttk.Label(window, text=f"{gui_names[i]}:").grid(row=i+1, column=0, padx=5, pady=5, sticky='w')
+            
+            entry = ttk.Entry(window, width=15)
+            entry.insert(0, str(self.perpop_thermo_data[param]))
+            entry.grid(row=i+1, column=1, padx=5, pady=5)
+            entries[param]= entry
 
-            #window.add(window, text="Thermodynamic Parameters")
+        def save_and_initialize():
+            try:
+                with open(json_path, 'r') as file:
+                    all_json_data = json.load(file)
+                                    
+                new_thermo_values = {}
+                for param in params:
+                    new_thermo_values[param] = float(entries[param].get())
 
-            params = ['p_t_in', 'T_t_in', 'mflow', 'R', 'cp', 'TPR']
-            gui_names = ['p_t_in [Pa]', 'T_t_in [K]', 'mflow [kg/s]', 'R [J/kg*K]', 'cp [J/kg*K]', 'TPR [-]']
-            path = os.getcwd()
-            print(path)
-            for i, param in enumerate(params):
-                ttk.Label(window, text=f"{gui_names[i]}:").grid(row=i+1, column=0, padx=5, pady=5, sticky='w')
-                entries[param] = []
-                entry = ttk.Entry(window, width=15)
-                entry.insert(0, str(globals()[param]))
-                entry.grid(row=i+1, column=1, padx=5, pady=5)
-                entries[param].append(entry)
-
-            def save_and_initialize():
-                try:
-                    current_values_thermo = {}
-                    for var_name in entries.keys():
-                        val = float(entries[var_name][0].get())
-                        globals()[var_name] = val
-                        current_values_thermo[var_name] = val
+                all_json_data['Thermodynamic_input_data'] = new_thermo_values
                 
-                    with open('Thermo_Initial_Values.txt', 'w') as file:
-                        file.write(f"p_t_in = {current_values_thermo['p_t_in']}\n")
-                        file.write(f"T_t_in = {current_values_thermo['T_t_in']}\n")
-                        file.write(f"mflow = {current_values_thermo['mflow']}\n")
-                        file.write(f"R = {current_values_thermo['R']}\n")
-                        file.write(f"cp = {current_values_thermo['cp']}\n")
-                        file.write(f"TPR = {current_values_thermo['TPR']}\n")
-                        
-                    print("Parameters saved and initialized.")
+                with open(json_path, 'w') as file:
+                    json.dump(all_json_data, file, indent=4)
+                 
+                self.perpop_thermo_data = new_thermo_values
                     
-                    self.Thermodata =  Thermo(
-                        current_values_thermo['p_t_in'],
-                        current_values_thermo['T_t_in'],
-                        current_values_thermo['mflow'],
-                        current_values_thermo['R'],
-                        current_values_thermo['cp'],
-                        current_values_thermo['TPR']
-                    )
-                    print("Calculation of Thermodynamic Data completed.") 
-                except ValueError:
-                    print("Please enter valid numbers for all conditions.")
-                    
-                
-                
+                print("Parameters saved and initialized.")
 
-            ttk.Button(window, text="Save and Initialize Parameters", command=save_and_initialize).grid(row=len(params)+1, column=0, columnspan=2, pady=10)
-            save_and_initialize()       
+                
+                self.Thermodata =  Thermo(
+                    new_thermo_values['p_t_in'],
+                    new_thermo_values['T_t_in'],
+                    new_thermo_values['mflow'],
+                    new_thermo_values['R'],
+                    new_thermo_values['cp'],
+                    new_thermo_values['TPR']
+                )
+                print("Calculation of Thermodynamic Data completed.") 
+            except ValueError:
+                print("Please enter valid numbers for all conditions.")
+                
+            
+            
+
+        save_button = ttk.Button(window, text="Save and Initialize Parameters", command=save_and_initialize)
+        save_button.grid(row=len(params)+1, column=0, columnspan=2, pady=10)
+        save_and_initialize()       
             
 
     def oneD_tab(self, parent_frame, i_st_val):
             
         '''
-        Define Names for Settings.json and Lockfile
+        Define Names for Settings json 
         Defines Variable Mapping and GUI Names for reading of setting file
         '''
         parameters_sections = {
@@ -154,16 +158,20 @@ class CompressorGui:
             'd_TE_S': "d_TE' [mm]",
             'd_CL_S': "d_CL' [mm]",
             'incidence_S': "i' [°]"}
-        # Create reverse mapping
-        gui_to_var_map = {v: k for k, v in var_name_to_gui_map.items()}
+              
         
-        LOCK_FILE = static_folder/"settings.lock"
-        SETTINGS_FILE = static_folder/"Diameter_Values.txt"       
-        
-    
         '''
         Not in use
-        '''    
+        '''
+        #region not in used/obsolet functions and variables
+        # Create reverse mapping 
+        # currently not needed
+        gui_to_var_map = {v: k for k, v in var_name_to_gui_map.items()}
+        
+        # Obsolet
+        LOCK_FILE = static_folder/"settings.lock"
+        SETTINGS_FILE = static_folder/"Diameter_Values.txt"  
+          
         def create_input_window(i_st_val):
             # Creates Gui to Input the fixed Diameters and the type of fixed Diameters
 
@@ -185,8 +193,7 @@ class CompressorGui:
 
                 selected_type = type_var.get()
                 if not selected_type:
-                    if os.path.exists(LOCK_FILE):
-                        os.remove(LOCK_FILE)
+                    
                     messagebox.showerror("Input Error", "Please select a fixed radius type.")
                     return
 
@@ -212,8 +219,6 @@ class CompressorGui:
                 except ValueError:
                     messagebox.showerror("Input Error", "Please enter numerical values for D_f, separated by commas.")
                 except Exception as e:
-                    if os.path.exists(LOCK_FILE):
-                        os.remove(LOCK_FILE)
                     messagebox.showerror("Error", f"An unexpected error occurred: {e}")
                 
                 
@@ -251,8 +256,6 @@ class CompressorGui:
             
             def on_closing():
                 root.destroy()
-                if os.path.exists(LOCK_FILE):
-                        os.remove(LOCK_FILE)
         
             root = tk.Tk()
             root.title("Channel Contour Window")
@@ -359,10 +362,10 @@ class CompressorGui:
             return fixed_radius_type, D_f1_result, D_f2_result, D_f3_result, plot_channel_contour
 
 
-            '''
+        '''
         Not in use
         ''' 
-        
+        #endregion
 
         '''
         ' Helping functions for the meanline gui creation.
@@ -396,6 +399,9 @@ class CompressorGui:
 
         class diameter_gui:
             def __init__(self, root, i_st_val, on_close_callback, initial_data):
+                
+                print("initial_data:", initial_data)
+                
                 self.root = root
                 self.on_close_callback = on_close_callback
                 self.num_stages = i_st_val
@@ -409,7 +415,12 @@ class CompressorGui:
                 }
                 
                 # Initial slider Values loaded out of the settings file 
-                self.initial_type, self.initial_D_f1, self.initial_D_f2, self.initial_D_f3, self.initial_plot_contour = initial_data
+                self.initial_type = initial_data.get("Fixed Radius Typ", "mean")
+                self.initial_D_f1 = initial_data.get("D_f1", [])
+                self.initial_D_f2 = initial_data.get("D_f2", [])
+                self.initial_D_f3 = initial_data.get("D_f3", [])
+                self.initial_plot_contour = initial_data.get("Plot Channel Contour", False)
+
                 
                 # Initialize this data
                 self.cubspline_points = []
@@ -490,7 +501,8 @@ class CompressorGui:
                 # SLiders and the Enrtybox
                 self.sliders = []
                 self.entries = []
-                
+                self.entry_vars = []
+                                
                 for i in range(self.num_points):
                     row_frame = tk.Frame(self.slider_frame)
                     row_frame.pack(padx=5, pady=5, fill='x')
@@ -505,6 +517,7 @@ class CompressorGui:
                     entry.pack(side='right')
                     entry.bind('<Return>', lambda event, idx=i: self.update_from_box(idx))
                     self.entries.append(entry)
+                    self.entry_vars.append(entry_var)
                     
                     # SLiders
                     min_val, max_val = self.limits[self.type_var.get()]
@@ -621,7 +634,7 @@ class CompressorGui:
                 self.root.destroy()
                 plt.close(self.fig)
                 
-        def run_diameter_gui(i_st):
+        def run_diameter_gui(i_st, initial_data):
             root = tk.Tk()
             D_f1, D_f2, D_f3 = [],  [],  []
             fixed_radius_type = ""
@@ -635,14 +648,13 @@ class CompressorGui:
                 fixed_radius_type = type_var
                 plot_channel_contour = plot_var
                 
-            # Read Initial Data from File
-            initial_data = read_diameter(SETTINGS_FILE)    
+            # Read Initial Data from File   
             diameter_gui(root, i_st, on_close, initial_data)
             root.mainloop()
             print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type={fixed_radius_type}, plot_channel_contour={plot_channel_contour}")
             return D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour
                     
-            
+        # propably not needed anymore    
         def read_diameter(filename):
             
             fixed_radius_typ = None
@@ -801,7 +813,7 @@ class CompressorGui:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
 
             ttk.Button(root, text="Save and Initialize Parameters", command=save_and_initialize).pack(pady=10)
-            ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val)).pack(pady=10)
+            ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val,self.prepop_diameter_data)).pack(pady=10)
 
         
         
@@ -1285,5 +1297,5 @@ class Tooltip:
     
 if __name__ == "__main__":
     my_gui = CompressorGui()
-    my_gui.loading_prepopulated_data(my_gui)
+    my_gui.loading_prepopulated_data()
     my_gui.render_gui()

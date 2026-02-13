@@ -220,7 +220,25 @@ def Thermo(p_t_in=None, T_t_in=None, mflow=None, R=None, cp=None, TPR=None, GUI_
     for i in range(i_st-1):
         h_S.append(((D_S_out[i]-D_H_out[i])+(D_S_out[i+1]-D_H_out[i+1]))/4*1000)
     
-    return mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, TPR
+    
+    '''
+    Save results in a dict for gui
+    '''
+    result = {
+        'mflow': mflow,
+        'p_t_in': p_t_in,
+        'T_t_in': T_t_in,
+        'kappa': kappa,
+        'R': R,
+        'cp': cp,
+        'h_R': h_R,
+        'h_S': h_S,
+        'i_st': i_st,
+        'TPR': TPR
+    }
+    
+    
+    return result
 
 #if __name__ == "__main__":
     #results = Thermo(GUI_On = 1)
