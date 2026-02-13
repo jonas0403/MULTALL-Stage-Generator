@@ -968,7 +968,9 @@ class CompressorGui:
         self.save_button_inlet_outlet = ttk.Button(self.inlet_outlet_frame, text="Save", command=self.save_and_initialize)
         self.save_button_inlet_outlet.pack(pady=10, side='bottom')
         
-    ## Was ist mit args gemeint? Aus funktionsgründen erstmal übernommen :)
+    ## Was ist mit args gemeint? Aus funktionsgründen erstmal übernommen :) 
+    ### Ich glaube es ist am besten wenn ich mein code implementiere weil ich weiß was ich da machen muss und was alles ist und dann tritten wir uns nicht gegenseitig auf die füße
+    
     def update_bleed_air_display(self, *args):
         if self.enable_bleed_air_var.get():
             self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
