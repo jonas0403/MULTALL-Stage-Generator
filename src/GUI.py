@@ -4,6 +4,7 @@ import matplotlib as plt
 import matplotlib.pyplot as plt
 import os 
 import shutil
+import json
 #from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import *
@@ -18,6 +19,7 @@ from Thermodynamic_calc_GUI import Thermo
 
 current_dir = Path(__file__).parent.parent
 static_folder = current_dir/ "static"
+json_file = 'Populated_data.json'
 
 
 def read_initial_values(filename):
@@ -41,6 +43,26 @@ def read_initial_values(filename):
     
 
 class CompressorGui:
+    '''
+    Load all data once and save into different class data dicts
+    Data gets prepopulated with rendering of the gui
+    '''
+    def loading_prepopulated_data(self):
+        json_path = static_folder / json_file
+        
+        with open(json_path, 'r') as file:
+            data = json.load(file)
+
+            self.perpop_thermo_data = data['Thermodynamic_input_data']
+            self.prepop_meanline_input_data = data['Meanline_input_data']
+            self.prepop_diameter_data = data['Diameter_data']
+            self.prepop_bezier_point_stator = data['Bezier_point_data']['stator']
+            self.prepop_bezier_point_rotor = data['Bezier_point_data']['rotor']
+            self.prepop_metadata = data['Metadata']
+        
+
+        
+    
                 
     
     '''
@@ -1704,4 +1726,5 @@ class Tooltip:
     
 if __name__ == "__main__":
     my_gui = CompressorGui()
+    my_gui.loading_prepopulated_data(my_gui)
     my_gui.render_gui()
