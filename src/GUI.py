@@ -978,6 +978,7 @@ class CompressorGui:
     ## Was ist mit args gemeint? Aus funktionsgründen erstmal übernommen :) 
     ### Ich glaube es ist am besten wenn ich mein code implementiere weil ich weiß was ich da machen muss und was alles ist und dann tritten wir uns nicht gegenseitig auf die füße
     
+    ### Safe safe wollte ich auch nicht machen ^^ 
     def update_bleed_air_display(self, *args):
         if self.enable_bleed_air_var.get():
             self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
@@ -1342,7 +1343,7 @@ class CompressorGui:
             file.write(f"main_choice = {self.main_choice.get()}\n") # Holt sich die User Auswahl aus dem Radiobutton
         
             if self.main_choice.get() == 'adjust': # nur wenn Adjust gewählt wurde
-                section_str = self.specs["section_idx"].get().split(" ")[0] ############
+                section_str = self.specs["section_idx"].get().split(" ")[0] 
                 section_map = {'0.0': 0, '0.2': 1, '0.5': 2, '0.8': 3, '1.0': 4}
                 file.write(f"adjust_section_idx = {section_map.get(section_str, 2)}\n")
                 file.write(f"adjust_row = {self.specs['row'].get()}\n")
