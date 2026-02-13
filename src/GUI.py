@@ -58,15 +58,13 @@ class CompressorGui:
             self.prepop_diameter_data = data['Diameter_data']
             self.prepop_bezier_point_stator = data['Bezier_point_data']['stator']
             self.prepop_bezier_point_rotor = data['Bezier_point_data']['rotor']
-            self.prepop_metadata = data['Metadata']
-        
-
-        
+            self.prepop_metadata = data['Metadata']          
     
-                
     
     '''
-    0D_tab and related functions
+    Function and population of first tab
+    Entryboxes for the first 0 Dimensional Thermodynamic calculation
+    Can be read through the json file or through entry in entryboxes   
     '''
     def zeroD_tab(self, window):
         '''
@@ -129,10 +127,13 @@ class CompressorGui:
 
         save_button = ttk.Button(window, text="Save and Initialize Parameters", command=save_and_initialize)
         save_button.grid(row=len(params)+1, column=0, columnspan=2, pady=10)
-        save_and_initialize()       
+        save_and_initialize()   
+            
             
     '''
-    1D-Tab and related functions
+    Function and population of second tab
+    Here meanline calculation values can be entered through boxes or through the reading of the json file
+    Creating an extra gui for the entry and definition of the channel contours. Can also be read through json file  
     '''
     def oneD_tab(self, parent_frame, i_st_val):
             
@@ -171,11 +172,11 @@ class CompressorGui:
         #region not in used/obsolet functions and variables
         # Create reverse mapping 
         # currently not needed
-        gui_to_var_map = {v: k for k, v in var_name_to_gui_map.items()}
+        #gui_to_var_map = {v: k for k, v in var_name_to_gui_map.items()}
         
         # Obsolet
-        LOCK_FILE = static_folder/"settings.lock"
-        SETTINGS_FILE = static_folder/"Diameter_Values.txt"  
+        #LOCK_FILE = static_folder/"settings.lock"
+        #SETTINGS_FILE = static_folder/"Diameter_Values.txt"  
           
         def create_input_window(i_st_val):
             # Creates Gui to Input the fixed Diameters and the type of fixed Diameters
@@ -363,7 +364,7 @@ class CompressorGui:
             
             root.wait_window()
             
-            write_diameters(SETTINGS_FILE,fixed_radius_type, D_f1_result, D_f2_result, D_f3_result, plot_channel_contour)
+            write_diameters(self, fixed_radius_type, D_f1_result, D_f2_result, D_f3_result, plot_channel_contour)
             return fixed_radius_type, D_f1_result, D_f2_result, D_f3_result, plot_channel_contour
 
 
@@ -688,32 +689,38 @@ class CompressorGui:
 
             return fixed_radius_typ, D_f1, D_f2, D_f3, plot_channel_contour
 
-        def write_diameters(filename,fixed_radius_typ, D_f1, D_f2, D_f3, plot_channel_contour):
-            # Check if there is a Lock File. Lock file is created to signal that the GUI and Diameters_values.txt was writen/modified 
-            if os.path.exists(LOCK_FILE):
-                print("Lock File was found. Reading Diameters_Values.txt")
-                return
-            # If no Lock File exists create one
-            try:
-                with open(LOCK_FILE,'w') as f:
-                    f.write("running")
-                # Registers a function to delete the Lock File if Programm is exited normally
+        def write_diameters(self, fixed_radius_typ, D_f1, D_f2, D_f3, plot_channel_contour):
 
+            params = list(self.perpop_diameter_data.keys())    
+            try:
+                # Registers a function to delete the Lock File if Programm is exited normally
                 print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type={fixed_radius_typ}, plot_channel_contour={plot_channel_contour}")
-                with open(filename, 'w') as file:
-                    file.write(f'Fixed Radius Typ = {fixed_radius_typ}\n')
-                    file.write(f'D_f1 = {D_f1}\n')
-                    file.write(f'D_f2 = {D_f2}\n')
-                    file.write(f'D_f3 = {D_f3}\n')
-                    file.write(f'Plot Channel Contour = {plot_channel_contour}')
-                print("Settings were written succesfully ")
+
+                with open(json_path, 'r') as file:
+                    all_json_data = json.load(file)
+                                    
+                new_diameter_values = {}
+                for param in params:
+                    new_diameter_values[param] = float(entries[param].get())
+
+                all_json_data['Thermodynamic_input_data'] = new_diameter_values
+                
+                with open(json_path, 'w') as file:
+                    json.dump(all_json_data, file, indent=4)
+                 
+                self.perpop_diameter_data = new_diameter_values
+                    
+                print("Parameters saved and initialized.")
 
             except Exception as e:
                 print(f"Error dring writting of the Diameters_Values.txt: {e}")
-                # Delete Lock File in case of an error
-                if os.path.exists(LOCK_FILE):
-                    os.remove(LOCK_FILE)
-
+                
+                
+        '''
+        Not in use anymore 
+        reads wrong file and data is already saved and read
+        
+        
         def read_initial_values(filename):
             global n, psi_h, phi_1, phi_2, phi_3
             global z_R, l_R, d_R_l_R, d_Cl_R, d_TE_R, incidence_R
@@ -756,7 +763,7 @@ class CompressorGui:
                         d_CL_S = [float(x) for x in line[10:].strip('[]').split(',')]
                     elif line.startswith('incidence_S = '):
                         incidence_S = [float(x) for x in line[14:].strip('[]').split(',')]
-
+        '''
         def create_gui():
             global entries
             read_initial_values(static_folder/ "Meanline_Initial_Values.txt")
