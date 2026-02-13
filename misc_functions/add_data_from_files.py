@@ -18,12 +18,11 @@ def main():
     
     # Define the output filename
     output_filename = 'data_global.csv'
-    
-    # --- NEW LOGIC ---
+
     # Create the full path for the output file to save it in the same folder
-    # as the input files. 📂
+    # as the input files. 
     output_filepath = os.path.join(folder_path, output_filename)
-    # --- END NEW LOGIC ---
+
     
     # Use glob to find all matching files
     full_search_path = os.path.join(folder_path, search_pattern)

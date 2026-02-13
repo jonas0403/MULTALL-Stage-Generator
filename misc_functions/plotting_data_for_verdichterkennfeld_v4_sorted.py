@@ -9,7 +9,7 @@ import re
 from io import StringIO
 import collections
 
-# --- DATA PARSING LOGIC ---
+# DATA PARSING LOGIC 
 def make_valid_name(name):
     return str(name).strip()
 
@@ -67,7 +67,7 @@ def parse_data_file(filename):
                     results[current_main_cat][table_key] = df
     return dict(results)
 
-# --- MAIN PLOTTING APPLICATION ---
+# MAIN PLOTTING APPLICATION 
 class PlottingApp(tk.Tk):
     def __init__(self):
         super().__init__()

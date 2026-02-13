@@ -48,15 +48,15 @@ def create_batch_file():
 
         # This is the template for the commands for each file.
         command_block = f"""
-multall.exe<        {filename}
-multall2py.exe<run2py.dat
-copy flow_out      flow_out-{base_name}.csv
-cd Output
-copy data_out.csv data_out-{base_name}.csv
-copy flow_avr.tec flow_avr-{base_name}.tec
-copy global.dat    global-{base_name}.csv
-cd ..
-"""
+            multall.exe<        {filename}
+            multall2py.exe<run2py.dat
+            copy flow_out      flow_out-{base_name}.csv
+            cd Output
+            copy data_out.csv data_out-{base_name}.csv
+            copy flow_avr.tec flow_avr-{base_name}.tec
+            copy global.dat    global-{base_name}.csv
+            cd ..
+            """
         # Add the generated block of commands to our list
         batch_content.append(command_block)
 

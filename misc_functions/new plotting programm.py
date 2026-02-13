@@ -86,7 +86,7 @@ def parse_data_file(filename):
 
     return dict(results)
 
-# --- MAIN PLOTTING APPLICATION ---
+# MAIN PLOTTING APPLICATION 
 class PlottingApp(tk.Tk):
     def __init__(self):
         super().__init__()

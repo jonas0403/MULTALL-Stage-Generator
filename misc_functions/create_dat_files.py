@@ -107,6 +107,5 @@ def generate_files():
     print(f"Total files created: {file_counter}")
 
 
-# --- Run the main function when the script is executed ---
 if __name__ == "__main__":
     generate_files()
