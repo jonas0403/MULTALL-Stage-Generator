@@ -12,6 +12,9 @@ import os
 import sys
 import shutil 
 from matplotlib.widgets import Slider
+import tkinter as tk
+from tkinter import filedialog
+
 
 import tkinter as tk
 from tkinter import ttk, filedialog, Label, Toplevel
@@ -97,8 +100,8 @@ def bezier_control_points(file, row, angle_in, angle_out, chord_length):
                         
                         delta_beta_0 = beta_2 - beta_1
                         
-                        beta_new_03 = beta_1 + delta_beta_0 * c_03
-                        beta_new_08 = beta_1 + delta_beta_0 * c_08
+                        beta_new_03 = beta_1 - delta_beta_0 * c_03
+                        beta_new_08 = beta_1 - delta_beta_0 * c_08
                         
                         beta_S_BP_1.append(round(angle_in[j], 2))
                         beta_S_BP_4.append(round(angle_out[j], 2))
@@ -111,8 +114,8 @@ def bezier_control_points(file, row, angle_in, angle_out, chord_length):
                         
                         delta_alpha_0 = alpha_2 - alpha_1
                         
-                        alpha_new_03 = alpha_1 + delta_alpha_0 * c_03
-                        alpha_new_08 = alpha_1 + delta_alpha_0 * c_08
+                        alpha_new_03 = alpha_1 - delta_alpha_0 * c_03
+                        alpha_new_08 = alpha_1 - delta_alpha_0 * c_08
                         
                         alpha_S_BP_1.append(round(alpha_S_in[j], 2))
                         alpha_S_BP_4.append(round(alpha_S_out[j], 2))
@@ -212,7 +215,7 @@ def bezier_control_points(file, row, angle_in, angle_out, chord_length):
                                   [0.006, 0.006, 0.006, 0.006, 0.006]])
         
             
-            abs_thick = rel_thick * chord_length
+            abs_thick = rel_thick * chord_length[2]
             
             for i in range(abs_thick.shape[0]):
                 val_write = [f"{value:.3f}" for value in abs_thick[i,:]]
@@ -269,7 +272,7 @@ def save_profile(source_filename):
         except Exception as e:
             print(f"Error {e} beim speichern")                                                        
 
-def run_main_logic(settings):
+def run_main_logic(new_adjustment_data):
     
     global mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3
     global D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3
@@ -279,6 +282,8 @@ def run_main_logic(settings):
     global h_rel, l_S_rad, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S
     global l_R_rad, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
 
+    global x_values, r_values, m_prime_values, x0
+    
     results_meanline = meanline(GUI_On=0)
 
     (mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3, 
@@ -295,17 +300,14 @@ def run_main_logic(settings):
     
     # Benötigte Parameter aus settings extrahieren
     #Settings = read_parameters_from_file('Settings.txt')
-    main_choice = settings.get('main_choice', 'default')
+    main_choice = new_adjustment_data.get('main_choice', 'default')
     #path = settings.get("output_folder", ".")
     #NROW = int(settings.get("nrow", 2))
-    levels_input = settings.get("levels", "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
+    levels_input = new_adjustment_data.get("levels", "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
     h_H = [0.0, 0.2, 0.5, 0.8, 1.0] # Standard Werte für die Abschnitte
     
-    
-    try: 
-        levels_input = [float(x.strip()) for x in levels_input.split(',')] # Liest die Levels ein und wandelt sie in eine Liste von Float-Werten um
-    except:
-        levels_input = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    levels_input = [float(x.strip()) for x in levels_input.split(',')] # Liest die Levels ein und wandelt sie in eine Liste von Float-Werten um
     
     #chord_length_R = np.interp(h_H, h_rel, l_R) # Interpoliert die Sehnenlänge für die Standard Abschnitte
     #chord_length_S = np.interp(h_H, h_rel, l_S) 
@@ -314,12 +316,12 @@ def run_main_logic(settings):
     if main_choice == 'adjust': # Anpassung der Bézier Punkte
         try:
             
-            section_idx_str = settings['adjust_section_idx']
+            section_idx_str = new_adjustment_data['adjust_section_idx']
             section_idx_float = float(section_idx_str)
             section_idx = h_H.index(section_idx_float)
             
-            row_str = settings['adjust_row']
-            parameter_str = settings['adjust_parameter']
+            row_str = new_adjustment_data['adjust_row']
+            parameter_str = new_adjustment_data['adjust_parameter']
             h_val = h_H[section_idx] 
             is_rotor = row_str == 'Rotor' # True für Rotor, False für Stator
             row_num = 1 if is_rotor else 2 # 1 für Rotor, 2 für Stator

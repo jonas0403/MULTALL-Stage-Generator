@@ -67,7 +67,9 @@ class CompressorGui:
             self.prepop_diameter_data = data['Diameter_data']
             self.prepop_bezier_point_stator = data['Bezier_point_data']['stator']
             self.prepop_bezier_point_rotor = data['Bezier_point_data']['rotor']
-            self.prepop_metadata = data['Metadata']          
+            self.prepop_metadata = data['Metadata'] 
+              
+            self.prepop_adjust_data = data.get('Adjustment_bezier_point_data',{})       
     
     
     '''
@@ -916,7 +918,7 @@ class CompressorGui:
             
             self.load_settings()
             
-            self.check_button_states()
+            #self.check_button_states()
         
     def setup_inlet_outlet_tab(self):
         self.inlet_outlet_title_frame = ttk.Frame(self.inlet_outlet_frame)
@@ -1135,26 +1137,24 @@ class CompressorGui:
                 self.rotor_patch_entries.append(patch_entries)
             else: 
                 self.stator_patch_entries.append(patch_entries)
-            
-
-
-    def check_button_states(self):
-        rotor_exists = os.path.exists("bezier_control_points_R.txt")
-        stator_exists = os.path.exists("bezier_control_points_S.txt")
     
-        # Enable or disable buttons based on file existence
-        if rotor_exists and stator_exists:
-            self.create_profiles_button.config(state=tk.DISABLED)
-            self.save_button.config(state=tk.NORMAL)
-        else:
-            self.create_profiles_button.config(state=tk.NORMAL)
-            self.save_button.config(state=tk.DISABLED)
+
+    # def check_button_states(self):
+    #     rotor_exists = os.path.exists("bezier_control_points_R.txt")
+    #     stator_exists = os.path.exists("bezier_control_points_S.txt")
+    
+    #     # Enable or disable buttons based on file existence
+    #     if rotor_exists and stator_exists:
+    #         self.create_profiles_button.config(state=tk.DISABLED)
+    #         self.save_button.config(state=tk.NORMAL)
+    #     else:
+    #         self.create_profiles_button.config(state=tk.NORMAL)
+    #         self.save_button.config(state=tk.DISABLED)
         
     def create_profiles_and_update_gui(self):
         create_default_profiles(self)
-        self.check_button_states()
+        # self.check_button_states()
 
-    
     def setup_parameters_tab(self):
     
         # main_frame = ttk.Frame(self.root, padding="10")
@@ -1162,16 +1162,18 @@ class CompressorGui:
     
         choice_frame = ttk.LabelFrame(self.parameters_frame, text="Profile Choice")
         choice_frame.pack(fill='x', padx=5, pady=5)
-        ttk.Radiobutton(choice_frame, text="Use Default or Loaded Profiles", variable=self.main_choice, value="default").pack(anchor='w', padx=10, pady=2)
-        ttk.Radiobutton(choice_frame, text="Make a specific adjustment", variable=self.main_choice, value="adjust", command=self.open_specification_window).pack(anchor='w', padx=10, pady=2)
-        
+            
         self.create_profiles_button = ttk.Button(choice_frame, text="Create Default Profile(s)", command=self.create_profiles_and_update_gui) # Button zum Erstellen der Profile
         self.create_profiles_button.pack(pady=5, padx=10, fill='x')
+        self.load_rotor_button = ttk.Button(choice_frame, text="Load Rotor Profile", command=self.load_rotor_settings) # Auswahl für Profil Laden
+        self.load_rotor_button.pack(fill='x', padx=10, pady=5)
+        self.load_stator_button = ttk.Button(choice_frame, text="Load Stator Profile", command=self.load_stator_settings) # Auswahl für Profil Laden
+        self.load_stator_button.pack(fill='x', padx=10, pady=5)
     
-        load_frame = ttk.LabelFrame(self.parameters_frame, text="Profiles")
-        load_frame.pack(fill='x', padx=5, pady=5)
-        ttk.Button(load_frame, text="Load Rotor Profile", command=self.load_rotor_settings).pack(fill='x', padx=10, pady=5) # Auswahl für Profil Laden
-        ttk.Button(load_frame, text="Load Stator Profile", command=self.load_stator_settings).pack(fill='x', padx=10, pady=5)
+        adjust_frame = ttk.LabelFrame(self.parameters_frame, text="Adjust Profiles")
+        adjust_frame.pack(fill='x', padx=5, pady=5)
+        self.adjust_profiles_button = ttk.Button(adjust_frame, text="Make a specific adjustment", command= self.open_specification_window)
+        self.adjust_profiles_button.pack(pady=5, padx=10, fill='x')
         
         nrow_frame = ttk.LabelFrame(self.parameters_frame, text="Blade Rows")
         nrow_frame.pack(fill='x', padx=5, pady=5, anchor='n')
@@ -1188,34 +1190,89 @@ class CompressorGui:
         self.levels_entry = ttk.Entry(inner_nrow_frame)
         self.levels_entry.grid(row=1, column=1, columnspan=2, sticky="ew", padx=5, pady=5)
         
-        inner_nrow_frame.grid_columnconfigure(1, weight=1)      
+        inner_nrow_frame.grid_columnconfigure(1, weight=1)  
+    
+    def save_adjustments_to_json(self, new_adjust_values):
+    
+        try:
+            with open(json_path, 'r') as file:
+                all_json_data = json.load(file)
+                
+            new_adjust_values = {}
+            all_json_data['Adjust_Settings'] = new_adjust_values
+            
+            with open(json_path, 'w') as file:
+                json.dump(all_json_data, file, indent=4)
+                
+            print("Adjust settings successfully saved to JSON.")
+            
+            self.prepop_adjust_data = new_adjust_values
+            
+        except Exception as e:
+            print(f"Error saving adjust settings to JSON: {e}")
+        
 
     def open_specification_window(self):
 
         def apply_adjustments():
-            settings = {
-                'main_choice': 'adjust',
-                'adjust_section_idx': self.specs["section_idx"].get().split(" ")[0],
-                'adjust_row': self.specs["row"].get(),
-                'adjust_parameter': self.specs["parameter"].get(),
-                'levels': self.levels_entry.get(),
-                'nrow': 1 if self.nrow_combo.get() == "Rotor Only" else 2
-            }
-            run_main_logic(settings)
+            try:
+                nrow_val = 2
+                if hasattr(self, 'nrow_combo') and self.nrow_combo.winfo_exists():
+                     nrow_val = 1 if self.nrow_combo.get() == "Rotor Only" else 2
+
+                '''
+                Started but needs to be renewed correctly when json structure is clear and implemented. 
+                '''
+
+                new_adjustment_data = {
+                    'main_choice': 'adjust',
+                    'adjust_section_idx': self.specs["section_idx"].get(),
+                    'adjust_row': self.specs["row"].get(),
+                    'adjust_parameter': self.specs["parameter"].get(),
+                    'levels': self.levels_entry.get() if hasattr(self, 'levels_entry') else "0.0, 0.2, 0.5, 0.8, 1.0",
+                    'nrow': nrow_val
+                    
+                }
+                
+                print(f"Starting Adjustments with: {new_adjustment_data}")
+
+                self.save_adjustments_to_json(new_adjustment_data)
+                
+                run_main_logic(new_adjustment_data)
+                
+                self.loading_prepopulated_data()
+                                
+                messagebox.showinfo("Success", "Profile adjusted and settings saved to JSON.")
+                
+            except Exception as e:
+                print(f"Fehler: {e}")
+                messagebox.showerror("Fehler", f"Logik konnte nicht gestartet werden:\n{e}")
         
-        spec_window = tk.Toplevel(self.root)
+        spec_window = ttk.Toplevel(self.root)
         spec_window.title("Adjustments")
         spec_window.transient(self.root) # Fenster bleibt im Vordergrund
         spec_window.grab_set() # Lässt keine Änderungen am Unterfenster zu
     
         frame = ttk.Frame(spec_window, padding="15")
         frame.pack(expand=True, fill="both")
-    
-        # Erstellt ein DropDown Menü 
+        
+        raw_h = self.prepop_bezier_point_rotor.get('h/H', [])
+        if raw_h:
+            h_H_values = [str(val) for val in raw_h]
+        else:
+            h_H_values = ["0.0", "0.2", "0.5", "0.8", "1.0"] # Fallback
+
+        # --- 2. GUI Elements ---
         ttk.Label(frame, text="Section Plan to change:").grid(row=0, column=0, sticky='w', pady=5)
-        section_combo = ttk.Combobox(frame, textvariable=self.specs["section_idx"], values=1, state="readonly")
+        section_combo = ttk.Combobox(frame, textvariable=self.specs["section_idx"], values=h_H_values, state="readonly")
         section_combo.grid(row=0, column=1, pady=5)
-        section_combo.current(2)
+        
+        saved_section = self.prepop_adjust_data.get('adjust_section_idx', "0.5")
+        self.specs["section_idx"].set(saved_section)
+        
+        if saved_section not in h_H_values:
+             if len(h_H_values) > 2: section_combo.current(2)
+             elif h_H_values: section_combo.current(0)
     
         ttk.Label(frame, text="Blade Row:").grid(row=1, column=0, sticky='w', pady=5)
         row_combo = ttk.Combobox(frame, textvariable=self.specs["row"], value=['Rotor', 'Stator'], state="readonly")
@@ -1373,24 +1430,24 @@ class CompressorGui:
 ### Bis hier muss noch durch Lade Methode ersetzt werden. Hier nur aus Funktionsgründen kopiert
 
     def run_action_and_stay_open(self): # Speichert alles und schließt das Fenster nicht
-        settings = {
+        data = {
             "main_choice": self.main_choice.get(),
         }
 
         nrow_choice = self.nrow_combo.get()
-        settings["nrow"] = 1 if nrow_choice == "Rotor Only" else 2
+        data["nrow"] = 1 if nrow_choice == "Rotor Only" else 2
         
-        settings["levels"] = self.levels_entry.get()
+        data["levels"] = self.levels_entry.get()
         
-        if settings["main_choice"] == "adjust":
+        if data["main_choice"] == "adjust":
             section_str = self.specs["section_idx"].get()
             section_map = {'0.0': 0, '0.1':1, '0.2': 2, '0.3': 3, '0.4': 4, '0.5': 5, '0.6': 6, '0.7': 7, '0.8': 8, '0.9': 9, '1.0': 10}
-            settings["adjust_section_idx"] = section_map.get(section_str, 2)
-            settings["adjust_row"] = self.specs['row'].get()
-            settings["adjust_parameter"] = self.specs['parameter'].get()
+            data["adjust_section_idx"] = section_map.get(section_str, 2)
+            data["adjust_row"] = self.specs['row'].get()
+            data["adjust_parameter"] = self.specs['parameter'].get()
             
         
-        run_main_logic(settings)
+        run_main_logic(data)
         
         self.save_settings() # Speichert die Einstellungen in der Settings.txt
         
@@ -1402,11 +1459,11 @@ class CompressorGui:
     
     def grid_definition_tab(self, parent_frame):
 
-        def browse_output_folder():
-            path = filedialog.askdirectory()
-            if path:            
-                output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
-                output_folder_entry.insert(0, path) # Neuer Pfad
+        # def browse_output_folder():
+        #     path = filedialog.askdirectory()
+        #     if path:            
+        #         output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
+        #         output_folder_entry.insert(0, path) # Neuer Pfad
         
         #loaded_levels = settings_loaded.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
         #loaded_output = settings_loaded.get('output_folder', '')
@@ -1426,13 +1483,30 @@ class CompressorGui:
             'levels': tk.StringVar(value='0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00'),  # Standardwerte für die Ebenen
             'output_folder': tk.StringVar(value=''),  # Standardwert für den Ausgabe
             'show_plot': tk.BooleanVar(value=False),  # Standardwert für die Anzeige des Plots
-            'Q3D_mode': tk.BooleanVar(value=False)  # Standardwert für Q3D Modus
+            'Q3D_mode': tk.BooleanVar(value=False),  # Standardwert für Q3D Modus
+            'ref_chord_length_mode': tk.BooleanVar(value=False),  # Standardwert für die Referenz-Sehnenlänge
+            'SA_mode': tk.BooleanVar(value=False)  # Standardwert für die SA Turbulence Model
         }
         
         main_frame = ttk.Frame(parent_frame, padding="10")
         main_frame.pack(fill="both", expand=True)
-
+        
+        def toggle_ref_chord():
+            is_acativated = data['ref_chord_length_mode'].get()
             
+            if is_acativated:
+                # when activated:
+                self.ref_chord_label.configure(state="normal")
+                self.ref_chord_entry.configure(state="normal")
+                self.ref_chord_help.configure(state="normal")
+            else:
+                # when deactivated:
+                self.ref_chord_label.configure(state="disabled")
+                self.ref_chord_entry.configure(state="disabled")
+                self.ref_chord_help.configure(state="disabled")
+                
+                data['ref_chord_length'].set("134.4")  
+        
         # --- Helper Funktion for Q3D Logic ---
         def toggle_Q3D():
             if data['Q3D_mode'].get():
@@ -1441,79 +1515,146 @@ class CompressorGui:
             else:
                 KM_grid_combobox.config(state=tk.NORMAL) # Aktiviert die Auswahl
                 KM_grid_combobox.set("37")  # Setzt KM zurück auf 37
+                
+        def toggle_SA():
+            if data['SA_mode'].get():
+                SA_mode = True #  SA Turbulence Model
+                SA_model = 1
+            else:
+                SA_mode = False #  Standart Turbulence Model
+                SA_model =0
+            
+            print(SA_model)
 
         '''
         # --- Main Grid Settings  ---
         '''
-        settings_frame = ttk.LabelFrame(main_frame, text="Grid Configuration")
-        settings_frame.pack(fill="x", expand=True, pady=5)
+        self.settings_frame = ttk.LabelFrame(main_frame, text="Grid Configuration")
+        self.settings_frame.pack(side="top" ,fill="x", anchor="n", pady=5)
+        
+        self.turbulence_model_frame = ttk.LabelFrame(main_frame, text="Turbulence Model")
+        self.turbulence_model_frame.pack(side="top", fill="x", pady=5)
         
         # Stage Components
-        ttk.Label(settings_frame, text="Stage Components (1=R, 2=R+S):").grid(row=0, column=0, sticky="w", pady=5)
-        ttk.Entry(settings_frame, textvariable=data['nrow'], width=10).grid(row=0, column=1, sticky="w", pady=5)
-                
+        ttk.Label(self.settings_frame, text="Stage Components (1=R, 2=R+S):").grid(row=0, column=0, sticky="w", pady=5)
+        ttk.Entry(self.settings_frame, textvariable=data['nrow'], width=10).grid(row=0, column=1, sticky="w", pady=5)
+        
+        self.stage_components_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.stage_components_help.grid(row=0, column=2, padx=(5, 0))
+        stage_components_help_text = " Defines how many blade rows are included in the grid. 1 means that only the rotor is included while 2 means that both the rotor and the stator are included in the grid. If only the rotor is included the flow at the outlet of the rotor is not calculated and thus no flow information at the outlet of the rotor is available. This can lead to a better resolution of the flow at the inlet of the rotor but also increases the computational effort if both blade rows are included."
+        Tooltip(self.stage_components_help, stage_components_help_text)
+                        
         # Reference Chord Length
-        ttk.Label(settings_frame, text="Reference Chord Length [mm]:").grid(row=1, column=0, sticky="w", pady=5)
-        ttk.Entry(settings_frame, textvariable=data['ref_chord_length'], width=10).grid(row=1, column=1, sticky="w", pady=5)
+        ttk.Checkbutton(
+            self.settings_frame, 
+            text="Reference Chord Length",
+            variable=data['ref_chord_length_mode'],
+            command=toggle_ref_chord
+        ).grid(row=1, column=3, padx=(20, 0), pady=5)
+        
+        self.ref_chord_label = ttk.Label(self.settings_frame, text="Reference Chord Length [mm]:")
+        self.ref_chord_label.grid(row=1, column=0, sticky="w", pady=5)
+        
+        self.ref_chord_entry = ttk.Entry(self.settings_frame, textvariable=data['ref_chord_length'], width=10)
+        self.ref_chord_entry.grid(row=1, column=1, sticky="w", pady=5)
+        
+        self.ref_chord_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.ref_chord_help.grid(row=1, column=2, padx=(5, 0))
+        stage_components_help_text = " Reference Chord Length. This is a reference value for the chord length of the blade. It is used to define the size of the grid and to calculate the tip clearance. The grid will be scaled based on this reference chord length. A larger reference chord length will lead to a coarser grid while a smaller reference chord length will lead to a finer grid. It is important to choose a reference chord length that is representative of the actual blade geometry to ensure an accurate resolution of the flow."
+        Tooltip(self.ref_chord_help, stage_components_help_text)
+        
+        toggle_ref_chord() # Initialer Aufruf um die Referenz-Sehnenlänge zu deaktivieren
 
         # KM Grid
-        ttk.Label(settings_frame, text="Grid Dimension (KM):").grid(row=2, column=0, sticky="w", pady=5)
+        ttk.Label(self.settings_frame, text="Grid Dimension (KM):").grid(row=2, column=0, sticky="w", pady=5)
         im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
-        KM_grid_combobox = ttk.Combobox(settings_frame, textvariable=data['km_selection'], values=im_km_grid_options, state="readonly")
+        KM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['km_selection'], values=im_km_grid_options, state="readonly")
         KM_grid_combobox.grid(row=2, column=1, sticky="w", pady=5)
         
+        self.KM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.KM_grid_help.grid(row=2, column=2, padx=(5, 0))
+        KM_grid_help_text = " Points of Grid in Radial Direction. The higher the value the more points are distributed in the radial direction. This can lead to a better resolution of the flow near the hub and shroud but also increases the computational effort. If Q3D mode is activated KM is set to 2 which means that only 2 points are distributed in the radial direction and thus only one point is placed at the hub and one at the shroud wall."
+        Tooltip(self.KM_grid_help, KM_grid_help_text)
+        
         # IM Grid
-        ttk.Label(settings_frame, text="Grid Dimension (IM):").grid(row=3, column=0, sticky="w", pady=5)
-        IM_grid_combobox = ttk.Combobox(settings_frame, textvariable=data['im_selection'], values=im_km_grid_options, state="readonly")
+        ttk.Label(self.settings_frame, text="Grid Dimension (IM):").grid(row=3, column=0, sticky="w", pady=5)
+        IM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['im_selection'], values=im_km_grid_options, state="readonly")
         IM_grid_combobox.grid(row=3, column=1, sticky="w", pady=5)
+        
+        self.IM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.IM_grid_help.grid(row=3, column=2, padx=(5, 0))
+        IM_grid_help_text = " Points of Grid in the Circumferential Direction. The higher the value the more points are distributed in the circumferential direction. This can lead to a better resolution of the flow but also increases the computational effort."
+        Tooltip(self.IM_grid_help, IM_grid_help_text)
                    
         # Fineness JM
-        ttk.Label(settings_frame, text="Fineness (Reference Points):").grid(row=4, column=0, sticky="w", pady=5)
+        ttk.Label(self.settings_frame, text="Fineness (Reference Points):").grid(row=4, column=0, sticky="w", pady=5)
         JM_value = [i for i in range(8, 800, 8)]
         JM_grid_options = [str(i) for i in JM_value]
-        JM_grid_combobox = ttk.Combobox(settings_frame, textvariable=data['JM_grid_density'], values=JM_grid_options, state="readonly")
+        JM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['JM_grid_density'], values=JM_grid_options, state="readonly")
         JM_grid_combobox.grid(row=4, column=1, sticky="w", pady=5)
+        
+        self.JM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.JM_grid_help.grid(row=4, column=2, padx=(5, 0))
+        JM_grid_help_text = " Points of Grid in the Axial Direction. The higher the value the more points are distributed in the axial direction. This can lead to a better resolution of the flow but also increases the computational effort."
+        Tooltip(self.JM_grid_help, JM_grid_help_text)
                 
         # Inlet Points
-        ttk.Label(settings_frame, text="Inlet Points (% of JM):").grid(row=5, column=0, sticky="w", pady=5) 
-        ttk.Entry(settings_frame, textvariable=data['inlet_percentage'], width=10).grid(row=5, column=1, sticky="w", pady=5) 
+        ttk.Label(self.settings_frame, text="Inlet Points (% of JM):").grid(row=5, column=0, sticky="w", pady=5) 
+        ttk.Entry(self.settings_frame, textvariable=data['inlet_percentage'], width=10).grid(row=5, column=1, sticky="w", pady=5)
+        
+        self.inlet_points_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.inlet_points_help.grid(row=5, column=2, padx=(5, 0))
+        inlet_points_help_text = ("Percentage of points at the inlet. This defines how many points of the total number of points in the axial direction (JM) are placed at the inlet. A higher percentage can lead to a better resolution of the flow at the inlet but also increases the computational effort.")
+        Tooltip(self.inlet_points_help, inlet_points_help_text) 
                                     
         # Outlet Points
-        ttk.Label(settings_frame, text="Outlet Points (% of JM):").grid(row=6, column=0, sticky="w", pady=5) 
-        ttk.Entry(settings_frame, textvariable=data['outlet_percentage'], width=10).grid(row=6, column=1, sticky="w", pady=5)  
-                
+        ttk.Label(self.settings_frame, text="Outlet Points (% of JM):").grid(row=6, column=0, sticky="w", pady=5) 
+        ttk.Entry(self.settings_frame, textvariable=data['outlet_percentage'], width=10).grid(row=6, column=1, sticky="w", pady=5)  
+        
+        self.outlet_points_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.outlet_points_help.grid(row=6, column=2, padx=(5, 0))
+        outlet_points_help_text = "Percentage of points at the outlet. This defines how many points of the total number of points in the axial direction (JM) are placed at the outlet. A higher percentage can lead to a better resolution of the flow at the outlet but also increases the computational effort."
+        Tooltip(self.outlet_points_help, outlet_points_help_text)
+        
         # Tip Clearance
-        ttk.Label(settings_frame, text="Tip clearance (mm):").grid(row=7, column=0, sticky="w", pady=5)
-        ttk.Entry(settings_frame, textvariable=data['tip_clearance_rotor'], width=10).grid(row=7, column=1, sticky="w", pady=5)
+        ttk.Label(self.settings_frame, text="Tip clearance (mm):").grid(row=7, column=0, sticky="w", pady=5)
+        ttk.Entry(self.settings_frame, textvariable=data['tip_clearance_rotor'], width=10).grid(row=7, column=1, sticky="w", pady=5)
+        
+        self.tip_clearance_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.tip_clearance_help.grid(row=7, column=2, padx=(5, 0))
+        tip_clearance_help_text = " Tip clearance in mm. This defines the distance between the blade tip and the shroud wall. A smaller tip clearance can lead to a better resolution of the flow near the blade tip but also increases the computational effort."
+        Tooltip(self.tip_clearance_help, tip_clearance_help_text)
 
         # Q3D Checkbox (direkt im Grid Frame)
         ttk.Checkbutton(
-            settings_frame,
+            self.settings_frame,
             text="Activate Q3D Mode (Sets KM to 2)",
             variable=data['Q3D_mode'],
             command=toggle_Q3D
         ).grid(row=8, column=0, columnspan=2, sticky="w", pady=10)
+        
+        self.Q3D_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.Q3D_help.grid(row=8, column=1, padx=(5, 0))
+        Q3D_help_text = " Q3D Mode: If activated, the grid will be generated in a way that is suitable for quasi-3D simulations. This means that only 2 points will be distributed in the radial direction (KM=2) which results in only one point being placed at the hub and one at the shroud wall. This can lead to a better resolution of the flow in the axial and circumferential direction while reducing the computational effort by not resolving the flow in the radial direction."
+        Tooltip(self.Q3D_help, Q3D_help_text)
+                
+        ttk.Checkbutton(
+            self.turbulence_model_frame,
+            text="Use Spalart-Allmaras Turbulence Model",
+            variable=data['SA_mode'],
+            command=toggle_SA
+        ).grid(row=9, column=0, sticky="w")
+        
+        self.turbulence_model_help = ttk.Label(self.turbulence_model_frame, text= "?", cursor="question_arrow")
+        self.turbulence_model_help.grid(row=9, column=1, padx=(5, 0))
+        self.turbulence_model_help_text = " Turbulence Model: If activated, the grid will be generated in a way that is suitable for simulations using the Spalart-Allmaras turbulence model. This can lead to a better resolution of the flow near the walls where the turbulence model is most active but also increases the computational effort."
+        Tooltip(self.turbulence_model_help, self.turbulence_model_help_text)
+        
 
         '''
         # --- Helper Funktion for Plotting  ---
         '''
-        stage_frame = ttk.LabelFrame(main_frame, text="Stage & Plotting Settings")
-        stage_frame.pack(fill="x", expand=True, pady=5)
 
-        # Levels Definition
-        ttk.Label(stage_frame, text="Please define the levels (0.0 to 1.0):").grid(row=0, column=0, sticky="w", pady=5)
-        ttk.Entry(stage_frame, textvariable=data['levels'], width=50).grid(row=0, column=1, sticky="w", pady=5)
-
-        # Plotting Height
-        ttk.Label(stage_frame, text="Please define Plotting Height (0 to 1.0):").grid(row=1, column=0, sticky="w", pady=5) 
-        ttk.Entry(stage_frame, textvariable=data['h_H_plot'], width=10).grid(row=1, column=1, sticky="w", pady=5)
-        
-        # Show Plot Checkbox
-        ttk.Checkbutton(
-            stage_frame, 
-            text="Plot Grid after Generation", 
-            variable=data["show_plot"] 
-        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=5)
     
     def write_multall_data_tab(self, parent_frame):
         ttk.Button(parent_frame, text="Write Multall Data", command=write_all_settings(self)).pack(fill='x', padx=10, pady=10)
@@ -1625,6 +1766,20 @@ class CompressorGui:
         ttk.Button(stator_frame, text="Show geometry plot", command=lambda: show_plots_section_stator).pack(fill='x', padx=10, pady=10)
         ttk.Button(stator_frame, text="Show angle distribution plot", command=lambda: show_plots_angle_stator).pack(fill='x', padx=10, pady=10)
         ttk.Button(stator_frame, text="Show thickness distribution plot", command=lambda: show_plots_thickness_stator).pack(fill='x', padx=10, pady=10)
+        
+        # stage_frame = ttk.LabelFrame(parent_frame, text="Stage & Plotting Settings")
+        # stage_frame.pack(fill="x", expand=True, pady=5)
+
+        # #Plotting Height
+        # ttk.Label(stage_frame, text="Please define Plotting Height (0 to 1.0):").grid(row=1, column=0, sticky="w", pady=5) 
+        # ttk.Entry(stage_frame, textvariable=("Plotting Level"), width=10).grid(row=1, column=1, sticky="w", pady=5)
+        
+        # #Show Plot Checkbox
+        # ttk.Checkbutton(
+        #     stage_frame, 
+        #     text="Plot Grid after Generation", 
+        #     variable=data["show_plot"] 
+        # ).grid(row=2, column=0, columnspan=2, sticky="w", pady=5)
         
         def show_plots_section_rotor(self):
             NROW = 1
