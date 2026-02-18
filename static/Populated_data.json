@@ -96,22 +96,22 @@
     },
     "Diameter_data": {
         "D_f1": [
-            510.0,
-            510.0,
-            510.0
+            0.51,
+            0.51,
+            0.51
         ],
         "D_f2": [
-            510.0,
-            510.0,
-            510.0
+            0.51,
+            0.51,
+            0.51
         ],
         "D_f3": [
-            510.0,
-            510.0,
-            510.0
+            0.51,
+            0.51,
+            0.51
         ],
         "fixed_radius_type": "mean",
-        "Plot Channel Contour": true
+        "Plot Channel Contour": false
     },
     "Bezier_point_data": {
         "stator": {
@@ -283,8 +283,6 @@
         ]
     },
     "Grid_data": {
-        "": "",
-        "": "",
         "": ""
     }
 }

@@ -663,34 +663,7 @@ class CompressorGui:
             print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type={fixed_radius_type}, plot_channel_contour={plot_channel_contour}")
             return D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour
                     
-        # propably not needed anymore    
-        def read_diameter(filename):
-            
-            fixed_radius_typ = None
-            D_f1 = None
-            D_f2 = None
-            D_f3 = None
-            plot_channel_contour = None
-
-            with open(filename,'r') as file:
-                for line in file:
-                    line = line.strip()
-                    
-                    # Skip empty lines
-                    if not line:
-                        continue
-                    if line.startswith('Fixed Radius Typ ='):
-                        fixed_radius_typ = line.split('=')[1].strip(" '[]\n").replace("'","") 
-                    elif line.startswith('D_f1 ='):
-                        D_f1 = [float(x) for x in line.split('=')[1].strip('[] ').split(',')]
-                    elif line.startswith('D_f2 ='):
-                        D_f2 = [float(x) for x in line.split('=')[1].strip('[] ').split(',')]
-                    elif line.startswith('D_f3 ='):
-                        D_f3 = [float(x) for x in line.split('=')[1].strip('[] ').split(',')]
-                    elif line.startswith('Plot Channel Contour ='):
-                        plot_channel_contour = line.split('=')[1].strip(" '[]\n").replace("'","") 
-
-            return fixed_radius_typ, D_f1, D_f2, D_f3, plot_channel_contour
+        
 
         def write_diameters(self, fixed_radius_typ, D_f1, D_f2, D_f3, plot_channel_contour):
 
@@ -706,7 +679,7 @@ class CompressorGui:
                 for param in params:
                     new_diameter_values[param] = float(entries[param].get())
 
-                all_json_data['Thermodynamic_input_data'] = new_diameter_values
+                all_json_data['Diameter_data'] = new_diameter_values
                 
                 with open(json_path, 'w') as file:
                     json.dump(all_json_data, file, indent=4)

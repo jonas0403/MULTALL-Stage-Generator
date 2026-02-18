@@ -717,7 +717,17 @@ def meanline(thermo_data, meanline_data, diameter_data, plot_channel_contour):
     D_f1 = diameter_data["D_f1"]
     D_f2 = diameter_data["D_f2"]
     D_f3 = diameter_data["D_f3"]
-     
+    
+    '''
+    #meter values
+    D_f1_meter = diameter_data["D_f1"]
+    D_f2_meter = diameter_data["D_f2"]
+    D_f3_meter = diameter_data["D_f3"]
+    
+    D_f1 = D_f1_meter/1000
+    D_f2 = D_f2_meter/1000
+    D_f3 = D_f3_meter/1000
+    ''' 
     
     mflow = thermo_data["mflow"]
     p_t_in = thermo_data["p_t_in"]
@@ -1382,15 +1392,15 @@ def meanline(thermo_data, meanline_data, diameter_data, plot_channel_contour):
     
     # Convert all Diameters to mm
     
-    D_H1=[val*1000 for val in D_H1]
-    D_H2=[val*1000 for val in D_H2]
-    D_H3=[val*1000 for val in D_H3]
-    D_M1=[val*1000 for val in D_M1]
-    D_M2=[val*1000 for val in D_M2]
-    D_M3=[val*1000 for val in D_M3]
-    D_S1=[val*1000 for val in D_S1]
-    D_S2=[val*1000 for val in D_S2]
-    D_S3=[val*1000 for val in D_S3]
+    D_H1_mm=[val*1000 for val in D_H1]
+    D_H2_mm=[val*1000 for val in D_H2]
+    D_H3_mm=[val*1000 for val in D_H3]
+    D_M1_mm=[val*1000 for val in D_M1]
+    D_M2_mm=[val*1000 for val in D_M2]
+    D_M3_mm=[val*1000 for val in D_M3]
+    D_S1_mm=[val*1000 for val in D_S1]
+    D_S2_mm=[val*1000 for val in D_S2]
+    D_S3_mm=[val*1000 for val in D_S3]
     
 
     
@@ -1485,7 +1495,12 @@ def meanline(thermo_data, meanline_data, diameter_data, plot_channel_contour):
         'p_t2': p_t2,
         'p_t3': p_t3,
         
-        # Gemoetrydiameters (Shroud, Hub, Mean)
+        # Gemoetrydiameters in Milimeters(Shroud, Hub, Mean)
+        'D_S1_mm': D_S1_mm, 'D_S2_mm': D_S2_mm, 'D_S3_mm': D_S3_mm,
+        'D_H1_mm': D_H1_mm, 'D_H2_mm': D_H2_mm, 'D_H3_mm': D_H3_mm,
+        'D_M1_mm': D_M1_mm, 'D_M2_mm': D_M2_mm, 'D_M3_mm': D_M3_mm,
+        
+        # Gemoetrydiameters in Meters(Shroud, Hub, Mean)
         'D_S1': D_S1, 'D_S2': D_S2, 'D_S3': D_S3,
         'D_H1': D_H1, 'D_H2': D_H2, 'D_H3': D_H3,
         'D_M1': D_M1, 'D_M2': D_M2, 'D_M3': D_M3,
