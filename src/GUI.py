@@ -7,7 +7,7 @@ import shutil
 import json
 import sys
 import subprocess
-import var_Grid as VG
+
 
 #from tkinter import filedialog
 from tkinter import messagebox
@@ -21,6 +21,8 @@ from Stage_v3_working_with_bleedair import create_default_profiles, calculation_
 from Cubspline_function_v2 import cubspline
 from Thermodynamic_calc_GUI import Thermo
 from Fixed_radii_Meanline_GUI_v4 import meanline
+#import var_Grid as VG
+
 
 current_dir = Path(__file__).parent.parent
 static_folder = current_dir/ "static"
@@ -649,9 +651,10 @@ class CompressorGui:
                     "D_f1": D_f1,
                     "D_f2": D_f2,
                     "D_f3": D_f3,
-                    "Fixed Radius Typ": fixed_radius_type,
-                    "Plot Channel Contour": plot_channel_contour
+                    "fixed_radius_type": fixed_radius_type,
+                    "plot_channel_contour": plot_channel_contour
                 }
+                print(f"self.changed_channel_contour_data: {self.changed_channel_contour_data}")
                 
                 #self.save_and_initialize_meanline(plot_channel_contour) 
                 self.on_close_callback(self.changed_channel_contour_data)
@@ -664,13 +667,57 @@ class CompressorGui:
             fixed_radius_type = ""
             plot_channel_contour = False
             
-            def on_close(d1, d2, d3, type_var, plot_var):
-                nonlocal D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour
-                D_f1 = d1
-                D_f2 = d2
-                D_f3 = d3
-                fixed_radius_type = type_var
-                plot_channel_contour = plot_var
+            def on_close(changed_diamtere_data):
+                
+                D_f1 = changed_diamtere_data["D_f1"]
+                D_f2 = changed_diamtere_data["D_f2"]
+                D_f3 = changed_diamtere_data["D_f3"]
+
+                fixed_radius_type = changed_diamtere_data["fixed_radius_type"]
+                plot_channel_contour = changed_diamtere_data["plot_channel_contour"]
+                
+                try:
+                    with open(json_path, 'r') as file:
+                        all_json_data = json.load(file)
+                    new_diameter_data = {}
+                    '''
+                    if self.meanline_data["fixed_radius_type"] == "shroud":
+                        new_diameter_data["D_f1"] = self.meanline_data["D_S1"]
+                        new_diameter_data["D_f2"] = self.meanline_data["D_S2"]
+                        new_diameter_data["D_f3"] = self.meanline_data["D_S3"]
+                    elif self.meanline_data["fixed_radius_type"] == "mean":
+                        new_diameter_data["D_f1"] = self.meanline_data["D_M1"]
+                        new_diameter_data["D_f2"] = self.meanline_data["D_M2"]
+                        new_diameter_data["D_f3"] = self.meanline_data["D_M3"]
+                    elif self.meanline_data["fixed_radius_type"] == "hub":
+                        new_diameter_data["D_f1"] = self.meanline_data["D_H1"]
+                        new_diameter_data["D_f2"] = self.meanline_data["D_H2"]
+                        new_diameter_data["D_f3"] = self.meanline_data["D_H3"]   
+                    '''
+                    new_diameter_data["D_f1"] = D_f1
+                    new_diameter_data["D_f2"] = D_f2
+                    new_diameter_data["D_f3"] = D_f3
+                        
+                    new_diameter_data["fixed_radius_type"] = fixed_radius_type
+                    new_diameter_data["plot_channel_contour"] = plot_channel_contour
+                    
+                    all_json_data['Diameter_data'] = new_diameter_data
+                        
+                    
+                    # The data to be saved is already in self.prepop_diameter_data,
+                    # which was updated by run_diameter_gui.
+
+                    with open(json_path, 'w') as file:
+                        json.dump(all_json_data, file, indent=4)
+                    print("Diameter data saved to JSON successfully.")
+                    
+                    self.prepop_diameter_data = new_diameter_data
+                    print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type = {fixed_radius_type}, plot_channel_contour = {plot_channel_contour}")
+                    self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, plot_channel_contour)
+                except Exception as e:
+                    print(f"Error during JSON write in write_diameters: {e}")
+                
+                
                 
                 
             # Read Initial Data from File   
@@ -681,8 +728,8 @@ class CompressorGui:
             self.prepop_diameter_data["D_f1"] = D_f1
             self.prepop_diameter_data["D_f2"] = D_f2
             self.prepop_diameter_data["D_f3"] = D_f3
-            self.prepop_diameter_data["Fixed Radius Typ"] = fixed_radius_type  
-            self.prepop_diameter_data["Plot Channel Contour"] = plot_channel_contour
+            self.prepop_diameter_data["fixed_radius_type"] = fixed_radius_type  
+            self.prepop_diameter_data["plot_channel_contour"] = plot_channel_contour
             
             print(f"UPDATED prepop_diameter_data: {self.prepop_diameter_data}")
             
@@ -699,6 +746,7 @@ class CompressorGui:
             plot_channel_contour=False
             self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, plot_channel_contour)
             try: 
+                '''
         def write_diameters(**kwargs):
             """
             Writes the diameter data, which has been updated in self.prepop_diameter_data,
@@ -742,59 +790,10 @@ class CompressorGui:
                 self.prepop_diameter_data = new_diameter_data
                 
                 print("Parameters saved and initialized.")
-
+            '''
             except ValueError as e: 
                 print(f"Error: {e}")  
-                
-                
-        '''
-        Not in use anymore 
-        reads wrong file and data is already saved and read
-        
-        
-        def read_initial_values(filename):
-            global n, psi_h, phi_1, phi_2, phi_3
-            global z_R, l_R, d_R_l_R, d_Cl_R, d_TE_R, incidence_R
-            global z_S, l_S, d_S_l_S, d_TE_S, d_CL_S, incidence_S
 
-            with open(filename, 'r') as file:
-                for line in file:
-                    line = line.strip()
-                    if line.startswith('n = '):
-                        n = [float(x) for x in line[4:].strip('[]').split(',')]
-                    elif line.startswith('psi_h = '):
-                        psi_h = [float(x) for x in line[8:].strip('[]').split(',')]
-                    elif line.startswith('phi_1 = '):
-                        phi_1 = [float(x) for x in line[8:].strip('[]').split(',')]
-                    elif line.startswith('phi_2 = '):
-                        phi_2 = [float(x) for x in line[8:].strip('[]').split(',')]
-                    elif line.startswith('phi_3 = '):
-                        phi_3 = [float(x) for x in line[8:].strip('[]').split(',')]
-                    elif line.startswith('z_R = '):
-                        z_R = [int(x) for x in line[6:].strip('[]').split(',')]
-                    elif line.startswith('l_R = '):
-                        l_R = [float(x) for x in line[6:].strip('[]').split(',')]
-                    elif line.startswith('d_R_l_R = '):
-                        d_R_l_R = [float(x) for x in line[11:].strip('[]').split(',')]
-                    elif line.startswith('d_Cl_R = '):
-                        d_Cl_R = [float(x) for x in line[10:].strip('[]').split(',')]
-                    elif line.startswith('d_TE_R = '):
-                        d_TE_R = [float(x) for x in line[10:].strip('[]').split(',')]
-                    elif line.startswith('incidence_R = '):
-                        incidence_R = [float(x) for x in line[14:].strip('[]').split(',')]
-                    elif line.startswith('z_S = '):
-                        z_S = [int(x) for x in line[6:].strip('[]').split(',')]
-                    elif line.startswith('l_S = '):
-                        l_S = [float(x) for x in line[6:].strip('[]').split(',')]
-                    elif line.startswith('d_S_l_S = '):
-                        d_S_l_S = [float(x) for x in line[11:].strip('[]').split(',')]
-                    elif line.startswith('d_TE_S = '):
-                        d_TE_S = [float(x) for x in line[10:].strip('[]').split(',')]
-                    elif line.startswith('d_CL_S = '):
-                        d_CL_S = [float(x) for x in line[10:].strip('[]').split(',')]
-                    elif line.startswith('incidence_S = '):
-                        incidence_S = [float(x) for x in line[14:].strip('[]').split(',')]
-        '''
         def create_gui():
             #
             global entries
@@ -1783,18 +1782,12 @@ class CompressorGui:
                 print("Please enter valid numbers for all conditions.")
                 
         def generate_grid():
-            
-            try:
-                with open(json_path, 'r') as file:
-                    all_json_data = json.load(file)
-            except (FileNotFoundError, json.JSONDecodeError) as e:
-                print(f"Fehler beim Laden der JSON: {e}")
-                return
-            
-            save_and_initialize_grid()
+            current_grid_settings = {}
+            for key, widget in self.widgets.items():
+                current_grid_settings[key] = widget.get() 
 
             try:
-                gd = all_json_data.get('Grid_data', {})
+                gd = self.prepop_grid_data
                 nrow_wert         = int(gd.get('nrow', 2))
                 KM_grid_density   = int(gd.get('km_selection', 37))
                 IM_grid_density   = int(gd.get('im_selection', 37))
@@ -1806,72 +1799,69 @@ class CompressorGui:
                 Q3D_value         = bool(gd.get('Q3D_mode', False))
                 do_plot           = bool(gd.get('show_plot', False))
                 output_path       = gd.get('output_folder', '.')
+                
+                if not hasattr(self, 'meanline_results') or not self.meanline_results:
+                    messagebox.showerror("Error", "No Meanline-Data found. Please calculate '1D-Settings' first!")
+                    return
+                
+                if hasattr(self, 'prepop_metadata') and 'levels' in self.prepop_metadata:
+                    stage_levels = self.prepop_metadata['levels']
+                else:
+                    # Fallback, in case Metadata is empty
+                    stage_levels = [0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.0]
 
-            levels_str = '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.0'
-            try:
-                with open(Path(__file__).parent / 'Settings.txt', 'r') as f:
-                    for line in f:
-                        if line.startswith('levels = '):
-                            levels_str = line.split('levels = ', 1)[1].strip()
-                            break
-            except FileNotFoundError:
-                pass
-            stage_levels = [float(x.strip()) for x in levels_str.split(',') if x.strip()]
+                if Q3D_value:
+                    KM_grid_density = 2
 
-            if Q3D_value:
-                KM_grid_density = 2
+                D_S1 = self.meanline_results['D_S1']
+                D_H1 = self.meanline_results['D_H1']
+                total_height = (D_S1[0] - D_H1[0]) / 2.0 
+                tip_clearance_multall = tip_clearance_mm / (total_height * 1000)
 
-            # Spaltmaß umrechnen
-            D_S1 = self.stage_data['D_S1']
-            D_H1 = self.stage_data['D_H1']
-            total_height = (D_S1[0] - D_H1[0]) / 2.0
-            tip_clearance_multall = tip_clearance_mm / (total_height * 1000)
-
-            print("Starte Gittergenerierung...")
-            grid_data_list, grid_data_list_plot, JM_dynamic, JM = VG.generate_and_plot_grid(
-                nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density,
-                inlet_percentage, outlet_percentage,
-                ref_chord_length, stage_levels,
-                self.stage_data
-            )
-            print(f"Gitter berechnet. JM_dynamic={JM_dynamic}")
-
-            if do_plot:
-                VG.plot_all(grid_data_list_plot, JM_dynamic)
-
-            if Q3D_value:
-                output_name = f"multall_grid_Q3D_IM_{IM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
-            else:
-                output_name = (f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}"
-                               f"_JM_{JM_dynamic}_rows_{nrow_wert}_ref_chord_{ref_chord_length}.dat")
-
-            full_output_path = os.path.join(output_path, output_name)
-            enable_bleed_air = self.stage_data.get('enable_bleed_air', False)
-
-            print(f"Schreibe Datei: {full_output_path}")
-            VG.write_head_file(KM_grid_density, IM_grid_density, full_output_path,
-                               section, nrow_wert, NSEC, Q3D_value, enable_bleed_air,
-                               self.stage_data)
-
-            for data in grid_data_list:
-                VG.multall_grid_data_head_row(
-                    full_output_path, len(data['x_new']), data['row_num'],
-                    data['JLE'], data['JM'], data['JTE'],
-                    KM_grid_density, tip_clearance_multall, stage_levels,
-                    self.stage_data
-                )
-                VG.write_coordinates(
-                    data['x_new'], data['Rtheta_new'], data['d_new'], data['R_new'],
-                    full_output_path, data['row_num'], 0, len(data['x_new']), data['JM']
+                print("Starting Grid calculations...")
+                
+                grid_data_list, grid_data_list_plot, JM_dynamic, JM = VG.generate_and_plot_grid(
+                    nrow_wert, IM_grid_density, KM_grid_density,
+                    0.5, JM_grid_density,
+                    inlet_percentage, outlet_percentage,
+                    ref_chord_length, stage_levels,
+                    self.meanline_results 
                 )
 
-            if Q3D_value:
-                VG.Q3D_information(full_output_path)
+                if do_plot:
+                    VG.plot_all(grid_data_list_plot, JM_dynamic)
 
-            VG.write_end_file(nrow_wert, full_output_path, section,
-                              KM_grid_density, stage_levels, self.stage_data)
+                if Q3D_value:
+                    output_name = f"multall_grid_Q3D_IM_{IM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
+                else:
+                    output_name = f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
 
-            print(f"Fertig! Datei gespeichert unter: {full_output_path}")
+                full_output_path = os.path.join(output_path, output_name)
+                enable_bleed_air = self.meanline_results.get('enable_bleed_air', False)
+
+                VG.write_head_file(KM_grid_density, IM_grid_density, full_output_path,
+                                   0, nrow_wert, len(stage_levels), Q3D_value, enable_bleed_air, 
+                                   self.meanline_results)
+
+                for data in grid_data_list:
+                    VG.multall_grid_data_head_row(
+                        full_output_path, len(data['x_new']), data['row_num'],
+                        data['JLE'], data['JM'], data['JTE'],
+                        KM_grid_density, tip_clearance_multall, stage_levels,
+                        self.meanline_results
+                    )
+                    VG.write_coordinates(
+                        data['x_new'], data['Rtheta_new'], data['d_new'], data['R_new'],
+                        full_output_path, data['row_num'], 0, len(data['x_new']), data['JM']
+                    )
+
+                VG.write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, stage_levels, self.meanline_results)
+
+                messagebox.showinfo("Erfolg", f"Gitter generiert:\n{full_output_path}")
+
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Fehler", f"Fehler: {e}")
                     
         for row_index, config in enumerate(ui_config):
             

@@ -9,9 +9,9 @@
     },
     "Meanline_input_data": {
         "n": [
-            10800.0,
-            10800.0,
-            10800.0
+            9999.0,
+            9999.0,
+            9999.0
         ],
         "psi_h": [
             0.9,
@@ -96,22 +96,22 @@
     },
     "Diameter_data": {
         "D_f1": [
-            0.51,
-            0.51,
-            0.51
+            0.8,
+            0.8,
+            0.8
         ],
         "D_f2": [
-            0.51,
-            0.51,
-            0.51
+            0.8,
+            0.8,
+            0.8
         ],
         "D_f3": [
-            0.51,
-            0.51,
-            0.51
+            0.8,
+            0.8,
+            0.8
         ],
-        "fixed_radius_type": "mean",
-        "Plot Channel Contour": false
+        "fixed_radius_type": "shroud",
+        "plot_channel_contour": false
     },
     "Bezier_point_data": {
         "stator": {
