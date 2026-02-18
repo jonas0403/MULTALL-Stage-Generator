@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import os 
 import shutil
 import json
+import sys
+import subprocess
+
 #from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import *
@@ -1616,11 +1619,11 @@ class CompressorGui:
     
     def grid_definition_tab(self, parent_frame):
 
-        def browse_output_folder():
-            path = filedialog.askdirectory()
-            if path:            
-                output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
-                output_folder_entry.insert(0, path) # Neuer Pfad
+        # def browse_output_folder():
+        #     path = filedialog.askdirectory()
+        #     if path:            
+        #         output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
+        #         output_folder_entry.insert(0, path) # Neuer Pfad
         
         #loaded_levels = settings_loaded.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
         #loaded_output = settings_loaded.get('output_folder', '')
@@ -1640,22 +1643,31 @@ class CompressorGui:
             'levels': tk.StringVar(value='0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00'),  # Standardwerte für die Ebenen
             'output_folder': tk.StringVar(value=''),  # Standardwert für den Ausgabe
             'show_plot': tk.BooleanVar(value=False),  # Standardwert für die Anzeige des Plots
-            'Q3D_mode': tk.BooleanVar(value=False)  # Standardwert für Q3D Modus
+            'Q3D_mode': tk.BooleanVar(value=False),  # Standardwert für Q3D Modus
+            'ref_chord_length_mode': tk.BooleanVar(value=False),  # Standardwert für die Referenz-Sehnenlänge
+            'SA_mode': tk.BooleanVar(value=False)  # Standardwert für die SA Turbulence Model
         }
         
         main_frame = ttk.Frame(parent_frame, padding="10")
         main_frame.pack(fill="both", expand=True)
-
+    
+        def toggle_ref_chord():
+            is_acativated = data['ref_chord_length_mode'].get()
             
-        # Fügt Tab listen ein
-        notebook = ttk.Notebook(main_frame)  
-        notebook.pack(fill='both', expand=True, padx=10, pady=10)
-            
-        grid_tab = ttk.Frame(notebook, padding=10)
-        stage_tab = ttk.Frame(notebook, padding=10)
-            
-        notebook.add(grid_tab, text="Grid")
+            if is_acativated:
+                # when activated:
+                self.ref_chord_label.configure(state="normal")
+                self.ref_chord_entry.configure(state="normal")
+                self.ref_chord_help.configure(state="normal")
+            else:
+                # when deactivated:
+                self.ref_chord_label.configure(state="disabled")
+                self.ref_chord_entry.configure(state="disabled")
+                self.ref_chord_help.configure(state="disabled")
+                
+                data['ref_chord_length'].set("134.4")  
         
+        # --- Helper Funktion for Q3D Logic ---
         def toggle_Q3D():
             if data['Q3D_mode'].get():
                 KM_grid_combobox.set("2") # Setzt KM auf 2
@@ -1663,89 +1675,178 @@ class CompressorGui:
             else:
                 KM_grid_combobox.config(state=tk.NORMAL) # Aktiviert die Auswahl
                 KM_grid_combobox.set("37")  # Setzt KM zurück auf 37
-
-        settings_frame = ttk.LabelFrame(main_frame, text="Grid-Settings", padding="10")
-        settings_frame.pack(fill="x", expand=True, pady=5)
-        
-        settings_frame_stage = ttk.LabelFrame(main_frame, text="Stage-Settings", padding="10")
-        settings_frame_stage.pack(fill="x", expand=True, pady=5)
-            
-        # Füllt die Tabs mit Inhalt   
-        ttk.Label(stage_tab, text="Please define the levels (0.0 to 1.0):").grid(row=10, column=0, sticky="w", pady=5)
-        ttk.Entry(stage_tab, textvariable=data['levels'], width=50).grid(row=10, column=1, sticky="w", pady=5)
-
-        # Eingabefelder für Rotor- und Stator-Einstellungen
-        ttk.Label(grid_tab, text="Stage Components (1=R, 2=R+S):").grid(row=0, column=0, sticky="w", pady=5)
-        ttk.Entry(grid_tab, textvariable=data['nrow'], width=10).grid(row=0, column=1, sticky="w", pady=5)
                 
-        ttk.Label(grid_tab, text="Reference Chord Length [mm]:").grid(row=1, column=0, sticky="w", pady=5)
-        ttk.Entry(grid_tab, textvariable=data['ref_chord_length'], width=10).grid(row=1, column=1, sticky="w", pady=5)
+        def toggle_SA():
+            if data['SA_mode'].get():
+                SA_mode = True #  SA Turbulence Model
+                SA_model = 1
+            else:
+                SA_mode = False #  Standart Turbulence Model
+                SA_model =0
+            
+            print(SA_model)
 
-        # Gitterdichte-Auswahl IMxKM
-        ttk.Label(grid_tab, text="Grid Dimension (KM):").grid(row=2, column=0, sticky="w", pady=5)
-        im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
-        KM_grid_combobox = ttk.Combobox(grid_tab, textvariable=data['km_selection'], values=im_km_grid_options, state="readonly")
-        KM_grid_combobox.grid(row=2, column=1, sticky="w", pady=5)
-        KM_grid_combobox.set("37")  # Standardwert auf "37"
+        '''
+        # --- Main Grid Settings  ---
+        '''
+        self.settings_frame = ttk.LabelFrame(main_frame, text="Grid Configuration")
+        self.settings_frame.pack(side="top" ,fill="x", anchor="n", pady=5)
         
-        Q3D_frame = ttk.LabelFrame(grid_tab, text="Q3D Mode", padding="10")
-        Q3D_frame.grid(row=9, column=0, columnspan=2, sticky="ew", pady=10, padx=5)
+        self.turbulence_model_frame = ttk.LabelFrame(main_frame, text="Turbulence Model")
+        self.turbulence_model_frame.pack(side="top", fill="x", pady=5)
+        
+        # Stage Components
+        ttk.Label(self.settings_frame, text="Stage Components (1=R, 2=R+S):").grid(row=0, column=0, sticky="w", pady=5)
+        ttk.Entry(self.settings_frame, textvariable=data['nrow'], width=10).grid(row=0, column=1, sticky="w", pady=5)
+        
+        self.stage_components_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.stage_components_help.grid(row=0, column=2, padx=(5, 0))
+        stage_components_help_text = " Defines how many blade rows are included in the grid. 1 means that only the rotor is included while 2 means that both the rotor and the stator are included in the grid. If only the rotor is included the flow at the outlet of the rotor is not calculated and thus no flow information at the outlet of the rotor is available. This can lead to a better resolution of the flow at the inlet of the rotor but also increases the computational effort if both blade rows are included."
+        Tooltip(self.stage_components_help, stage_components_help_text)
+                        
+        # Reference Chord Length
         ttk.Checkbutton(
-            Q3D_frame,
+            self.settings_frame, 
+            text="Reference Chord Length",
+            variable=data['ref_chord_length_mode'],
+            command=toggle_ref_chord
+        ).grid(row=1, column=3, padx=(20, 0), pady=5)
+        
+        self.ref_chord_label = ttk.Label(self.settings_frame, text="Reference Chord Length [mm]:")
+        self.ref_chord_label.grid(row=1, column=0, sticky="w", pady=5)
+        
+        self.ref_chord_entry = ttk.Entry(self.settings_frame, textvariable=data['ref_chord_length'], width=10)
+        self.ref_chord_entry.grid(row=1, column=1, sticky="w", pady=5)
+        
+        self.ref_chord_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.ref_chord_help.grid(row=1, column=2, padx=(5, 0))
+        stage_components_help_text = " Reference Chord Length. This is a reference value for the chord length of the blade. It is used to define the size of the grid and to calculate the tip clearance. The grid will be scaled based on this reference chord length. A larger reference chord length will lead to a coarser grid while a smaller reference chord length will lead to a finer grid. It is important to choose a reference chord length that is representative of the actual blade geometry to ensure an accurate resolution of the flow."
+        Tooltip(self.ref_chord_help, stage_components_help_text)
+        
+        toggle_ref_chord() # Initialer Aufruf um die Referenz-Sehnenlänge zu deaktivieren
+
+        # KM Grid
+        ttk.Label(self.settings_frame, text="Grid Dimension (KM):").grid(row=2, column=0, sticky="w", pady=5)
+        im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
+        KM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['km_selection'], values=im_km_grid_options, state="readonly")
+        KM_grid_combobox.grid(row=2, column=1, sticky="w", pady=5)
+        
+        self.KM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.KM_grid_help.grid(row=2, column=2, padx=(5, 0))
+        KM_grid_help_text = " Points of Grid in Radial Direction. The higher the value the more points are distributed in the radial direction. This can lead to a better resolution of the flow near the hub and shroud but also increases the computational effort. If Q3D mode is activated KM is set to 2 which means that only 2 points are distributed in the radial direction and thus only one point is placed at the hub and one at the shroud wall."
+        Tooltip(self.KM_grid_help, KM_grid_help_text)
+        
+        # IM Grid
+        ttk.Label(self.settings_frame, text="Grid Dimension (IM):").grid(row=3, column=0, sticky="w", pady=5)
+        IM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['im_selection'], values=im_km_grid_options, state="readonly")
+        IM_grid_combobox.grid(row=3, column=1, sticky="w", pady=5)
+        
+        self.IM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.IM_grid_help.grid(row=3, column=2, padx=(5, 0))
+        IM_grid_help_text = " Points of Grid in the Circumferential Direction. The higher the value the more points are distributed in the circumferential direction. This can lead to a better resolution of the flow but also increases the computational effort."
+        Tooltip(self.IM_grid_help, IM_grid_help_text)
+                   
+        # Fineness JM
+        ttk.Label(self.settings_frame, text="Fineness (Reference Points):").grid(row=4, column=0, sticky="w", pady=5)
+        JM_value = [i for i in range(8, 800, 8)]
+        JM_grid_options = [str(i) for i in JM_value]
+        JM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['JM_grid_density'], values=JM_grid_options, state="readonly")
+        JM_grid_combobox.grid(row=4, column=1, sticky="w", pady=5)
+        
+        self.JM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.JM_grid_help.grid(row=4, column=2, padx=(5, 0))
+        JM_grid_help_text = " Points of Grid in the Axial Direction. The higher the value the more points are distributed in the axial direction. This can lead to a better resolution of the flow but also increases the computational effort."
+        Tooltip(self.JM_grid_help, JM_grid_help_text)
+                
+        # Inlet Points
+        ttk.Label(self.settings_frame, text="Inlet Points (% of JM):").grid(row=5, column=0, sticky="w", pady=5) 
+        ttk.Entry(self.settings_frame, textvariable=data['inlet_percentage'], width=10).grid(row=5, column=1, sticky="w", pady=5)
+        
+        self.inlet_points_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.inlet_points_help.grid(row=5, column=2, padx=(5, 0))
+        inlet_points_help_text = ("Percentage of points at the inlet. This defines how many points of the total number of points in the axial direction (JM) are placed at the inlet. A higher percentage can lead to a better resolution of the flow at the inlet but also increases the computational effort.")
+        Tooltip(self.inlet_points_help, inlet_points_help_text) 
+                                    
+        # Outlet Points
+        ttk.Label(self.settings_frame, text="Outlet Points (% of JM):").grid(row=6, column=0, sticky="w", pady=5) 
+        ttk.Entry(self.settings_frame, textvariable=data['outlet_percentage'], width=10).grid(row=6, column=1, sticky="w", pady=5)  
+        
+        self.outlet_points_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.outlet_points_help.grid(row=6, column=2, padx=(5, 0))
+        outlet_points_help_text = "Percentage of points at the outlet. This defines how many points of the total number of points in the axial direction (JM) are placed at the outlet. A higher percentage can lead to a better resolution of the flow at the outlet but also increases the computational effort."
+        Tooltip(self.outlet_points_help, outlet_points_help_text)
+        
+        # Tip Clearance
+        ttk.Label(self.settings_frame, text="Tip clearance (mm):").grid(row=7, column=0, sticky="w", pady=5)
+        ttk.Entry(self.settings_frame, textvariable=data['tip_clearance_rotor'], width=10).grid(row=7, column=1, sticky="w", pady=5)
+        
+        self.tip_clearance_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.tip_clearance_help.grid(row=7, column=2, padx=(5, 0))
+        tip_clearance_help_text = " Tip clearance in mm. This defines the distance between the blade tip and the shroud wall. A smaller tip clearance can lead to a better resolution of the flow near the blade tip but also increases the computational effort."
+        Tooltip(self.tip_clearance_help, tip_clearance_help_text)
+
+        # Q3D Checkbox (direkt im Grid Frame)
+        ttk.Checkbutton(
+            self.settings_frame,
             text="Activate Q3D Mode (Sets KM to 2)",
             variable=data['Q3D_mode'],
             command=toggle_Q3D
-        ).grid(row=0, column=0, sticky="w")
-                
-        ttk.Label(grid_tab, text="Grid Dimension (IM):").grid(row=3, column=0, sticky="w", pady=5)
-        im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
-        IM_grid_combobox = ttk.Combobox(grid_tab, textvariable=data['im_selection'], values=im_km_grid_options, state="readonly")
-        IM_grid_combobox.grid(row=3, column=1, sticky="w", pady=5)
-        IM_grid_combobox.set("37")  # Standardwert auf "37"
-                   
-        ttk.Label(grid_tab, text="Fineness (Reference Points):").grid(row=5, column=0, sticky="w", pady=5)
-        JM_value = [i for i in range(8, 800, 8)]  # Generiert Werte von 8 bis 800 in 9er-Schritten
-        JM_grid_options = [str(i) for i in JM_value]
-        JM_grid_combobox = ttk.Combobox(grid_tab, textvariable=data['JM_grid_density'], values=JM_grid_options, state="readonly")
-        JM_grid_combobox.grid(row=5, column=1, sticky="w", pady=5)
-        JM_grid_combobox.set("296")  # Standardwert auf "300"
-                
-        ttk.Label(grid_tab, text="Inlet Points (% of JM):").grid(row=6, column=0, sticky="w", pady=5) 
-        ttk.Entry(grid_tab, textvariable=data['inlet_percentage'], width=10).grid(row=6, column=1, sticky="w", pady=5) 
-                                    
-        ttk.Label(grid_tab, text="Outlet Points (% of JM):").grid(row=7, column=0, sticky="w", pady=5) 
-        ttk.Entry(grid_tab, textvariable=data['outlet_percentage'], width=10).grid(row=7, column=1, sticky="w", pady=5)  
-                
-        ttk.Label(grid_tab, text="Tip clearance (mm):").grid(row=8, column=0, sticky="w", pady=5)
-        ttk.Entry(grid_tab, textvariable=data['tip_clearance_rotor'], width=10).grid(row=8, column=1, sticky="w", pady=5)
-
-        # ttk.Label(stage_tab, text="Output Folder:").grid(row=0, column=0, sticky='w', padx=5, pady=5)
-        # output_folder_entry = ttk.Entry(stage_tab, textvariable=data['output_folder'] ,width=40)
-        # output_folder_entry.grid(row=0, column=1, sticky='ew')
-        # ttk.Button(stage_tab, text="Browse", command=browse_output_folder).grid(row=0, column=2)
-
-        plot_frame = ttk.LabelFrame(stage_tab, text="Plotting", padding="10")
-        plot_frame.grid(row=11, column=0, columnspan=3, sticky="ew", pady=10, padx=5)
-
-        #Menü für Plotting Height
-        ttk.Label(plot_frame, text="Please define Plotting Height (0 to 1.0)").grid(row=0, column=0, sticky="w", pady=5) 
-        ttk.Entry(plot_frame, textvariable=data['h_H_plot'], width=10).grid(row=0, column=1, sticky="w", pady=5)
-
+        ).grid(row=8, column=0, columnspan=2, sticky="w", pady=10)
         
+        self.Q3D_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
+        self.Q3D_help.grid(row=8, column=1, padx=(5, 0))
+        Q3D_help_text = " Q3D Mode: If activated, the grid will be generated in a way that is suitable for quasi-3D simulations. This means that only 2 points will be distributed in the radial direction (KM=2) which results in only one point being placed at the hub and one at the shroud wall. This can lead to a better resolution of the flow in the axial and circumferential direction while reducing the computational effort by not resolving the flow in the radial direction."
+        Tooltip(self.Q3D_help, Q3D_help_text)
+                
         ttk.Checkbutton(
-            plot_frame, 
-            text="Plot Grid after Generation", 
-            variable=data["show_plot"] # Standardmäßig aktiviert
-        ).grid(row=0, column=3, sticky="w") 
+            self.turbulence_model_frame,
+            text="Use Spalart-Allmaras Turbulence Model",
+            variable=data['SA_mode'],
+            command=toggle_SA
+        ).grid(row=9, column=0, sticky="w")
+        
+        self.turbulence_model_help = ttk.Label(self.turbulence_model_frame, text= "?", cursor="question_arrow")
+        self.turbulence_model_help.grid(row=9, column=1, padx=(5, 0))
+        self.turbulence_model_help_text = " Turbulence Model: If activated, the grid will be generated in a way that is suitable for simulations using the Spalart-Allmaras turbulence model. This can lead to a better resolution of the flow near the walls where the turbulence model is most active but also increases the computational effort."
+        Tooltip(self.turbulence_model_help, self.turbulence_model_help_text)
+        
+    def start_Multall(self):
+        popup_multall = tk.Toplevel()
+        popup_multall.title("Do you want to start Multall?")
+        popup_multall.geometry("300x150")
+        tk.Label(popup_multall, text="Do you want to start Multall with the current settings?", wraplength=280).pack(pady=20)
+        
+        def start_multall_and_exit():
+            print("Starting Multall...")
+            
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            script_path = os.path.join(current_dir, "run_multall.py")
+            
+            subprocess.Popen([sys.executable, script_path])
+            
+            popup_multall.destroy()
+            self.root.destroy()
+            sys.exit()
+        
+        def cancel_and_exit():
+            print("Multall start cancelled.")
+            popup_multall.destroy()
+            self.root.destroy()
+            sys.exit()
+        
+        ttk.Button(popup_multall, text="No", command=cancel_and_exit, style="danger.TButton", width=10).pack(side="left", padx=20, pady=10)
+        ttk.Button(popup_multall, text="Yes", command=start_multall_and_exit, style="success.TButton", width= 10).pack(side="right", padx=20, pady=10)
+        
     
     def render_gui(self):
                 
-        window = tk.Tk()
-        window.title("GUI Example")
+        self.root = tk.Tk()
+        self.root.title("GUI Example")
                 
-        main_frame = ttk.Frame(window, padding="10")
+        main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill="both", expand=True)
 
+        self.root.protocol("WM_DELETE_WINDOW", self.start_Multall)
                     
         # Fügt Tab listen ein
         notebook = ttk.Notebook(main_frame)  
@@ -1755,6 +1856,7 @@ class CompressorGui:
         oneD = ttk.Frame(notebook, padding=10)
         threeD = ttk.Frame(notebook, padding=10)
         grid = ttk.Frame(notebook, padding=10)
+        multall_data = ttk.Frame(notebook, padding=10)
         other = ttk.Frame(notebook, padding=10)
                     
         notebook.add(zeroD, text="0D-Settings")
@@ -1767,6 +1869,8 @@ class CompressorGui:
         self.oneD_tab(oneD, i_st_val = 3)
         self.threeD_tab(threeD)
         self.grid_definition_tab(grid)
+        #self.write_multall_data_tab(multall_data)
+        #self.other_settings_tab(other)
                 
                 
                 
