@@ -798,7 +798,7 @@ class CompressorGui:
                         entry = ttk.Entry(frame, width=10)
                         entry.insert(0, str(value))
                         entry.grid(row=i, column=j+1, padx=5, pady=5)
-                        entries[param].append(entry)
+                        entries[param] = entry
 
             def save_and_initialize():
                 try:

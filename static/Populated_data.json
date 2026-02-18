@@ -1,11 +1,11 @@
 {
     "Thermodynamic_input_data": {
-        "p_t_in": 101325.0,
-        "T_t_in": 293.15,
-        "mflow": 60.0,
-        "R": 287.0,
-        "cp": 1004.5,
-        "TPR": 2.4
+        "z_S": 70.0,
+        "l_S": 35.0,
+        "d_S_l_S": 0.0857,
+        "d_TE_S": 0.7,
+        "d_CL_S": 0.0,
+        "incidence_S": 0.0
     },
     "Meanline_input_data": {
         "n": [
