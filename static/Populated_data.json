@@ -266,7 +266,7 @@
         }
     },
     "Metadata": {
-        "output_folder": "C:/Users/Luca1/sciebo/Geometriegenerator/Studenten/deFrancesco/Analyse/Profil",
+        "output_folder": "C:/Users/Jonas/sciebo/Geometriegenerator/Studenten/Scholz/Code/Multall/Ergebnisse/Bleedair/1patch_aspirated_stator_12-37k_10-60j_5mflow",
         "main_choice": "default",
         "levels": [
             0.0,
@@ -280,9 +280,37 @@
             0.9,
             0.95,
             1.0
-        ]
+        ],
+        "use_default_rotor_bezier": true,
+        "use_default_stator_bezier": true,
+        "adjust_rotor_thickness": false,
+        "adjust_rotor_angle": false,
+        "adjust_stator_thickness": false,
+        "adjust_stator_angle": false,
+        "show_section_plot": true,
+        "show_angle_distribution_plots": true
     },
     "Grid_data": {
         "a": "1"
+    },
+    "Bleed_air_data": {
+        "enable_bleed_air": true,
+        "rotor_patches": 0,
+        "stator_patches": 1,
+        "stator_patch_1": [
+            1,
+            37,
+            10,
+            50,
+            12,
+            37,
+            5
+        ]
+    },
+    "Intake_Outtake_area": {
+        "inlet_area": 1.1,
+        "inlet_dist": 1.5,
+        "outlet_area": 0.9,
+        "outlet_dist": 2.0
     }
 }

@@ -68,9 +68,10 @@ class CompressorGui:
             self.prepop_bezier_point_stator = data['Bezier_point_data']['stator']
             self.prepop_bezier_point_rotor = data['Bezier_point_data']['rotor']
             self.prepop_metadata = data['Metadata'] 
-            self.prepop_grid_data = data['Grid_data']         
-    
-    
+            self.prepop_grid_data = data['Grid_data'] 
+            self.prepop_bleed_air_data = data['Bleed_air_data']
+            self.prepop_intake_outtake_area_data = data['Intake_Outtake_area']
+  
     '''
     Function and population of first tab
     Entryboxes for the first 0 Dimensional Thermodynamic calculation
@@ -795,7 +796,7 @@ class CompressorGui:
                 print(f"Error: {e}")  
 
         def create_gui():
-            #
+            
             global entries
             root = parent_frame
             '''
@@ -837,7 +838,116 @@ class CompressorGui:
                 self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, show_plot)
 
                   
+                # Load settings from JSON
+                try:
+                    with open(json_path, 'r') as file:
+                        all_json_data = json.load(file)
+                    
+                    # Load Metadata
+                    if 'Metadata' in all_json_data:
+                        metadata = all_json_data['Metadata']
+                        
+                        if 'output_folder' in metadata:
+                            self.output_folder_entry.delete(0, tk.END)
+                            self.output_folder_entry.insert(0, metadata['output_folder'])
+                        
+                        if 'levels' in metadata:
+                            # Convert list back to comma-separated string
+                            levels_str = ', '.join(str(x) for x in metadata['levels'])
+                            self.levels_entry.delete(0, tk.END)
+                            self.levels_entry.insert(0, levels_str)
+                        
+                        if 'use_default_rotor_bezier' in metadata:
+                            self.use_default_rotor_bezier_var.set(metadata['use_default_rotor_bezier'])
+                        
+                        if 'use_default_stator_bezier' in metadata:
+                            self.use_default_stator_bezier_var.set(metadata['use_default_stator_bezier'])
+                        
+                        if 'adjust_rotor_thickness' in metadata:
+                            self.adjust_rotor_thickness_var.set(metadata['adjust_rotor_thickness'])
+                        
+                        if 'adjust_rotor_angle' in metadata:
+                            self.adjust_rotor_angle_var.set(metadata['adjust_rotor_angle'])
+                        
+                        if 'adjust_stator_thickness' in metadata:
+                            self.adjust_stator_thickness_var.set(metadata['adjust_stator_thickness'])
+                        
+                        if 'adjust_stator_angle' in metadata:
+                            self.adjust_stator_angle_var.set(metadata['adjust_stator_angle'])
+                        
+                        if 'show_section_plot' in metadata:
+                            self.show_section_plot_var.set(metadata['show_section_plot'])
+                        
+                        if 'show_angle_distribution_plots' in metadata:
+                            self.show_angle_distribution_plots_var.set(metadata['show_angle_distribution_plots'])
+                    
+                    # Load Grid_data
+                    if 'Grid_data' in all_json_data:
+                        grid_data = all_json_data['Grid_data']
+                        
+                        if 'nrow' in grid_data:
+                            self.nrow_entry.delete(0, tk.END)
+                            self.nrow_entry.insert(0, str(grid_data['nrow']))
+                    
+                    # Load Bleed_air_data
+                    if 'Bleed_air_data' in all_json_data:
+                        bleed_data = all_json_data['Bleed_air_data']
+                        
+                        if 'enable_bleed_air' in bleed_data:
+                            self.enable_bleed_air_var.set(bleed_data['enable_bleed_air'])
+                        
+                        if 'rotor_patches' in bleed_data:
+                            self.bleed_air_data['rotor']['count'] = bleed_data['rotor_patches']
+                        
+                        if 'stator_patches' in bleed_data:
+                            self.bleed_air_data['stator']['count'] = bleed_data['stator_patches']
+                        
+                        # Load rotor patches
+                        for i in range(bleed_data.get('rotor_patches', 0)):
+                            patch_key = f'rotor_patch_{i+1}'
+                            if patch_key in bleed_data:
+                                self.bleed_air_data['rotor']['patches'].append(bleed_data[patch_key])
+                        
+                        # Load stator patches
+                        for i in range(bleed_data.get('stator_patches', 0)):
+                            patch_key = f'stator_patch_{i+1}'
+                            if patch_key in bleed_data:
+                                self.bleed_air_data['stator']['patches'].append(bleed_data[patch_key])
+                    
+                    # Load Intale_Outtake_area
+                    if 'Intale_Outtake_area' in all_json_data:
+                        intake_data = all_json_data['Intale_Outtake_area']
+                        
+                        if 'inlet_area' in intake_data:
+                            self.inlet_area_var.set(intake_data['inlet_area'])
+                        
+                        if 'inlet_dist' in intake_data:
+                            self.inlet_dist_var.set(intake_data['inlet_dist'])
+                        
+                        if 'outlet_area' in intake_data:
+                            self.outlet_area_var.set(intake_data['outlet_area'])
+                        
+                        if 'outlet_dist' in intake_data:
+                            self.outlet_dist_var.set(intake_data['outlet_dist'])
+                    
+                    # Store prepopulated data
+                    self.prepop_metadata = all_json_data.get('Metadata', {})
+                    self.prepop_grid_data = all_json_data.get('Grid_data', {})
+                    self.prepop_bleed_air_data = all_json_data.get('Bleed_air_data', {})
+                    self.prepop_intake_outtake = all_json_data.get('Intale_Outtake_area', {})
+                    
+                    print("Settings loaded successfully from JSON.")
+
+                except FileNotFoundError:
+                    print("No previous parameters found. Starting with defaults.")
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing JSON file: {e}")
+                except Exception as e:
+                    print(f"Error loading settings: {e}")
+
                 
+                '''
+                # Old not in use anymore
                 try:
                     with open(json_path, 'r') as file:
                         all_json_data = json.load(file)
@@ -861,7 +971,7 @@ class CompressorGui:
                     print("Parameters saved and initialized.")
                 except ValueError:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
-
+                '''
 
 
             ttk.Button(root, text="Save and Initialize Parameters", command=lambda: save_and_initialize_meanline(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
@@ -881,19 +991,23 @@ class CompressorGui:
                
     def threeD_tab(self, parent_frame):
         
-                
+            # Add a dictionary for storing bleedair data  
             self.bleed_air_data = {
                 'rotor': {'patches': [], 'count': 0},
                 'stator': {'patches': [], 'count': 0}
             }
+            
+            # Potential error fix for attribute error
             self.rotor_patch_entries = []
             self.stator_patch_entries = []
             
+            # Variables for Inlet and Outlet Adjustment
             self.inlet_area_var = tk.DoubleVar()
             self.inlet_dist_var = tk.DoubleVar()
             self.outlet_area_var = tk.DoubleVar()
             self.outlet_dist_var = tk.DoubleVar()
 
+            
             self.main_choice = tk.StringVar(value="default")
             self.specs = {
             "section_idx": tk.StringVar(),
@@ -901,8 +1015,8 @@ class CompressorGui:
             "parameter": tk.StringVar()
             }
             
-            self.show_section_plot_var = tk.BooleanVar(value=False) # Neue Variable für Abschnittsverteilung
-            self.show_angle_dist_plot_var = tk.BooleanVar(value=False) # Neue Variable für Winkelverteilung
+            self.show_section_plot_var = tk.BooleanVar(value=False) 
+            self.show_angle_dist_plot_var = tk.BooleanVar(value=False) 
             
             self.use_default_rotor_bezier_var = tk.BooleanVar(value=False)
             self.use_default_stator_bezier_var = tk.BooleanVar(value=False)
@@ -929,6 +1043,10 @@ class CompressorGui:
             self.sub_notebook.add(self.bleed_air_frame, text="Bleed Air")
             self.sub_notebook.add(self.inlet_outlet_frame, text="Inlet/Outlet")
             #self.sub_notebook.add(self.output_frame, text="Output Settings")
+            
+            # Creat container frame for inputs for the bleed air
+            self.bleed_input_container = ttk.Frame(self.bleed_air_frame)
+            self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
             
             self.setup_parameters_tab()
             self.setup_plot_options_tab()
@@ -972,7 +1090,7 @@ class CompressorGui:
         self.inlet_area_entry = ttk.Entry(self.inlet_frame, width=10, textvariable=self.inlet_area_var)
         self.inlet_area_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        # Distanz
+        # Distance
         self.inlet_dist_label = ttk.Label(self.inlet_frame, text="Inlet Distance")
         self.inlet_dist_label.grid(row=1, column=0, padx=5, pady=5, sticky='w')
         
@@ -1015,11 +1133,11 @@ class CompressorGui:
         # Save Button
         self.save_button_inlet_outlet = ttk.Button(self.inlet_outlet_frame, text="Save", command=self.save_and_initialize)
         self.save_button_inlet_outlet.pack(pady=10, side='bottom')
+
         
-    ## Was ist mit args gemeint? Aus funktionsgründen erstmal übernommen :) 
-    ### Ich glaube es ist am besten wenn ich mein code implementiere weil ich weiß was ich da machen muss und was alles ist und dann tritten wir uns nicht gegenseitig auf die füße
-    
-    ### Safe safe wollte ich auch nicht machen ^^ 
+        # Initial call to set up the Bleed AIr Tab based on loaded values
+        self.update_bleed_air_display()
+        
     def update_bleed_air_display(self, *args):
         if self.enable_bleed_air_var.get():
             self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
@@ -1343,8 +1461,9 @@ class CompressorGui:
             shutil.copy(filepath, "bezier_control_points_S.txt")
             print(f"Stator Profile loaded: {filepath}")
 
-### Muss noch durch speicher Methode ersetzt werden. Hier nur aus Funktionsgründen kopiert
-    def save_and_initialize(self):
+    # not in use anymore
+    def save_and_initialize_old(self):
+        
         use_default_rotor_bezier = self.use_default_rotor_bezier_var.get()
         use_default_stator_bezier = self.use_default_stator_bezier_var.get()
         adjust_rotor_thickness = self.adjust_rotor_thickness_var.get()
@@ -1410,6 +1529,100 @@ class CompressorGui:
             file.write(f"outlet_dist = {outlet_dist}\n")
 
         print("Parameters saved successfully.")
+    def save_and_initialize(self):
+        try:
+            # Read existing JSON data
+            with open(json_path, 'r') as file:
+                all_json_data = json.load(file)
+            
+            # Parse levels string to list of floats
+            levels_str = self.levels_entry.get()
+            levels_list = [float(x.strip()) for x in levels_str.split(',')]
+            
+            # Save Metadata
+            new_metadata = {
+                "output_folder": self.output_folder_entry.get(),
+                "main_choice": "default",
+                "levels": levels_list,
+                "use_default_rotor_bezier": self.use_default_rotor_bezier_var.get(),
+                "use_default_stator_bezier": self.use_default_stator_bezier_var.get(),
+                "adjust_rotor_thickness": self.adjust_rotor_thickness_var.get(),
+                "adjust_rotor_angle": self.adjust_rotor_angle_var.get(),
+                "adjust_stator_thickness": self.adjust_stator_thickness_var.get(),
+                "adjust_stator_angle": self.adjust_stator_angle_var.get(),
+                "show_section_plot": self.show_section_plot_var.get(),
+                "show_angle_distribution_plots": self.show_angle_distribution_plots_var.get()
+            }
+            all_json_data['Metadata'] = new_metadata
+            
+            # Save Grid_data
+            new_grid_data = {
+                "nrow": int(self.nrow_entry.get())
+            }
+            all_json_data['Grid_data'] = new_grid_data
+            
+            # Save Bleed_air_data
+            enable_bleed_air = self.enable_bleed_air_var.get()
+            new_bleed_air_data = {
+                "enable_bleed_air": enable_bleed_air,
+                "rotor_patches": len(self.rotor_patch_entries) if enable_bleed_air else 0,
+                "stator_patches": len(self.stator_patch_entries) if enable_bleed_air else 0
+            }
+            
+            if enable_bleed_air:
+                # Save rotor patches
+                for i, entries in enumerate(self.rotor_patch_entries):
+                    patch_data = [
+                        int(entries[0].get()),
+                        int(entries[1].get()),
+                        int(entries[2].get()),
+                        int(entries[3].get()),
+                        int(entries[4].get()),
+                        int(entries[5].get()),
+                        float(entries[6].get())
+                    ]
+                    new_bleed_air_data[f"rotor_patch_{i+1}"] = patch_data
+                
+                # Save stator patches
+                for i, entries in enumerate(self.stator_patch_entries):
+                    patch_data = [
+                        int(entries[0].get()),
+                        int(entries[1].get()),
+                        int(entries[2].get()),
+                        int(entries[3].get()),
+                        int(entries[4].get()),
+                        int(entries[5].get()),
+                        float(entries[6].get())
+                    ]
+                    new_bleed_air_data[f"stator_patch_{i+1}"] = patch_data
+            
+            all_json_data['Bleed_air_data'] = new_bleed_air_data
+            
+            # Save Intale_Outtake_area
+            new_intake_outtake = {
+                "inlet_area": float(self.inlet_area_var.get()),
+                "inlet_dist": float(self.inlet_dist_var.get()),
+                "outlet_area": float(self.outlet_area_var.get()),
+                "outlet_dist": float(self.outlet_dist_var.get())
+            }
+            all_json_data['Intale_Outtake_area'] = new_intake_outtake
+            
+            # Write back to JSON
+            with open(json_path, 'w') as file:
+                json.dump(all_json_data, file, indent=4)
+            
+            # Update prepopulated data 
+            self.prepop_metadata = new_metadata
+            self.prepop_grid_data = new_grid_data
+            self.prepop_bleed_air_data = new_bleed_air_data
+            self.prepop_intake_outtake = new_intake_outtake
+            
+            print("Parameters saved and initialized.")
+            
+        except ValueError as e:
+            print(f"Error: Please enter valid numbers. {e}")
+        except Exception as e:
+            print(f"Error saving settings: {e}")
         
     def save_settings(self):
         with open('Settings.txt', 'w') as file:
@@ -1439,7 +1652,7 @@ class CompressorGui:
                             continue    
                 
             self.show_section_plot_var.set(settings.get('show_section_plot', "False"))
-            self.show_angle_dist_plot_var.set(settings.get('show_angle_dist_plot', "False")) # Holt die gespeicherten Einstellungen wenn keine vorhanden sind -> False
+            self.show_angle_dist_plot_var.set(settings.get('show_angle_dist_plot', "False")) 
             
             self.levels_entry.insert(0, settings.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00'))
             nrow_value = int(settings.get('nrow', 2))

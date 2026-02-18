@@ -1809,6 +1809,7 @@ class CompressorGui:
                 ref_chord_length, stage_levels,
                 self.stage_data
             )
+            
             print(f"Gitter berechnet. JM_dynamic={JM_dynamic}")
 
             if do_plot:
