@@ -7,6 +7,7 @@ import shutil
 import json
 import sys
 import subprocess
+import var_Grid as VG
 
 #from tkinter import filedialog
 from tkinter import messagebox
@@ -64,7 +65,8 @@ class CompressorGui:
             self.prepop_diameter_data = data['Diameter_data']
             self.prepop_bezier_point_stator = data['Bezier_point_data']['stator']
             self.prepop_bezier_point_rotor = data['Bezier_point_data']['rotor']
-            self.prepop_metadata = data['Metadata']          
+            self.prepop_metadata = data['Metadata'] 
+            self.prepop_grid_data = data['Grid_data']         
     
     
     '''
@@ -641,12 +643,22 @@ class CompressorGui:
                 # Call writing function
                 fixed_radius_type = self.type_var.get()
                 plot_channel_contour = self.plot_channel_var.get()
-                 
-                self.on_close_callback(D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour)
+                
+                self.changed_channel_contour_data = {
+                    
+                    "D_f1": D_f1,
+                    "D_f2": D_f2,
+                    "D_f3": D_f3,
+                    "Fixed Radius Typ": fixed_radius_type,
+                    "Plot Channel Contour": plot_channel_contour
+                }
+                
+                #self.save_and_initialize_meanline(plot_channel_contour) 
+                self.on_close_callback(self.changed_channel_contour_data)
                 self.root.destroy()
                 plt.close(self.fig)
                 
-        def run_diameter_gui(i_st, initial_data):
+        def run_diameter_gui(i_st, initial_data, save_callback = None):
             root = tk.Tk()
             D_f1, D_f2, D_f3 = [],  [],  []
             fixed_radius_type = ""
@@ -660,39 +672,79 @@ class CompressorGui:
                 fixed_radius_type = type_var
                 plot_channel_contour = plot_var
                 
+                
             # Read Initial Data from File   
             diameter_gui(root, i_st, on_close, initial_data)
             root.mainloop()
             print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type={fixed_radius_type}, plot_channel_contour={plot_channel_contour}")
+            
+            self.prepop_diameter_data["D_f1"] = D_f1
+            self.prepop_diameter_data["D_f2"] = D_f2
+            self.prepop_diameter_data["D_f3"] = D_f3
+            self.prepop_diameter_data["Fixed Radius Typ"] = fixed_radius_type  
+            self.prepop_diameter_data["Plot Channel Contour"] = plot_channel_contour
+            
+            print(f"UPDATED prepop_diameter_data: {self.prepop_diameter_data}")
+            
+            if save_callback:
+                print("Calling save_callback...")  # Debug
+                save_callback(show_plot=plot_channel_contour)
+            
             return D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour
-                    
+                            
         
 
-        def write_diameters(self, fixed_radius_typ, D_f1, D_f2, D_f3, plot_channel_contour):
-
-            params = list(self.prepop_diameter_data.keys())    
+        def write_diameters():
+            print("Writing using the write_diameters function")
+            plot_channel_contour=False
+            self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, plot_channel_contour)
+            try: 
+        def write_diameters(**kwargs):
+            """
+            Writes the diameter data, which has been updated in self.prepop_diameter_data,
+            to the JSON file. This function is called as a callback after the diameter GUI is closed.
+            """
+            print("Writing diameter data to JSON...")
             try:
-                # Registers a function to delete the Lock File if Programm is exited normally
-                print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type={fixed_radius_typ}, plot_channel_contour={plot_channel_contour}")
-
                 with open(json_path, 'r') as file:
                     all_json_data = json.load(file)
-                                    
-                new_diameter_values = {}
-                for param in params:
-                    new_diameter_values[param] = float(entries[param].get())
-
-                all_json_data['Diameter_data'] = new_diameter_values
+                new_diameter_data = {}
                 
+                if self.meanline_data["fixed_radius_type"] == "shroud":
+                    new_diameter_data["D_f1"] = self.meanline_data["D_S1"]
+                    new_diameter_data["D_f2"] = self.meanline_data["D_S2"]
+                    new_diameter_data["D_f3"] = self.meanline_data["D_S3"]
+                elif self.meanline_data["fixed_radius_type"] == "mean":
+                    new_diameter_data["D_f1"] = self.meanline_data["D_M1"]
+                    new_diameter_data["D_f2"] = self.meanline_data["D_M2"]
+                    new_diameter_data["D_f3"] = self.meanline_data["D_M3"]
+                elif self.meanline_data["fixed_radius_type"] == "hub":
+                    new_diameter_data["D_f1"] = self.meanline_data["D_H1"]
+                    new_diameter_data["D_f2"] = self.meanline_data["D_H2"]
+                    new_diameter_data["D_f3"] = self.meanline_data["D_H3"]   
+                    
+                new_diameter_data["fixed_radius_type"] = self.meanline_data["fixed_radius_type"]
+                new_diameter_data["Plot Channel Contour"] = self.meanline_data["plot_channel_contour"]
+                
+                all_json_data['Diameter_data'] = new_diameter_data
+                    
+
+                # The data to be saved is already in self.prepop_diameter_data,
+                # which was updated by run_diameter_gui.
+                all_json_data['Diameter_data'] = self.prepop_diameter_data
+
                 with open(json_path, 'w') as file:
                     json.dump(all_json_data, file, indent=4)
-                 
-                self.prepop_diameter_data = new_diameter_values
-                    
+                print("Diameter data saved to JSON successfully.")
+            except Exception as e:
+                print(f"Error during JSON write in write_diameters: {e}")
+                
+                self.prepop_diameter_data = new_diameter_data
+                
                 print("Parameters saved and initialized.")
 
-            except Exception as e:
-                print(f"Error dring writting of the Diameters_Values.txt: {e}")
+            except ValueError as e: 
+                print(f"Error: {e}")  
                 
                 
         '''
@@ -777,7 +829,16 @@ class CompressorGui:
                         entry.grid(row=i, column=j+1, padx=5, pady=5)
                         entries[param].append(entry)
 
-            def save_and_initialize(show_plot):
+            def save_and_initialize_meanline(show_plot):
+                print(f"Writing using the save_and_initialize function. Show_plot = {show_plot}")
+                
+                ''' 
+                Run meanline function to calculate channelcontour   
+                ''' 
+                self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, show_plot)
+
+                  
+                
                 try:
                     with open(json_path, 'r') as file:
                         all_json_data = json.load(file)
@@ -801,81 +862,13 @@ class CompressorGui:
                     print("Parameters saved and initialized.")
                 except ValueError:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
-                    
-                ''' 
-                Run meanline function to calculate channelcontour   
-                ''' 
-                self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, show_plot)
-                
-                try: 
-                    with open(json_path, 'r') as file:
-                        all_json_data = json.load(file)
-                    new_diameter_data = {}
-                    
-                    if self.meanline_data["fixed_radius_type"] == "shroud":
-                        new_diameter_data["D_f1"] = self.meanline_data["D_S1"]
-                        new_diameter_data["D_f2"] = self.meanline_data["D_S2"]
-                        new_diameter_data["D_f3"] = self.meanline_data["D_S3"]
-                    elif self.meanline_data["fixed_radius_type"] == "mean":
-                        new_diameter_data["D_f1"] = self.meanline_data["D_M1"]
-                        new_diameter_data["D_f2"] = self.meanline_data["D_M2"]
-                        new_diameter_data["D_f3"] = self.meanline_data["D_M3"]
-                    elif self.meanline_data["fixed_radius_type"] == "hub":
-                        new_diameter_data["D_f1"] = self.meanline_data["D_H1"]
-                        new_diameter_data["D_f2"] = self.meanline_data["D_H2"]
-                        new_diameter_data["D_f3"] = self.meanline_data["D_H3"]   
-                        
-                    new_diameter_data["fixed_radius_type"] = self.meanline_data["fixed_radius_type"]
-                    new_diameter_data["Plot Channel Contour"] = self.meanline_data["plot_channel_contour"]
-                    
-                    all_json_data['Diameter_data'] = new_diameter_data
-                        
-                    with open(json_path, 'w') as file:
-                        json.dump(all_json_data, file, indent=4)
-                    
-                    self.prepop_diameter_data = new_diameter_data
-                    
-                    print("Parameters saved and initialized.")
-                    
-                except ValueError:
-                    print("Error")
 
-                '''    
-                try:
-                    for var_name in entries.keys():  # Iterate over the keys in entries
-                        if var_name in ['z_R', 'z_S']:
-                            globals()[var_name] = [int(entry.get()) for entry in entries[var_name]]
-                        else:
-                            globals()[var_name] = [float(entry.get()) for entry in entries[var_name]]
 
-                    with open('Meanline_Initial_Values.txt', 'w') as file:
-                        file.write(f"n = {n}\n")
-                        file.write(f"psi_h = {psi_h}\n")
-                        file.write(f"phi_1 = {phi_1}\n")
-                        file.write(f"phi_2 = {phi_2}\n")
-                        file.write(f"phi_3 = {phi_3}\n")
-                        file.write(f"z_R = {z_R}\n")
-                        file.write(f"l_R = {l_R}\n")
-                        file.write(f"d_R_l_R = {d_R_l_R}\n")
-                        file.write(f"d_Cl_R = {d_Cl_R}\n")
-                        file.write(f"d_TE_R = {d_TE_R}\n")
-                        file.write(f"incidence_R = {incidence_R}\n")
-                        file.write(f"z_S = {z_S}\n")
-                        file.write(f"l_S = {l_S}\n")
-                        file.write(f"d_S_l_S = {d_S_l_S}\n")
-                        file.write(f"d_TE_S = {d_TE_S}\n")
-                        file.write(f"d_CL_S = {d_CL_S}\n")
-                        file.write(f"incidence_S = {incidence_S}\n")
 
-                    print("Parameters saved and initialized.")
-                except ValueError:
-                    print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
-            
-               '''
-            ttk.Button(root, text="Save and Initialize Parameters", command=lambda: save_and_initialize(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
+            ttk.Button(root, text="Save and Initialize Parameters", command=lambda: save_and_initialize_meanline(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
             #ttk.Button(root, text="Save and Initialize Parameters", command=save_and_initialize(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
-            ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val,self.prepop_diameter_data)).pack(pady=10)
-            save_and_initialize(show_plot = False)
+            ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val, self.prepop_diameter_data, write_diameters)).pack(pady=10)
+            save_and_initialize_meanline(show_plot = False)
         
         
         # Starts and creates the meanline gui inside of the window
@@ -1475,7 +1468,10 @@ class CompressorGui:
             settings["adjust_parameter"] = self.specs['parameter'].get()
             
         
-        run_main_logic(settings)
+        run_main_logic_result = run_main_logic(settings)
+        if run_main_logic_result is not None:
+            self.stage_data = run_main_logic_result
+            print("stage_data saved sucessfully")
         
         self.save_settings() # Speichert die Einstellungen in der Settings.txt
         
@@ -1630,22 +1626,20 @@ class CompressorGui:
     
     def grid_definition_tab(self, parent_frame):
 
-        #loaded_levels = settings_loaded.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
-        #loaded_output = settings_loaded.get('output_folder', '')
+
+        '''
+        # --- Main Grid Settings  ---
+        '''    
         
-                
-        data = { # Lade die Standartwerte
+        grid_data = { # Lade die Standartwerte
             'nrow': tk.IntVar(value=2),
-            'h_H_plot': tk.DoubleVar(value=0.5),
             'im_selection' : tk.StringVar(value=37),   # Default-Wert für IM
             'km_selection' : tk.StringVar(value=37),   # Default-Wert für KM
             'ref_chord_length': tk.DoubleVar(value=134.4),  # Default-Wert für Referenz-Sehnenlänge
             'JM_grid_density': tk.IntVar(value=200),  # Default-Wert für Referenz-Gitterpunkte
             'tip_clearance_rotor': tk.DoubleVar(value=1.3),  # Standardwert von 1.3mm
-            #'tip_clearance_stator': tk.DoubleVar(value=1.5),  # Standardwert von 1.5mm
             'inlet_percentage': tk.DoubleVar(value=0.2),  # Standardwert von 20%
             'outlet_percentage': tk.DoubleVar(value=0.15),  # Standardwert von 15%
-            'levels': tk.StringVar(value='0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00'),  # Standardwerte für die Ebenen
             'output_folder': tk.StringVar(value=''),  # Standardwert für den Ausgabe
             'show_plot': tk.BooleanVar(value=False),  # Standardwert für die Anzeige des Plots
             'Q3D_mode': tk.BooleanVar(value=False),  # Standardwert für Q3D Modus
@@ -1653,36 +1647,101 @@ class CompressorGui:
             'SA_mode': tk.BooleanVar(value=False)  # Standardwert für die SA Turbulence Model
         }
         
+        im_km_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
+        jm_options = [str(i) for i in range(8, 800, 8)]
+        
+        ui_config = [
+            {
+                "key": "nrow",
+                "label": "Stage Components (1=R, 2=R+S):",
+                "type": "entry",
+                "help": "Defines how many blade rows are included..."
+            },
+            {
+                "key": "ref_chord_length",
+                "label": "Reference Chord Length [mm]:",
+                "type": "entry",
+                "help": "Reference value for the chord length...",
+                "state_key": "ref_chord_length_mode" 
+            },
+            {
+                "key": "km_selection",
+                "label": "Grid Dimension (KM):",
+                "type": "combobox",
+                "values": im_km_options,
+                "help": "Points of Grid in Radial Direction..."
+            },
+            {
+                "key": "im_selection",
+                "label": "Grid Dimension (IM):",
+                "type": "combobox",
+                "values": im_km_options,
+                "help": "Points of Grid in Circumferential Direction..."
+            },
+            {
+                "key": "JM_grid_density",
+                "label": "Fineness (Reference Points):",
+                "type": "combobox",
+                "values": jm_options,
+                "help": "Points of Grid in Axial Direction..."
+            },
+            {
+                "key": "inlet_percentage",
+                "label": "Inlet Points (% of JM):",
+                "type": "entry",
+                "help": "Percentage of points at the inlet..."
+            },
+            {
+                "key": "outlet_percentage",
+                "label": "Outlet Points (% of JM):",
+                "type": "entry",
+                "help": "Percentage of points at the outlet..."
+            },
+            {
+                "key": "tip_clearance_rotor",
+                "label": "Tip clearance (mm):",
+                "type": "entry",
+                "help": "Distance between blade tip and shroud..."
+            }
+        ]   
+        
         main_frame = ttk.Frame(parent_frame, padding="10")
         main_frame.pack(fill="both", expand=True)
-    
+        
+        self.settings_frame = ttk.LabelFrame(main_frame, text="Grid Configuration")
+        self.settings_frame.pack(side="top" ,fill="x", anchor="n", pady=5)
+        
+        self.turbulence_model_frame = ttk.LabelFrame(main_frame, text="Turbulence Model")
+        self.turbulence_model_frame.pack(side="top", fill="x", pady=5)
+        
+        self.widgets = {}
+        
         def toggle_ref_chord():
-            is_acativated = data['ref_chord_length_mode'].get()
+            entry_widget = self.widgets['ref_chord_length']
+            
+            is_acativated = grid_data['ref_chord_length_mode'].get()
             
             if is_acativated:
                 # when activated:
-                self.ref_chord_label.configure(state="normal")
-                self.ref_chord_entry.configure(state="normal")
-                self.ref_chord_help.configure(state="normal")
+                entry_widget.configure(state="normal")
             else:
                 # when deactivated:
-                self.ref_chord_label.configure(state="disabled")
-                self.ref_chord_entry.configure(state="disabled")
-                self.ref_chord_help.configure(state="disabled")
+                entry_widget.configure(state="disabled")
                 
-                data['ref_chord_length'].set("134.4")  
+                grid_data['ref_chord_length'].set(134.4)  
         
         # --- Helper Funktion for Q3D Logic ---
         def toggle_Q3D():
-            if data['Q3D_mode'].get():
-                KM_grid_combobox.set("2") # Setzt KM auf 2
-                KM_grid_combobox.config(state=tk.DISABLED) # Deaktiviert die Auswahl
+            KM_combobox = self.widgets['km_selection']
+            if grid_data['Q3D_mode'].get():
+                grid_data['km_selection'].set(2) # Setzt KM auf 2
+                KM_combobox.config(state=tk.DISABLED) # Deaktiviert die Auswahl
             else:
-                KM_grid_combobox.config(state=tk.NORMAL) # Aktiviert die Auswahl
-                KM_grid_combobox.set("37")  # Setzt KM zurück auf 37
+                KM_combobox.config(state=tk.NORMAL) # Aktiviert die Auswahl
+                grid_data['km_selection'].set(37)  # Setzt KM zurück auf 37
                 
         def toggle_SA():
-            if data['SA_mode'].get():
+            if grid_data['SA_mode'].get():
                 SA_mode = True #  SA Turbulence Model
                 SA_model = 1
             else:
@@ -1690,130 +1749,188 @@ class CompressorGui:
                 SA_model =0
             
             print(SA_model)
-
-        '''
-        # --- Main Grid Settings  ---
-        '''
-        self.settings_frame = ttk.LabelFrame(main_frame, text="Grid Configuration")
-        self.settings_frame.pack(side="top" ,fill="x", anchor="n", pady=5)
-        
-        self.turbulence_model_frame = ttk.LabelFrame(main_frame, text="Turbulence Model")
-        self.turbulence_model_frame.pack(side="top", fill="x", pady=5)
-        
-        # Stage Components
-        ttk.Label(self.settings_frame, text="Stage Components (1=R, 2=R+S):").grid(row=0, column=0, sticky="w", pady=5)
-        ttk.Entry(self.settings_frame, textvariable=data['nrow'], width=10).grid(row=0, column=1, sticky="w", pady=5)
-        
-        self.stage_components_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.stage_components_help.grid(row=0, column=2, padx=(5, 0))
-        stage_components_help_text = " Defines how many blade rows are included in the grid. 1 means that only the rotor is included while 2 means that both the rotor and the stator are included in the grid. If only the rotor is included the flow at the outlet of the rotor is not calculated and thus no flow information at the outlet of the rotor is available. This can lead to a better resolution of the flow at the inlet of the rotor but also increases the computational effort if both blade rows are included."
-        Tooltip(self.stage_components_help, stage_components_help_text)
-                        
-        # Reference Chord Length
-        ttk.Checkbutton(
-            self.settings_frame, 
-            text="Reference Chord Length",
-            variable=data['ref_chord_length_mode'],
-            command=toggle_ref_chord
-        ).grid(row=1, column=3, padx=(20, 0), pady=5)
-        
-        self.ref_chord_label = ttk.Label(self.settings_frame, text="Reference Chord Length [mm]:")
-        self.ref_chord_label.grid(row=1, column=0, sticky="w", pady=5)
-        
-        self.ref_chord_entry = ttk.Entry(self.settings_frame, textvariable=data['ref_chord_length'], width=10)
-        self.ref_chord_entry.grid(row=1, column=1, sticky="w", pady=5)
-        
-        self.ref_chord_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.ref_chord_help.grid(row=1, column=2, padx=(5, 0))
-        stage_components_help_text = " Reference Chord Length. This is a reference value for the chord length of the blade. It is used to define the size of the grid and to calculate the tip clearance. The grid will be scaled based on this reference chord length. A larger reference chord length will lead to a coarser grid while a smaller reference chord length will lead to a finer grid. It is important to choose a reference chord length that is representative of the actual blade geometry to ensure an accurate resolution of the flow."
-        Tooltip(self.ref_chord_help, stage_components_help_text)
-        
-        toggle_ref_chord() # Initialer Aufruf um die Referenz-Sehnenlänge zu deaktivieren
-
-        # KM Grid
-        ttk.Label(self.settings_frame, text="Grid Dimension (KM):").grid(row=2, column=0, sticky="w", pady=5)
-        im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
-        KM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['km_selection'], values=im_km_grid_options, state="readonly")
-        KM_grid_combobox.grid(row=2, column=1, sticky="w", pady=5)
-        
-        self.KM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.KM_grid_help.grid(row=2, column=2, padx=(5, 0))
-        KM_grid_help_text = " Points of Grid in Radial Direction. The higher the value the more points are distributed in the radial direction. This can lead to a better resolution of the flow near the hub and shroud but also increases the computational effort. If Q3D mode is activated KM is set to 2 which means that only 2 points are distributed in the radial direction and thus only one point is placed at the hub and one at the shroud wall."
-        Tooltip(self.KM_grid_help, KM_grid_help_text)
-        
-        # IM Grid
-        ttk.Label(self.settings_frame, text="Grid Dimension (IM):").grid(row=3, column=0, sticky="w", pady=5)
-        IM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['im_selection'], values=im_km_grid_options, state="readonly")
-        IM_grid_combobox.grid(row=3, column=1, sticky="w", pady=5)
-        
-        self.IM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.IM_grid_help.grid(row=3, column=2, padx=(5, 0))
-        IM_grid_help_text = " Points of Grid in the Circumferential Direction. The higher the value the more points are distributed in the circumferential direction. This can lead to a better resolution of the flow but also increases the computational effort."
-        Tooltip(self.IM_grid_help, IM_grid_help_text)
-                   
-        # Fineness JM
-        ttk.Label(self.settings_frame, text="Fineness (Reference Points):").grid(row=4, column=0, sticky="w", pady=5)
-        JM_value = [i for i in range(8, 800, 8)]
-        JM_grid_options = [str(i) for i in JM_value]
-        JM_grid_combobox = ttk.Combobox(self.settings_frame, textvariable=data['JM_grid_density'], values=JM_grid_options, state="readonly")
-        JM_grid_combobox.grid(row=4, column=1, sticky="w", pady=5)
-        
-        self.JM_grid_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.JM_grid_help.grid(row=4, column=2, padx=(5, 0))
-        JM_grid_help_text = " Points of Grid in the Axial Direction. The higher the value the more points are distributed in the axial direction. This can lead to a better resolution of the flow but also increases the computational effort."
-        Tooltip(self.JM_grid_help, JM_grid_help_text)
+            
+        def save_and_initialize_grid():
+            print("Saving Parameter...")
+            grid_data_save = {}
+            
+            for key, tk_variable in grid_data.items():
+                grid_data_save[key] = tk_variable.get()
                 
-        # Inlet Points
-        ttk.Label(self.settings_frame, text="Inlet Points (% of JM):").grid(row=5, column=0, sticky="w", pady=5) 
-        ttk.Entry(self.settings_frame, textvariable=data['inlet_percentage'], width=10).grid(row=5, column=1, sticky="w", pady=5)
-        
-        self.inlet_points_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.inlet_points_help.grid(row=5, column=2, padx=(5, 0))
-        inlet_points_help_text = ("Percentage of points at the inlet. This defines how many points of the total number of points in the axial direction (JM) are placed at the inlet. A higher percentage can lead to a better resolution of the flow at the inlet but also increases the computational effort.")
-        Tooltip(self.inlet_points_help, inlet_points_help_text) 
-                                    
-        # Outlet Points
-        ttk.Label(self.settings_frame, text="Outlet Points (% of JM):").grid(row=6, column=0, sticky="w", pady=5) 
-        ttk.Entry(self.settings_frame, textvariable=data['outlet_percentage'], width=10).grid(row=6, column=1, sticky="w", pady=5)  
-        
-        self.outlet_points_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.outlet_points_help.grid(row=6, column=2, padx=(5, 0))
-        outlet_points_help_text = "Percentage of points at the outlet. This defines how many points of the total number of points in the axial direction (JM) are placed at the outlet. A higher percentage can lead to a better resolution of the flow at the outlet but also increases the computational effort."
-        Tooltip(self.outlet_points_help, outlet_points_help_text)
-        
-        # Tip Clearance
-        ttk.Label(self.settings_frame, text="Tip clearance (mm):").grid(row=7, column=0, sticky="w", pady=5)
-        ttk.Entry(self.settings_frame, textvariable=data['tip_clearance_rotor'], width=10).grid(row=7, column=1, sticky="w", pady=5)
-        
-        self.tip_clearance_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.tip_clearance_help.grid(row=7, column=2, padx=(5, 0))
-        tip_clearance_help_text = " Tip clearance in mm. This defines the distance between the blade tip and the shroud wall. A smaller tip clearance can lead to a better resolution of the flow near the blade tip but also increases the computational effort."
-        Tooltip(self.tip_clearance_help, tip_clearance_help_text)
+            try:
+                all_json_data = {}
+                
+                try:
+                    with open(json_path, 'r') as file:
+                        all_json_data = json.load(file)
+                
+                except (FileNotFoundError, json.JSONDecodeError):
+                    pass
+                
+                all_json_data['Grid_data'] = grid_data_save 
+                
+                with open(json_path, 'w') as file:
+                    json.dump(all_json_data, file, indent=4)
+                    
+                print("Parameters saved successfully to JSON.")
 
-        # Q3D Checkbox (direkt im Grid Frame)
+                # 3. Interne Aktualisierung
+                self.prepop_grid_data = grid_data_save
+                
+                print("Calculation of Grid Data completed.")
+                 
+            except ValueError:
+                print("Please enter valid numbers for all conditions.")
+                
+        def generate_grid():
+            
+            try:
+                with open(json_path, 'r') as file:
+                    all_json_data = json.load(file)
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                print(f"Fehler beim Laden der JSON: {e}")
+                return
+            
+            save_and_initialize_grid()
+
+            try:
+                gd = all_json_data.get('Grid_data', {})
+                nrow_wert         = int(gd.get('nrow', 2))
+                KM_grid_density   = int(gd.get('km_selection', 37))
+                IM_grid_density   = int(gd.get('im_selection', 37))
+                JM_grid_density   = int(gd.get('JM_grid_density', 200))
+                inlet_percentage  = float(gd.get('inlet_percentage', 0.2))
+                outlet_percentage = float(gd.get('outlet_percentage', 0.15))
+                ref_chord_length  = float(gd.get('ref_chord_length', 134.4))
+                tip_clearance_mm  = float(gd.get('tip_clearance_rotor', 1.3))
+                Q3D_value         = bool(gd.get('Q3D_mode', False))
+                do_plot           = bool(gd.get('show_plot', False))
+                output_path       = gd.get('output_folder', '.')
+
+            levels_str = '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.0'
+            try:
+                with open(Path(__file__).parent / 'Settings.txt', 'r') as f:
+                    for line in f:
+                        if line.startswith('levels = '):
+                            levels_str = line.split('levels = ', 1)[1].strip()
+                            break
+            except FileNotFoundError:
+                pass
+            stage_levels = [float(x.strip()) for x in levels_str.split(',') if x.strip()]
+
+            if Q3D_value:
+                KM_grid_density = 2
+
+            # Spaltmaß umrechnen
+            D_S1 = self.stage_data['D_S1']
+            D_H1 = self.stage_data['D_H1']
+            total_height = (D_S1[0] - D_H1[0]) / 2.0
+            tip_clearance_multall = tip_clearance_mm / (total_height * 1000)
+
+            print("Starte Gittergenerierung...")
+            grid_data_list, grid_data_list_plot, JM_dynamic, JM = VG.generate_and_plot_grid(
+                nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density,
+                inlet_percentage, outlet_percentage,
+                ref_chord_length, stage_levels,
+                self.stage_data
+            )
+            print(f"Gitter berechnet. JM_dynamic={JM_dynamic}")
+
+            if do_plot:
+                VG.plot_all(grid_data_list_plot, JM_dynamic)
+
+            if Q3D_value:
+                output_name = f"multall_grid_Q3D_IM_{IM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
+            else:
+                output_name = (f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}"
+                               f"_JM_{JM_dynamic}_rows_{nrow_wert}_ref_chord_{ref_chord_length}.dat")
+
+            full_output_path = os.path.join(output_path, output_name)
+            enable_bleed_air = self.stage_data.get('enable_bleed_air', False)
+
+            print(f"Schreibe Datei: {full_output_path}")
+            VG.write_head_file(KM_grid_density, IM_grid_density, full_output_path,
+                               section, nrow_wert, NSEC, Q3D_value, enable_bleed_air,
+                               self.stage_data)
+
+            for data in grid_data_list:
+                VG.multall_grid_data_head_row(
+                    full_output_path, len(data['x_new']), data['row_num'],
+                    data['JLE'], data['JM'], data['JTE'],
+                    KM_grid_density, tip_clearance_multall, stage_levels,
+                    self.stage_data
+                )
+                VG.write_coordinates(
+                    data['x_new'], data['Rtheta_new'], data['d_new'], data['R_new'],
+                    full_output_path, data['row_num'], 0, len(data['x_new']), data['JM']
+                )
+
+            if Q3D_value:
+                VG.Q3D_information(full_output_path)
+
+            VG.write_end_file(nrow_wert, full_output_path, section,
+                              KM_grid_density, stage_levels, self.stage_data)
+
+            print(f"Fertig! Datei gespeichert unter: {full_output_path}")
+                    
+        for row_index, config in enumerate(ui_config):
+            
+            ttk.Label(self.settings_frame, text=config["label"]).grid(row=row_index, column=0, sticky="w", pady=5)
+            
+            current_var = grid_data[config["key"]]
+            widget = None
+            
+            if config["type"] == "entry":
+                widget = ttk.Entry(self.settings_frame, textvariable=current_var, width=10)
+            elif config["type"] == "combobox":
+                widget = ttk.Combobox(self.settings_frame, textvariable=current_var, values=config["values"], state="readonly", width=8)   
+
+            if widget:
+                widget.grid(row=row_index, column=1, sticky="w", pady=5, padx=5)
+                self.widgets[config["key"]] = widget
+                
+            help_label = ttk.Label(self.settings_frame, text="?", cursor="question_arrow")
+            help_label.grid(row=row_index, column=2, padx=(5, 0))
+            Tooltip(help_label, config["help"])
+        
+            if config["key"] == "ref_chord_length":
+                ttk.Checkbutton(
+                    self.settings_frame, 
+                    text="Activate Mode", 
+                    variable=grid_data['ref_chord_length_mode'], 
+                    command=toggle_ref_chord
+                ).grid(row=row_index, column=3, padx=10) 
+                
+        last_row = len(ui_config)
         ttk.Checkbutton(
             self.settings_frame,
             text="Activate Q3D Mode (Sets KM to 2)",
-            variable=data['Q3D_mode'],
+            variable=grid_data['Q3D_mode'],
             command=toggle_Q3D
-        ).grid(row=8, column=0, columnspan=2, sticky="w", pady=10)
-        
-        self.Q3D_help = ttk.Label(self.settings_frame, text= "?", cursor="question_arrow")
-        self.Q3D_help.grid(row=8, column=1, padx=(5, 0))
-        Q3D_help_text = " Q3D Mode: If activated, the grid will be generated in a way that is suitable for quasi-3D simulations. This means that only 2 points will be distributed in the radial direction (KM=2) which results in only one point being placed at the hub and one at the shroud wall. This can lead to a better resolution of the flow in the axial and circumferential direction while reducing the computational effort by not resolving the flow in the radial direction."
-        Tooltip(self.Q3D_help, Q3D_help_text)
-                
+        ).grid(row=last_row, column=0, columnspan=2, sticky="w", pady=10)
+
+        # SA Model Checkbutton
         ttk.Checkbutton(
             self.turbulence_model_frame,
             text="Use Spalart-Allmaras Turbulence Model",
-            variable=data['SA_mode'],
+            variable=grid_data['SA_mode'],
             command=toggle_SA
-        ).grid(row=9, column=0, sticky="w")
+        ).grid(row=0, column=0, sticky="w")
+
+        # Save Button
+        save_button = ttk.Button(main_frame, text="Save and Initialize Parameters", command=save_and_initialize_grid)
+        save_button.pack(pady=20)
         
-        self.turbulence_model_help = ttk.Label(self.turbulence_model_frame, text= "?", cursor="question_arrow")
-        self.turbulence_model_help.grid(row=9, column=1, padx=(5, 0))
-        self.turbulence_model_help_text = " Turbulence Model: If activated, the grid will be generated in a way that is suitable for simulations using the Spalart-Allmaras turbulence model. This can lead to a better resolution of the flow near the walls where the turbulence model is most active but also increases the computational effort."
-        Tooltip(self.turbulence_model_help, self.turbulence_model_help_text)
+        ttk.Button(main_frame, text="Generate Grid", command=generate_grid).pack(pady=5)   
+        save_button.pack(pady=20)   
+            
+             
+    
+        toggle_ref_chord()
+        toggle_Q3D()
+    
+    
+   
         
     def start_Multall(self):
         popup_multall = tk.Toplevel()
@@ -1841,7 +1958,7 @@ class CompressorGui:
         
         ttk.Button(popup_multall, text="No", command=cancel_and_exit, style="danger.TButton", width=10).pack(side="left", padx=20, pady=10)
         ttk.Button(popup_multall, text="Yes", command=start_multall_and_exit, style="success.TButton", width= 10).pack(side="right", padx=20, pady=10)
-        
+    
     
     def render_gui(self):
                 

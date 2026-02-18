@@ -297,6 +297,30 @@ def run_main_logic(new_adjustment_data):
     h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
     print("Successfully calculated meanline and radial equilibrium")
 
+    return {
+        'cp':                      cp,
+        'kappa':                   kappa,
+        'RPM':                     RPM,
+        'z_R':                     z_R,
+        'z_S':                     z_S,
+        'h_rel':                   h_rel,
+        'p_1':                     p_1,
+        'p_2':                     p_2,
+        'p_3':                     p_3,
+        'p_R_in':                  p_R_in,
+        'p_R_out':                 p_R_out,
+        'p_S_in':                  p_S_in,
+        'p_S_out':                 p_S_out,
+        'p_t1':                    p_t1,
+        'T_t1':                    T_t1,
+        'cm1':                     cm1,
+        'D_S1':                    D_S1,
+        'D_H1':                    D_H1,
+        'enable_bleed_air':        enable_bleed_air,
+        # Funktionen mitgeben, damit output_generator Stage nicht importieren muss
+        'calculation_of_section':    calculation_of_section,
+        'calc_blade_row_coordinates': calc_blade_row_coordinates,
+    }
     
     # Benötigte Parameter aus settings extrahieren
     #Settings = read_parameters_from_file('Settings.txt')

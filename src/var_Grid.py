@@ -439,16 +439,6 @@ def plot_all(grid_data_list, grid_density):
 
 def generate_and_plot_grid(nrow_wert, IM_grid_density, KM_grid_density, h_H_plot, JM_grid_density, inlet_percentage, outlet_percentage, reference_chord_length, levels):
     
-    
-    nrow = int(self.prepop_grid_data['nrow'])
-    IM = int(self.prepop_grid_data['im_selection'])
-    KM = int(self.prepop_grid_data['km_selection'])
-    JM_ref = int(self.prepop_grid_data['JM_grid_density'])
-    
-    levels_str = self.levels_entry.get()
-    stage_levels = [float(l.strip()) for l in levels_str.split(',') if l.strip()]
-    
-    
     # Liste, um die Ergebnisse jeder Schaufelreihe zu speichern
     all_rows_data = []
     all_rows_data_plot = []
