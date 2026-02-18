@@ -60,8 +60,8 @@ var_name_to_gui_map = {
 gui_to_var_map = {v: k for k, v in var_name_to_gui_map.items()}
 
 
-LOCK_FILE = 'settings.lock'
-SETTINGS_FILE = 'Diameter_Values.txt'
+#LOCK_FILE = 'settings.lock'
+#SETTINGS_FILE = 'Diameter_Values.txt'
 
 
 def create_input_window(i_st_val):
@@ -693,7 +693,7 @@ def create_gui():
 
     root.mainloop()
 
-def meanline(GUI_On, thermo_data=None):
+def meanline(thermo_data):
        
     global n,  psi_h, phi_1, phi_2, phi_3
     global z_R, l_R, d_R_l_R, d_Cl_R, d_TE_R, incidence_R
@@ -705,24 +705,37 @@ def meanline(GUI_On, thermo_data=None):
     D_f3 = None
     plot_channel_contour = None
     
+    mflow = thermo_data["mflow"]
+    p_t_in = thermo_data["p_t_in"]
+    T_t_in = thermo_data["T_t_in"]
+    kappa = thermo_data["kappa"]
+    R = thermo_data
+    cp = thermo_data["cp"]
+    h_R = thermo_data["h_R"]
+    h_S = thermo_data["h_S"]
+    i_st = thermo_data["i_st"]
+    design_TPR = thermo_data["TPR"]
+
+    '''
+    #?????????
     if thermo_data is not None:
         print("No thermo_data provided. Please enter the required thermodynamic data.")
 
         try:
             (mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR) = thermo_data
             
-            if kappa is None or kappa == 0:
+            if kappa is None or kappa == 0: # warum kappa berechnen????
                     kappa = cp / (cp - R)
         except ValueError as e:
             print(f"Error in thermo_data: {e}")
             from Thermodynamic_calc_GUI import Thermo
-            mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR = Thermo()
+            mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR = Thermo() # warum das zwei mal machen??
     else:
         print("No thermo_data provided. Please enter the required thermodynamic data through the GUI.")
         from Thermodynamic_calc_GUI import Thermo
         mflow, p_t_in, T_t_in, kappa, R, cp, h_R, h_S, i_st, design_TPR = Thermo()
-
-    read_initial_values("Meanline_Initial_Values.txt")
+    '''
+    #read_initial_values("Meanline_Initial_Values.txt")
     
     # Iteration Parameters Outer Iteration loop
     iter_count_TPR = 0
@@ -739,6 +752,8 @@ def meanline(GUI_On, thermo_data=None):
                             # Größere Werte sind schneller, aber ggf. instabiler.
                             
     # Initialize fixed Radius type and Diameter 
+    '''
+    # should be obsolet with new gui method
     if GUI_On == 1 and not os.path.exists(LOCK_FILE) :
 
         root = create_gui()
@@ -751,7 +766,7 @@ def meanline(GUI_On, thermo_data=None):
     else:
         print("Lock File was found. Reading Diameters_Values.txt")
         fixed_radius_type, D_f1, D_f2, D_f3, plot_channel_contour = read_diameter(SETTINGS_FILE)
-    
+    '''
             
     #region Preallocating Variables
           
