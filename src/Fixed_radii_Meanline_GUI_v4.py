@@ -693,23 +693,37 @@ def create_gui():
 
     root.mainloop()
 
-def meanline(thermo_data):
+def meanline(thermo_data, meanline_data, diameter_data, plot_channel_contour):
        
-    global n,  psi_h, phi_1, phi_2, phi_3
-    global z_R, l_R, d_R_l_R, d_Cl_R, d_TE_R, incidence_R
-    global z_S, l_S, d_S_l_S, d_TE_S, d_CL_S, incidence_S
+    n = meanline_data["n"]
+    psi_h = meanline_data["psi_h"]
+    phi_1 = meanline_data["phi_1"]
+    phi_2 = meanline_data["phi_2"]
+    phi_3 = meanline_data['phi_3']
+    z_R = meanline_data["z_R"]
+    l_R = meanline_data["l_R"]  
+    d_R_l_R = meanline_data["d_R_l_R"]
+    d_Cl_R = meanline_data["d_Cl_R"]
+    d_TE_R = meanline_data["d_TE_R"]
+    incidence_R = meanline_data["incidence_R"]
+    z_S = meanline_data["z_S"]
+    l_S = meanline_data["l_S"]
+    d_S_l_S = meanline_data["d_S_l_S"]
+    d_TE_S = meanline_data["d_TE_S"]
+    d_CL_S = meanline_data["d_CL_S"]
+    incidence_S = meanline_data["incidence_S"]
     
-    fixed_radius_type = None
-    D_f1 = None
-    D_f2 = None
-    D_f3 = None
-    plot_channel_contour = None
+    fixed_radius_type = diameter_data["fixed_radius_type"]
+    D_f1 = diameter_data["D_f1"]
+    D_f2 = diameter_data["D_f2"]
+    D_f3 = diameter_data["D_f3"]
+     
     
     mflow = thermo_data["mflow"]
     p_t_in = thermo_data["p_t_in"]
     T_t_in = thermo_data["T_t_in"]
     kappa = thermo_data["kappa"]
-    R = thermo_data
+    R = thermo_data["R"]
     cp = thermo_data["cp"]
     h_R = thermo_data["h_R"]
     h_S = thermo_data["h_S"]
@@ -797,7 +811,7 @@ def meanline(thermo_data):
 
      # --- Pre-allocate lists for calculated flow properties ---
     # These will be populated stage by stage in the main loop
-    u1, u2, u3, u1_u2, u2_u2, u3_u2 = [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st
+    u1, u2, u3, u1_u2, u2_u2= [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st
     h_R_l_R, t_R, l_R_t_R = [0.0]*i_st, [0.0]*i_st, [0.0]*i_st
     t_S, l_S_t_S, h_S_l_S = [0.0]*i_st, [0.0]*i_st, [0.0]*i_st
     c1_u2, cu1_u2, c3_u2, cu2_u2, c2_u2 = [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st
@@ -872,8 +886,6 @@ def meanline(thermo_data):
                 D_M2[i]=D_f2[i]
                 D_M3[i]=D_f3[i]
             else:
-                if os.path.exists(LOCK_FILE):
-                    os.remove(LOCK_FILE)
                 raise ValueError("Invalid fixed_radius_type specified.")
             
             
@@ -979,6 +991,10 @@ def meanline(thermo_data):
 
                 # Blade Angles, Reynoldsnumbers, Machnumbers and Losses
 
+                
+                # bugfixe
+                print(f"beta_blade_1[i]{beta_blade_1[i]}=angle_blade_in(beta_1[i]={beta_1[i]}, beta_2[i]={beta_2[i]}, w1[i]={w1[i]}, w2[i]={w2[i]}, T_1[i]={T_1[i]}, T_2[i]={T_2[i]}, l_R_t_R[i]={l_R_t_R[i]}, d_R_l_R[i]={d_R_l_R[i]}, incidence_R[i]={incidence_R[i]}, R={R}, kappa={kappa})")
+                
                 Re_l_R[i]=Re(roh_1[i],w1[i],l_R[i],T_1[i])
                 beta_blade_1[i]=angle_blade_in(beta_1[i], beta_2[i], w1[i], w2[i], T_1[i], T_2[i], l_R_t_R[i], d_R_l_R[i], incidence_R[i], R, kappa)
                 beta_blade_2[i]=angle_blade_out(beta_1[i], beta_2[i], w1[i], w2[i], T_1[i], T_2[i], l_R_t_R[i], d_R_l_R[i], incidence_R[i], R, kappa)
@@ -1440,13 +1456,82 @@ def meanline(thermo_data):
         if i < i_st:
             print(f"Stg:{i+1} D_S1={D_S1[i]} D_M1={D_M1[i]} D_H1={D_H1[i]} ")
 
+
+    '''
     # --- Return all calculated values ---
-    return mflow, n, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, \
+    '''
+    result = {
+        # Process- & Fluidparameter
+        'mflow': mflow,
+        'n': n,
+        'kappa': kappa,
+        'R': R,
+        'cp': cp,
+        'i_st': i_st,
+        
+        # Temperatures (Static & Total)
+        'T_t1': T_t1,
+        'T_t2': T_t2,
+        'T_t3': T_t3,
+        'T_1': T_1,
+        'T_2': T_2,
+        'T_3': T_3,
+        
+        # Pressures (Static & Total)
+        'p_1': p_1,
+        'p_2': p_2,
+        'p_3': p_3,
+        'p_t1': p_t1,
+        'p_t2': p_t2,
+        'p_t3': p_t3,
+        
+        # Gemoetrydiameters (Shroud, Hub, Mean)
+        'D_S1': D_S1, 'D_S2': D_S2, 'D_S3': D_S3,
+        'D_H1': D_H1, 'D_H2': D_H2, 'D_H3': D_H3,
+        'D_M1': D_M1, 'D_M2': D_M2, 'D_M3': D_M3,
+        
+        # Velocity triangles & widths
+        'b1': b1, 'b2': b2, 'b3': b3,
+        'cu1': cu1, 'cu2': cu2, 'cu3': cu3,
+        'u1': u1, 'u2': u2, 'u3': u3,
+        'cm1': cm1, 'cm2': cm2, 'cm3': cm3,
+        
+        # Energetics- & Bladeparameters
+        'delta_h_t': delta_h_t,
+        'l_R': l_R,
+        'l_S': l_S,
+        'l_R_t_R': l_R_t_R,
+        'l_S_t_S': l_S_t_S,
+        'd_R_l_R': d_R_l_R,
+        'd_S_l_S': d_S_l_S,
+        'incidence_R': incidence_R,
+        'incidence_S': incidence_S,
+        'z_R': z_R,
+        'z_S': z_S,
+        
+        # Angles & Efficienties
+        'beta_blade_1': beta_blade_1,
+        'beta_blade_2': beta_blade_2,
+        'alpha_blade_2': alpha_blade_2,
+        'alpha_blade_3': alpha_blade_3,
+        'TPR_M': TPR_M,
+        'eta_sC_tt_M': eta_sC_tt_M,
+        'eta_pC_tt_M': eta_pC_tt_M,
+        
+        # Configurations
+        'fixed_radius_type': fixed_radius_type,
+        'plot_channel_contour': plot_channel_contour
+    
+    }
+ 
+    return result
+'''
+mflow, n, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, \
            p_t1, p_t2, p_t3, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_M1, D_M2, D_M3, \
            b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, l_R, l_S, \
            l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, z_R, z_S, \
            beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, fixed_radius_type
-           
+'''          
            
            
 if __name__ == "__main__":
@@ -1454,9 +1539,6 @@ if __name__ == "__main__":
     #print(results)
     #print(b2)
 
-
-    if os.path.exists(LOCK_FILE):
-        os.remove(LOCK_FILE)
     #print(b3)
     #print(mflow, n, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, l_R, l_S, l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, z_R, z_S, beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3)
     #print(D_S1)

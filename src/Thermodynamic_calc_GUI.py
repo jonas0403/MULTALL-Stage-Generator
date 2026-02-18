@@ -92,13 +92,12 @@ def create_gui():
 
     root.mainloop()
     
-def Thermo(p_t_in=None, T_t_in=None, mflow=None, R=None, cp=None, TPR=None, GUI_On=0):
+def Thermo(p_t_in, T_t_in, mflow, R, cp, TPR):
     #global p_t_in, T_t_in, mflow, R, cp, TPR
 
     
     #read_initial_values(static_folder / 'Thermo_Initial_Values.txt')
-    if GUI_On == 1:
-        create_gui()
+
 
     # Optimization: Pre-calculate frequently used values
     kappa = cp / (cp - R)
