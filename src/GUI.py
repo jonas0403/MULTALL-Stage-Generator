@@ -55,7 +55,7 @@ class CompressorGui:
         with open(json_path, 'r') as file:
             data = json.load(file)
 
-            self.perpop_thermo_data = data['Thermodynamic_input_data']
+            self.prepop_thermo_data = data['Thermodynamic_input_data']
             self.prepop_meanline_input_data = data['Meanline_input_data']
             self.prepop_diameter_data = data['Diameter_data']
             self.prepop_bezier_point_stator = data['Bezier_point_data']['stator']
@@ -82,14 +82,14 @@ class CompressorGui:
         #print(path)
 
         entries = {}
-        params = list(self.perpop_thermo_data.keys())
+        params = list(self.prepop_thermo_data.keys())
         gui_names = ['p_t_in [Pa]', 'T_t_in [K]', 'mflow [kg/s]', 'R [J/kg*K]', 'cp [J/kg*K]', 'TPR [-]']
         
         for i, param in enumerate(params):
             ttk.Label(window, text=f"{gui_names[i]}:").grid(row=i+1, column=0, padx=5, pady=5, sticky='w')
             
             entry = ttk.Entry(window, width=15)
-            entry.insert(0, str(self.perpop_thermo_data[param]))
+            entry.insert(0, str(self.prepop_thermo_data[param]))
             entry.grid(row=i+1, column=1, padx=5, pady=5)
             entries[param]= entry
 
@@ -107,7 +107,7 @@ class CompressorGui:
                 with open(json_path, 'w') as file:
                     json.dump(all_json_data, file, indent=4)
                  
-                self.perpop_thermo_data = new_thermo_values
+                self.prepop_thermo_data = new_thermo_values
                     
                 print("Parameters saved and initialized.")
 
@@ -372,7 +372,7 @@ class CompressorGui:
 
         '''
         Maybe in use
-         Not in use
+        Not in use
         ''' 
         #endregion
 
@@ -693,7 +693,7 @@ class CompressorGui:
 
         def write_diameters(self, fixed_radius_typ, D_f1, D_f2, D_f3, plot_channel_contour):
 
-            params = list(self.perpop_diameter_data.keys())    
+            params = list(self.prepop_diameter_data.keys())    
             try:
                 # Registers a function to delete the Lock File if Programm is exited normally
                 print(f"D_f1={D_f1}, D_f2={D_f2}, D_f3={D_f3}, fixed_radius_type={fixed_radius_typ}, plot_channel_contour={plot_channel_contour}")
@@ -710,7 +710,7 @@ class CompressorGui:
                 with open(json_path, 'w') as file:
                     json.dump(all_json_data, file, indent=4)
                  
-                self.perpop_diameter_data = new_diameter_values
+                self.prepop_diameter_data = new_diameter_values
                     
                 print("Parameters saved and initialized.")
 
@@ -814,11 +814,16 @@ class CompressorGui:
                     with open(json_path, 'w') as file:
                         json.dump(all_json_data, file, indent=4)
                     
-                    self.perpop_thermo_data = new_meanline_input_data
+                    self.prepop_thermo_data = new_meanline_input_data
                         
                     print("Parameters saved and initialized.")
                 except ValueError:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
+                    
+                ''' 
+                   
+                ''' 
+                '''    
                 try:
                     for var_name in entries.keys():  # Iterate over the keys in entries
                         if var_name in ['z_R', 'z_S']:
@@ -848,10 +853,10 @@ class CompressorGui:
                     print("Parameters saved and initialized.")
                 except ValueError:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
-
+                '''
             ttk.Button(root, text="Save and Initialize Parameters", command=save_and_initialize).pack(pady=10)
             ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val,self.prepop_diameter_data)).pack(pady=10)
-
+            save_and_initialize()
         
         
         # Starts and creates the meanline gui inside of the window
@@ -926,7 +931,7 @@ class CompressorGui:
             
             self.load_settings()
             
-            self.check_button_states()
+            #self.check_button_states()
         
     def setup_inlet_outlet_tab(self):
         self.inlet_outlet_title_frame = ttk.Frame(self.inlet_outlet_frame)
@@ -1147,7 +1152,7 @@ class CompressorGui:
                 self.stator_patch_entries.append(patch_entries)
             
 
-
+    '''
     def check_button_states(self):
         rotor_exists = os.path.exists("bezier_control_points_R.txt")
         stator_exists = os.path.exists("bezier_control_points_S.txt")
@@ -1159,10 +1164,11 @@ class CompressorGui:
         else:
             self.create_profiles_button.config(state=tk.NORMAL)
             self.save_button.config(state=tk.DISABLED)
+    '''
         
     def create_profiles_and_update_gui(self):
         create_default_profiles(self)
-        self.check_button_states()
+        #self.check_button_states()
 
     
     def setup_parameters_tab(self):
@@ -1177,6 +1183,16 @@ class CompressorGui:
         
         self.create_profiles_button = ttk.Button(choice_frame, text="Create Default Profile(s)", command=self.create_profiles_and_update_gui) # Button zum Erstellen der Profile
         self.create_profiles_button.pack(pady=5, padx=10, fill='x')
+        
+        self.load_rotor_button = ttk.Button(choice_frame, text="Load Rotor Profile", command=self.load_rotor_settings) # Auswahl für Profil Laden
+        self.load_rotor_button.pack(fill='x', padx=10, pady=5)
+        self.load_stator_button = ttk.Button(choice_frame, text="Load Stator Profile", command=self.load_stator_settings) # Auswahl für Profil Laden
+        self.load_stator_button.pack(fill='x', padx=10, pady=5)
+
+        adjust_frame = ttk.LabelFrame(self.parameters_frame, text="Adjust Profiles")
+        adjust_frame.pack(fill='x', padx=5, pady=5)
+        self.adjust_profiles_button = ttk.Button(adjust_frame, text="Make a specific adjustment", command= self.open_specification_window)
+        self.adjust_profiles_button.pack(pady=5, padx=10, fill='x')
     
         load_frame = ttk.LabelFrame(self.parameters_frame, text="Profiles")
         load_frame.pack(fill='x', padx=5, pady=5)
@@ -1198,7 +1214,28 @@ class CompressorGui:
         self.levels_entry = ttk.Entry(inner_nrow_frame)
         self.levels_entry.grid(row=1, column=1, columnspan=2, sticky="ew", padx=5, pady=5)
         
-        inner_nrow_frame.grid_columnconfigure(1, weight=1)
+        inner_nrow_frame.grid_columnconfigure(1, weight=1)  
+    
+        def save_adjustments_to_json(self, new_adjust_values):
+        
+            try:
+                with open(json_path, 'r') as file:
+                    all_json_data = json.load(file)
+                    
+                new_adjust_values = {}
+                all_json_data['Adjust_Settings'] = new_adjust_values
+                
+                with open(json_path, 'w') as file:
+                    json.dump(all_json_data, file, indent=4)
+                    
+                print("Adjust settings successfully saved to JSON.")
+                
+                self.prepop_adjust_data = new_adjust_values
+                
+            except Exception as e:
+                print(f"Error saving adjust settings to JSON: {e}")
+            
+            inner_nrow_frame.grid_columnconfigure(1, weight=1)
 
     def setup_plot_options_tab(self):
         rotor_frame = ttk.LabelFrame(self.plot_options_frame, text="Rotor Profile")
@@ -1738,7 +1775,7 @@ class CompressorGui:
 Class to help render Tooltips for the Gui 
 
 logic as follow:
-        name_help = ttk.Label(where_questionmark_will_be_renderd_frame, text= "?", cursor="question_arrow")
+        name_help = ttk.Label(where_questionmark_will_be_in_renderd_frame, text= "?", cursor="question_arrow")
         name_help.pack(side='left', padx=(5, 0))
         name_help_text = "Text to appear when hovering over tooltip"
         Tooltip(name_help, name_help_text)
