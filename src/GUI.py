@@ -792,13 +792,13 @@ class CompressorGui:
                 for i, param in enumerate(params):
                     gui_name = var_name_to_gui_map[param]
                     ttk.Label(frame, text=f"{gui_name}:").grid(row=i, column=0, padx=5, pady=5, sticky='w')
-                    entries[param] = []  # Use param as the key
+                    entries[param] = []
                     values = self.prepop_meanline_input_data[param]
                     for j, value in enumerate(values):
                         entry = ttk.Entry(frame, width=10)
                         entry.insert(0, str(value))
                         entry.grid(row=i, column=j+1, padx=5, pady=5)
-                        entries[param] = entry
+                        entries[param].append(entry)
 
             def save_and_initialize():
                 try:
@@ -806,10 +806,15 @@ class CompressorGui:
                         all_json_data = json.load(file)
                                         
                     new_meanline_input_data = {}
-                    for param in params:
-                        new_meanline_input_data[param] = float(entries[param].get())
+                    all_params = [p for params_list in parameters_sections.values() for p in params_list]
+                    for param in all_params:
+                        if param in ['z_R', 'z_S']:
+                            new_meanline_input_data[param] = [int(entry.get()) for entry in entries[param]]
+                        else:
+                            new_meanline_input_data[param] = [float(entry.get()) for entry in entries[param]]
+                    #new_meanline_input_data[param] = float(entries[param].get())
 
-                    all_json_data['Thermodynamic_input_data'] = new_meanline_input_data
+                    all_json_data['Meanline_input_data'] = new_meanline_input_data
                     
                     with open(json_path, 'w') as file:
                         json.dump(all_json_data, file, indent=4)
