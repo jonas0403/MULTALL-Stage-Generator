@@ -19,6 +19,7 @@ from pathlib import Path
 from Stage_v3_working_with_bleedair import create_default_profiles, calculation_of_section, run_main_logic
 from Cubspline_function_v2 import cubspline
 from Thermodynamic_calc_GUI import Thermo
+from Fixed_radii_Meanline_GUI_v4 import meanline
 
 current_dir = Path(__file__).parent.parent
 static_folder = current_dir/ "static"
@@ -355,7 +356,7 @@ class CompressorGui:
             checkbutton_plot = tk.Checkbutton(root, text="Plot Channel Contour", variable=plot_var)
             checkbutton_plot.grid(row=current_row +4, column=0, columnspan=1+i_st_val, pady=5)
 
-            # Delete LOCK-File on closing of the window
+            # Closing of the window
             root.protocol("WM_DELETE_WINDOW", on_closing)
 
             # Save Button
@@ -410,9 +411,9 @@ class CompressorGui:
             return canvas, scrollbar, scrollable_frame
 
         class diameter_gui:
-            def __init__(self, root, i_st_val, on_close_callback, initial_data):
+            def __init__(self, root, i_st_val, on_close_callback, initial_diamter_data):
                 
-                print("initial_data:", initial_data)
+                print("initial_data:", initial_diamter_data)
                 
                 self.root = root
                 self.on_close_callback = on_close_callback
@@ -427,11 +428,11 @@ class CompressorGui:
                 }
                 
                 # Initial slider Values loaded out of the settings file 
-                self.initial_type = initial_data.get("Fixed Radius Typ", "mean")
-                self.initial_D_f1 = initial_data.get("D_f1", [])
-                self.initial_D_f2 = initial_data.get("D_f2", [])
-                self.initial_D_f3 = initial_data.get("D_f3", [])
-                self.initial_plot_contour = initial_data.get("Plot Channel Contour", False)
+                self.initial_type = initial_diamter_data.get("Fixed Radius Typ", "mean")
+                self.initial_D_f1 = initial_diamter_data.get("D_f1", [])
+                self.initial_D_f2 = initial_diamter_data.get("D_f2", [])
+                self.initial_D_f3 = initial_diamter_data.get("D_f3", [])
+                self.initial_plot_contour = initial_diamter_data.get("Plot Channel Contour", False)
 
                 
                 # Initialize this data
@@ -803,7 +804,7 @@ class CompressorGui:
                         entry.grid(row=i, column=j+1, padx=5, pady=5)
                         entries[param].append(entry)
 
-            def save_and_initialize():
+            def save_and_initialize(show_plot):
                 try:
                     with open(json_path, 'r') as file:
                         all_json_data = json.load(file)
@@ -822,15 +823,50 @@ class CompressorGui:
                     with open(json_path, 'w') as file:
                         json.dump(all_json_data, file, indent=4)
                     
-                    self.prepop_thermo_data = new_meanline_input_data
+                    self.prepop_meanline_input_data = new_meanline_input_data
                         
                     print("Parameters saved and initialized.")
                 except ValueError:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
                     
                 ''' 
-                   
+                Run meanline function to calculate channelcontour   
                 ''' 
+                self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, show_plot)
+                
+                try: 
+                    with open(json_path, 'r') as file:
+                        all_json_data = json.load(file)
+                    new_diameter_data = {}
+                    
+                    if self.meanline_data["fixed_radius_type"] == "shroud":
+                        new_diameter_data["D_f1"] = self.meanline_data["D_S1"]
+                        new_diameter_data["D_f2"] = self.meanline_data["D_S2"]
+                        new_diameter_data["D_f3"] = self.meanline_data["D_S3"]
+                    elif self.meanline_data["fixed_radius_type"] == "mean":
+                        new_diameter_data["D_f1"] = self.meanline_data["D_M1"]
+                        new_diameter_data["D_f2"] = self.meanline_data["D_M2"]
+                        new_diameter_data["D_f3"] = self.meanline_data["D_M3"]
+                    elif self.meanline_data["fixed_radius_type"] == "hub":
+                        new_diameter_data["D_f1"] = self.meanline_data["D_H1"]
+                        new_diameter_data["D_f2"] = self.meanline_data["D_H2"]
+                        new_diameter_data["D_f3"] = self.meanline_data["D_H3"]   
+                        
+                    new_diameter_data["fixed_radius_type"] = self.meanline_data["fixed_radius_type"]
+                    new_diameter_data["Plot Channel Contour"] = self.meanline_data["plot_channel_contour"]
+                    
+                    all_json_data['Diameter_data'] = new_diameter_data
+                        
+                    with open(json_path, 'w') as file:
+                        json.dump(all_json_data, file, indent=4)
+                    
+                    self.prepop_diameter_data = new_diameter_data
+                    
+                    print("Parameters saved and initialized.")
+                    
+                except ValueError:
+                    print("Error")
+
                 '''    
                 try:
                     for var_name in entries.keys():  # Iterate over the keys in entries
@@ -861,10 +897,12 @@ class CompressorGui:
                     print("Parameters saved and initialized.")
                 except ValueError:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
-                '''
-            ttk.Button(root, text="Save and Initialize Parameters", command=save_and_initialize).pack(pady=10)
+            
+               '''
+            ttk.Button(root, text="Save and Initialize Parameters", command=lambda: save_and_initialize(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
+            #ttk.Button(root, text="Save and Initialize Parameters", command=save_and_initialize(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
             ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val,self.prepop_diameter_data)).pack(pady=10)
-            save_and_initialize()
+            save_and_initialize(show_plot = False)
         
         
         # Starts and creates the meanline gui inside of the window
@@ -1619,12 +1657,6 @@ class CompressorGui:
     
     def grid_definition_tab(self, parent_frame):
 
-        # def browse_output_folder():
-        #     path = filedialog.askdirectory()
-        #     if path:            
-        #         output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
-        #         output_folder_entry.insert(0, path) # Neuer Pfad
-        
         #loaded_levels = settings_loaded.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
         #loaded_output = settings_loaded.get('output_folder', '')
         
