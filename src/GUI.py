@@ -118,7 +118,7 @@ class CompressorGui:
                  
                 self.prepop_thermo_data = new_thermo_values
                     
-                print("Parameters saved and initialized.")
+                print("Thermodynamic Parameters saved and initialized.")
 
                 
                 self.Thermodata =  Thermo(
@@ -375,6 +375,7 @@ class CompressorGui:
             
             root.wait_window()
             
+            print("Does this get called")
             write_diameters(self, fixed_radius_type, D_f1_result, D_f2_result, D_f3_result, plot_channel_contour)
             return fixed_radius_type, D_f1_result, D_f2_result, D_f3_result, plot_channel_contour
 
@@ -433,12 +434,12 @@ class CompressorGui:
                 }
                 
                 # Initial slider Values loaded out of the settings file 
-                self.initial_type = initial_diamter_data.get("Fixed Radius Typ", "mean")
+                self.initial_type = initial_diamter_data.get("fixed_radius_type", "mean")
                 self.initial_D_f1 = initial_diamter_data.get("D_f1", [])
                 self.initial_D_f2 = initial_diamter_data.get("D_f2", [])
                 self.initial_D_f3 = initial_diamter_data.get("D_f3", [])
-                self.initial_plot_contour = initial_diamter_data.get("Plot Channel Contour", False)
-
+                self.initial_plot_contour = initial_diamter_data.get("plot_channel_contour", False)
+                print(f"plot_channel_contour={self.initial_plot_contour}")
                 
                 # Initialize this data
                 self.cubspline_points = []
@@ -698,6 +699,8 @@ class CompressorGui:
                     new_diameter_data["D_f1"] = D_f1
                     new_diameter_data["D_f2"] = D_f2
                     new_diameter_data["D_f3"] = D_f3
+                    
+                    print(f"Debug plot_chanel_contour: {plot_channel_contour}")
                         
                     new_diameter_data["fixed_radius_type"] = fixed_radius_type
                     new_diameter_data["plot_channel_contour"] = plot_channel_contour
@@ -744,16 +747,19 @@ class CompressorGui:
 
         def write_diameters():
             print("Writing using the write_diameters function")
+            print("Writing diameter data to JSON...")
             plot_channel_contour=False
             self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, plot_channel_contour)
+            '''
             try: 
-                '''
+               
         def write_diameters(**kwargs):
             """
             Writes the diameter data, which has been updated in self.prepop_diameter_data,
             to the JSON file. This function is called as a callback after the diameter GUI is closed.
             """
-            print("Writing diameter data to JSON...")
+            '''
+            
             try:
                 with open(json_path, 'r') as file:
                     all_json_data = json.load(file)
@@ -773,7 +779,7 @@ class CompressorGui:
                     new_diameter_data["D_f3"] = self.meanline_data["D_H3"]   
                     
                 new_diameter_data["fixed_radius_type"] = self.meanline_data["fixed_radius_type"]
-                new_diameter_data["Plot Channel Contour"] = self.meanline_data["plot_channel_contour"]
+                new_diameter_data["plot_channel_contour"] = self.meanline_data["plot_channel_contour"]
                 
                 all_json_data['Diameter_data'] = new_diameter_data
                     
@@ -791,7 +797,7 @@ class CompressorGui:
                 self.prepop_diameter_data = new_diameter_data
                 
                 print("Parameters saved and initialized.")
-            '''
+            
             except ValueError as e: 
                 print(f"Error: {e}")  
 
@@ -837,7 +843,7 @@ class CompressorGui:
                 ''' 
                 self.meanline_data = meanline(self.Thermodata, self.prepop_meanline_input_data, self.prepop_diameter_data, show_plot)
 
-                  
+                '''  
                 # Load settings from JSON
                 try:
                     with open(json_path, 'r') as file:
@@ -913,6 +919,7 @@ class CompressorGui:
                             patch_key = f'stator_patch_{i+1}'
                             if patch_key in bleed_data:
                                 self.bleed_air_data['stator']['patches'].append(bleed_data[patch_key])
+                    print(f"self.bleed_air_data: {self.bleed_air_data}")
                     
                     # Load Intale_Outtake_area
                     if 'Intale_Outtake_area' in all_json_data:
@@ -945,9 +952,33 @@ class CompressorGui:
                 except Exception as e:
                     print(f"Error loading settings: {e}")
 
+                '''
+                try:
+                    with open(json_path, 'r') as file:
+                        all_json_data = json.load(file)
+                                        
+                    new_meanline_input_data = {}
+                    all_params = [p for params_list in parameters_sections.values() for p in params_list]
+                    for param in all_params:
+                        if param in ['z_R', 'z_S']:
+                            new_meanline_input_data[param] = [int(entry.get()) for entry in entries[param]]
+                        else:
+                            new_meanline_input_data[param] = [float(entry.get()) for entry in entries[param]]
+                    #new_meanline_input_data[param] = float(entries[param].get())
+
+                    all_json_data['Meanline_input_data'] = new_meanline_input_data
+                    
+                    with open(json_path, 'w') as file:
+                        json.dump(all_json_data, file, indent=4)
+                    
+                    self.prepop_meanline_input_data = new_meanline_input_data
+                        
+                    print("Meanline Parameters saved and initialized.")
+                except ValueError:
+                    print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
                 
                 '''
-                # Old not in use anymore
+                # Not old used in wrong spot???
                 try:
                     with open(json_path, 'r') as file:
                         all_json_data = json.load(file)
@@ -973,8 +1004,8 @@ class CompressorGui:
                     print("Please enter valid numbers for all conditions. z_R and z_S must be integers.")
                 '''
 
-
-            ttk.Button(root, text="Save and Initialize Parameters", command=lambda: save_and_initialize_meanline(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
+            print(f"self.prepop_diameter_data: {self.prepop_diameter_data}")
+            ttk.Button(root, text="Save and Initialize Parameters", command=lambda: save_and_initialize_meanline(show_plot=self.prepop_diameter_data["plot_channel_contour"])).pack(pady=10)
             #ttk.Button(root, text="Save and Initialize Parameters", command=save_and_initialize(show_plot=self.prepop_diameter_data["Plot Channel Contour"])).pack(pady=10)
             ttk.Button(root, text="Change the Channelcontour", command=lambda: run_diameter_gui(i_st_val, self.prepop_diameter_data, write_diameters)).pack(pady=10)
             save_and_initialize_meanline(show_plot = False)
@@ -990,77 +1021,203 @@ class CompressorGui:
     
                
     def threeD_tab(self, parent_frame):
+    
+        # Add a dictionary for storing bleedair data  
+        self.bleed_air_data = {
+            'rotor': {'patches': [], 'count': 0},
+            'stator': {'patches': [], 'count': 0}
+        }
         
-            # Add a dictionary for storing bleedair data  
-            self.bleed_air_data = {
-                'rotor': {'patches': [], 'count': 0},
-                'stator': {'patches': [], 'count': 0}
-            }
-            
-            # Potential error fix for attribute error
-            self.rotor_patch_entries = []
-            self.stator_patch_entries = []
-            
-            # Variables for Inlet and Outlet Adjustment
-            self.inlet_area_var = tk.DoubleVar()
-            self.inlet_dist_var = tk.DoubleVar()
-            self.outlet_area_var = tk.DoubleVar()
-            self.outlet_dist_var = tk.DoubleVar()
+        # Potential error fix for attribute error
+        self.rotor_patch_entries = []
+        self.stator_patch_entries = []
+        
+        # Variables for Inlet and Outlet Adjustment
+        self.inlet_area_var = tk.DoubleVar()
+        self.inlet_dist_var = tk.DoubleVar()
+        self.outlet_area_var = tk.DoubleVar()
+        self.outlet_dist_var = tk.DoubleVar()
+        
+        # Misc Variable s
+        self.output_folder_entry = tk.Entry()
+        self.show_angle_dist_plot_var = tk.BooleanVar()
+        
 
+        
+        self.main_choice = tk.StringVar(value="default")
+        self.specs = {
+        "section_idx": tk.StringVar(),
+        "row": tk.StringVar(),
+        "parameter": tk.StringVar()
+        }
+        
+        self.show_section_plot_var = tk.BooleanVar(value=False) 
+        self.show_angle_dist_plot_var = tk.BooleanVar(value=False) 
+        
+        self.use_default_rotor_bezier_var = tk.BooleanVar(value=False)
+        self.use_default_stator_bezier_var = tk.BooleanVar(value=False)
+        self.adjust_rotor_thickness_var = tk.BooleanVar(value=False)
+        self.adjust_rotor_angle_var = tk.BooleanVar(value=False)
+        self.adjust_stator_thickness_var = tk.BooleanVar(value=False)
+        self.adjust_stator_angle_var = tk.BooleanVar(value=False)
+        
+        self.enable_bleed_air_var = tk.BooleanVar(value=False)
+        self.enable_bleed_air_var.trace_add("write", self.update_bleed_air_display)
+        
+        ttk.Label(parent_frame, text="3D Profile Generation and Visualization").pack(pady=10)
+        self.sub_notebook = ttk.Notebook(parent_frame)
+        self.sub_notebook.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        self.parameters_frame = ttk.Frame(self.sub_notebook, padding=10)
+        self.plot_options_frame = ttk.Frame(self.sub_notebook, padding=10)
+        self.bleed_air_frame = ttk.Frame(self.sub_notebook, padding=10)
+        self.inlet_outlet_frame = ttk.Frame(self.sub_notebook, padding=10)
+        self.output_frame = ttk.Frame(self.sub_notebook, padding=10)
+        
+        self.sub_notebook.add(self.parameters_frame, text="Profile Parameters")
+        self.sub_notebook.add(self.plot_options_frame, text="Plot Options")
+        self.sub_notebook.add(self.bleed_air_frame, text="Bleed Air")
+        self.sub_notebook.add(self.inlet_outlet_frame, text="Inlet/Outlet")
+        #self.sub_notebook.add(self.output_frame, text="Output Settings")
+        
+        # Creat container frame for inputs for the bleed air
+        self.bleed_input_container = ttk.Frame(self.bleed_air_frame)
+        self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        self.setup_parameters_tab()
+        self.setup_plot_options_tab()
+        #Can maybe be ignored because it only gets called if bleed air is present self.create_bleed_input_widget()
+        self.setup_inlet_outlet_tab()
+        
+        # Loading Data for the bleed air and the variable Intake and Outtake Area 
+        self.load_bleed_air_and_area_change()
+        
+        # --- Can Not be ignored ---
+        # --- Must be under her (I think) ---
+        # Initial call to set up the Bleed AIr Tab based on loaded values
+        parent_frame.after(100, lambda: self.update_bleed_air_display())
+
+                
+        ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open)
+        self.save_button = ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open) 
+        self.save_button.pack(pady=10, padx=10, fill='x')
+        
+        self.load_settings()
+        
+        #self.check_button_states()
+
+    def load_bleed_air_and_area_change(self):
+        # Load settings from JSON
+        try:
+            with open(json_path, 'r') as file:
+                all_json_data = json.load(file)
             
-            self.main_choice = tk.StringVar(value="default")
-            self.specs = {
-            "section_idx": tk.StringVar(),
-            "row": tk.StringVar(),
-            "parameter": tk.StringVar()
-            }
+            # Load Metadata
+            if 'Metadata' in all_json_data:
+                metadata = all_json_data['Metadata']
+                
+                
+                # Because there is a new Outputfolder definiton 
+                if 'output_folder' in metadata:
+                    self.output_folder_entry.delete(0, tk.END)
+                    self.output_folder_entry.insert(0, metadata['output_folder'])
+                
+                
+                if 'levels' in metadata:
+                    # Convert list back to comma-separated string
+                    levels_str = ', '.join(str(x) for x in metadata['levels'])
+                    self.levels_entry.delete(0, tk.END)
+                    self.levels_entry.insert(0, levels_str)
+                
+                if 'use_default_rotor_bezier' in metadata:
+                    self.use_default_rotor_bezier_var.set(metadata['use_default_rotor_bezier'])
+                
+                if 'use_default_stator_bezier' in metadata:
+                    self.use_default_stator_bezier_var.set(metadata['use_default_stator_bezier'])
+                
+                if 'adjust_rotor_thickness' in metadata:
+                    self.adjust_rotor_thickness_var.set(metadata['adjust_rotor_thickness'])
+                
+                if 'adjust_rotor_angle' in metadata:
+                    self.adjust_rotor_angle_var.set(metadata['adjust_rotor_angle'])
+                
+                if 'adjust_stator_thickness' in metadata:
+                    self.adjust_stator_thickness_var.set(metadata['adjust_stator_thickness'])
+                
+                if 'adjust_stator_angle' in metadata:
+                    self.adjust_stator_angle_var.set(metadata['adjust_stator_angle'])
+                
+                if 'show_section_plot' in metadata:
+                    self.show_section_plot_var.set(metadata['show_section_plot'])
+                
+                if 'show_angle_distribution_plots' in metadata:
+                    self.show_angle_dist_plot_var.set(metadata['show_angle_distribution_plots'])
             
-            self.show_section_plot_var = tk.BooleanVar(value=False) 
-            self.show_angle_dist_plot_var = tk.BooleanVar(value=False) 
+            # Load Grid_data
+            if 'Grid_data' in all_json_data:
+                grid_data = all_json_data['Grid_data']
+                
+                if 'nrow' in grid_data:
+                    self.nrow_entry.delete(0, tk.END)
+                    self.nrow_entry.insert(0, str(grid_data['nrow']))
             
-            self.use_default_rotor_bezier_var = tk.BooleanVar(value=False)
-            self.use_default_stator_bezier_var = tk.BooleanVar(value=False)
-            self.adjust_rotor_thickness_var = tk.BooleanVar(value=False)
-            self.adjust_rotor_angle_var = tk.BooleanVar(value=False)
-            self.adjust_stator_thickness_var = tk.BooleanVar(value=False)
-            self.adjust_stator_angle_var = tk.BooleanVar(value=False)
+            # Load Bleed_air_data
+            if 'Bleed_air_data' in all_json_data:
+                bleed_data = all_json_data['Bleed_air_data']
+                
+                if 'enable_bleed_air' in bleed_data:
+                    self.enable_bleed_air_var.set(bleed_data['enable_bleed_air'])
+                
+                if 'rotor_patches' in bleed_data:
+                    self.bleed_air_data['rotor']['count'] = bleed_data['rotor_patches']
+                
+                if 'stator_patches' in bleed_data:
+                    self.bleed_air_data['stator']['count'] = bleed_data['stator_patches']
+                
+                # Load rotor patches
+                for i in range(bleed_data.get('rotor_patches', 0)):
+                    patch_key = f'rotor_patch_{i+1}'
+                    if patch_key in bleed_data:
+                        self.bleed_air_data['rotor']['patches'].append(bleed_data[patch_key])
+                
+                # Load stator patches
+                for i in range(bleed_data.get('stator_patches', 0)):
+                    patch_key = f'stator_patch_{i+1}'
+                    if patch_key in bleed_data:
+                        self.bleed_air_data['stator']['patches'].append(bleed_data[patch_key])
+            print(f"self.bleed_air_data: {self.bleed_air_data}")
             
-            self.enable_bleed_air_var = tk.BooleanVar(value=False)
-            self.enable_bleed_air_var.trace_add("write", self.update_bleed_air_display)
+            # Load Intale_Outtake_area
+            if 'Intale_Outtake_area' in all_json_data:
+                intake_data = all_json_data['Intale_Outtake_area']
+                
+                if 'inlet_area' in intake_data:
+                    self.inlet_area_var.set(intake_data['inlet_area'])
+                
+                if 'inlet_dist' in intake_data:
+                    self.inlet_dist_var.set(intake_data['inlet_dist'])
+                
+                if 'outlet_area' in intake_data:
+                    self.outlet_area_var.set(intake_data['outlet_area'])
+                
+                if 'outlet_dist' in intake_data:
+                    self.outlet_dist_var.set(intake_data['outlet_dist'])
             
-            ttk.Label(parent_frame, text="3D Profile Generation and Visualization").pack(pady=10)
-            self.sub_notebook = ttk.Notebook(parent_frame)
-            self.sub_notebook.pack(fill='both', expand=True, padx=10, pady=5)
+            # Store prepopulated data
+            self.prepop_metadata = all_json_data.get('Metadata', {})
+            self.prepop_grid_data = all_json_data.get('Grid_data', {})
+            self.prepop_bleed_air_data = all_json_data.get('Bleed_air_data', {})
+            self.prepop_intake_outtake = all_json_data.get('Intale_Outtake_area', {})
             
-            self.parameters_frame = ttk.Frame(self.sub_notebook, padding=10)
-            self.plot_options_frame = ttk.Frame(self.sub_notebook, padding=10)
-            self.bleed_air_frame = ttk.Frame(self.sub_notebook, padding=10)
-            self.inlet_outlet_frame = ttk.Frame(self.sub_notebook, padding=10)
-            self.output_frame = ttk.Frame(self.sub_notebook, padding=10)
-            
-            self.sub_notebook.add(self.parameters_frame, text="Profile Parameters")
-            self.sub_notebook.add(self.plot_options_frame, text="Plot Options")
-            self.sub_notebook.add(self.bleed_air_frame, text="Bleed Air")
-            self.sub_notebook.add(self.inlet_outlet_frame, text="Inlet/Outlet")
-            #self.sub_notebook.add(self.output_frame, text="Output Settings")
-            
-            # Creat container frame for inputs for the bleed air
-            self.bleed_input_container = ttk.Frame(self.bleed_air_frame)
-            self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
-            
-            self.setup_parameters_tab()
-            self.setup_plot_options_tab()
-            self.create_bleed_input_widget()
-            self.setup_inlet_outlet_tab()
-            #self.setup_output_tab() 
-                    
-            ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open)
-            self.save_button = ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open) 
-            self.save_button.pack(pady=10, padx=10, fill='x')
-            
-            self.load_settings()
-            
-            #self.check_button_states()
+            print("Settings loaded successfully from JSON.")
+            print(f"")
+        except FileNotFoundError:
+            print("No previous parameters found. Starting with defaults.")
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON file: {e}")
+        except Exception as e:
+            print(f"Error loading settings: {e}")
+
         
     def setup_inlet_outlet_tab(self):
         self.inlet_outlet_title_frame = ttk.Frame(self.inlet_outlet_frame)
@@ -1135,16 +1292,40 @@ class CompressorGui:
         self.save_button_inlet_outlet.pack(pady=10, side='bottom')
 
         
-        # Initial call to set up the Bleed AIr Tab based on loaded values
-        self.update_bleed_air_display()
         
     def update_bleed_air_display(self, *args):
+        # 1. Safety Check: Does the widget exist in the Tcl interpreter?
+        try:
+            if not self.bleed_input_container.winfo_exists():
+                return
+        except (AttributeError, tk.TclError):
+            # If the attribute isn't set yet or Tcl can't find the path, stop here
+            return
+
+        # 2. Logic to show or hide the container
+        if self.enable_bleed_air_var.get():
+            # Check if it's already visible to avoid redundant 'packing'
+            if not self.bleed_input_container.winfo_ismapped():
+                self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
+            
+            # Call your widget creation/update logic
+            self.create_bleed_input_widget()
+        else:
+            # Safely hide it if it's currently visible
+            if self.bleed_input_container.winfo_ismapped():
+                self.bleed_input_container.pack_forget()    
+        
+    ''' 
+    # Old: newone above to fix timing issue of rendering children  
+    def update_bleed_air_display(self, *args):
+        
+        
         if self.enable_bleed_air_var.get():
             self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
             self.create_bleed_input_widget()
         else:
             self.bleed_input_container.pack_forget()
-            
+    '''         
     def create_bleed_input_widget(self):
             # Clear existing Widgets
             for widget in self.bleed_air_frame.winfo_children():
@@ -1192,18 +1373,31 @@ class CompressorGui:
         
     def update_patches(self, blade_type):
         if blade_type == 'rotor':
-            num_patches_str = self.rotor_patches_entry.get()
+            num_patches_entry = self.rotor_patches_entry
+            #num_patches_str = self.rotor_patches_entry.get()
             parent_frame = self.rotor_frame
             # Save patches data in dedicated list
             self.rotor_patch_entries.clear()
             patches_data = self.bleed_air_data['rotor']['patches']
         else:
-            num_patches_str = self.stator_patches_entry.get()
+            num_patches_entry = self.stator_patches_entry
+            #num_patches_str = self.stator_patches_entry.get()
             parent_frame = self.stator_frame
             # Save patches data in dedicated list
             self.stator_patch_entries.clear()
             patches_data = self.bleed_air_data['stator']['patches']
-            
+        
+        # Get the count we actually have in our data
+        loaded_count = self.bleed_air_data[blade_type]['count']
+        
+        # If the UI says 0 (or is empty) but we have data, update the UI first
+        current_ui_val = num_patches_entry.get()
+        if (not current_ui_val or current_ui_val == "0") and loaded_count > 0:
+            num_patches_entry.delete(0, tk.END)
+            num_patches_entry.insert(0, str(loaded_count))
+
+        num_patches_str = num_patches_entry.get()
+         
         try:
             num_patches = int(num_patches_str)
             if num_patches < 0:
@@ -1427,7 +1621,8 @@ class CompressorGui:
         
     def browse_output_folder(self):
         path = filedialog.askdirectory()
-        if path:            
+        if path:  
+            # Glaube das sollte nicht klappen weil du hast dein outputfolder anders genannt in deiner gui als in der originalen GUI          
             self.output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
             self.output_folder_entry.insert(0, path) # Neuer Pfad
 
@@ -1476,7 +1671,7 @@ class CompressorGui:
         nrow = self.nrow_entry.get()
         
         show_section_plot = self.show_section_plot_var.get()
-        show_angle_distribution_plots = self.show_angle_distribution_plots_var.get()
+        show_angle_distribution_plots = self.show_angle_dist_plot_var.get()
         
         inlet_area = self.inlet_area_var.get()
         inlet_dist = self.inlet_dist_var.get()
@@ -1551,7 +1746,7 @@ class CompressorGui:
                 "adjust_stator_thickness": self.adjust_stator_thickness_var.get(),
                 "adjust_stator_angle": self.adjust_stator_angle_var.get(),
                 "show_section_plot": self.show_section_plot_var.get(),
-                "show_angle_distribution_plots": self.show_angle_distribution_plots_var.get()
+                "show_angle_distribution_plots": self.show_angle_dist_plot_var.get()
             }
             all_json_data['Metadata'] = new_metadata
             
@@ -1617,7 +1812,7 @@ class CompressorGui:
             self.prepop_bleed_air_data = new_bleed_air_data
             self.prepop_intake_outtake = new_intake_outtake
             
-            print("Parameters saved and initialized.")
+            print("3D-Parameters saved and initialized.")
             
         except ValueError as e:
             print(f"Error: Please enter valid numbers. {e}")
