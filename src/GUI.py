@@ -1155,12 +1155,13 @@ class CompressorGui:
             
             # Load Grid_data
             if 'Grid_data' in all_json_data:
-                grid_data = all_json_data['Grid_data']
-                
+                grid_data_not_in_use_yet = all_json_data['Grid_data']
+                '''
+                # Potential Addition to Prepopulted Grid Gui Tab with the last used values
                 if 'nrow' in grid_data:
                     self.nrow_entry.delete(0, tk.END)
                     self.nrow_entry.insert(0, str(grid_data['nrow']))
-            
+                '''
             # Load Bleed_air_data
             if 'Bleed_air_data' in all_json_data:
                 bleed_data = all_json_data['Bleed_air_data']
@@ -1416,14 +1417,14 @@ class CompressorGui:
             patch_frame = ttk.LabelFrame(parent_frame, text=f"Bleed Air Patch {i+1}")
             patch_frame.pack(fill='x',padx=5, pady=5)
             
-            patch_entries = []
+            patch_entries = num_patches
             
             # I coordinates
             i_label = ttk.Label(patch_frame, text="I start/end:")
             i_label.grid(row=0,column=0,padx=5, pady=2, sticky='w')
             i_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
             i_q_label.grid(row=0, column=3, padx=2, pady=2, sticky='w')
-            Tooltip(i_q_label, " The I-Coordinates define the Spanwise direction. Choose Values between 1 and 37. If you want to have bleed air over the whole spane enter 1 and 37")
+            Tooltip(i_q_label, " The I-Coordinates define the Spanwise direction. If using standard Grid and Blade settings, choose Values between 1 and 37. If you want to have bleed air over the whole spane enter 1 and 37")
             i_start_entry = ttk.Entry(patch_frame, width=5)
             i_start_entry.grid(row=0, column=1, padx=5, pady=2)
             i_end_entry = ttk.Entry(patch_frame, width=5)
@@ -1434,7 +1435,7 @@ class CompressorGui:
             j_label.grid(row=1,column=0,padx=5, pady=2, sticky='w')
             j_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
             j_q_label.grid(row=1, column=3, padx=2, pady=2, sticky='w')
-            Tooltip(j_q_label, f"The J-Coordinates define the Axial direction. 1 is defined as the start of the Blade while {JTE} is defined as the End of the blade")
+            Tooltip(j_q_label, f"The J-Coordinates define the Axial direction. With default Gird and Bladevalues 1 is defined as the start of the Blade while 96 is defined as the End of the blade")
             j_start_entry = ttk.Entry(patch_frame, width=5)
             j_start_entry.grid(row=1, column=1, padx=5, pady=2)
             j_end_entry = ttk.Entry(patch_frame, width=5)
@@ -1445,7 +1446,7 @@ class CompressorGui:
             k_label.grid(row=2,column=0,padx=5, pady=2, sticky='w')
             k_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
             k_q_label.grid(row=2, column=3, padx=2, pady=2, sticky='w')
-            Tooltip(k_q_label, "The K-Coordinate is defined as the Radial direction with 1 being the Hub wall and 37 being the Shroud wall. If you only want Bleed air to be extracted from one of the wall enter 1 and 1 or 37 and 37. It is also possible to extract Bleed air from the Stators and Rotors")
+            Tooltip(k_q_label, "The K-Coordinate is defined as the Radial direction with 1 being the Hub wall and 37 being the Shroud wall (for the standard Grid and channel Settings). If you only want Bleed air to be extracted from one of the wall enter 1 and 1 or 37 and 37. It is also possible to extract Bleed air from the Stators and Rotors")
             k_start_entry = ttk.Entry(patch_frame, width=5)
             k_start_entry.grid(row=2, column=1, padx=5, pady=2)
             k_end_entry = ttk.Entry(patch_frame, width=5)
@@ -1463,6 +1464,7 @@ class CompressorGui:
             # Store Enter entries
             patch_entries.extend([i_start_entry, i_end_entry, j_start_entry, j_end_entry, k_start_entry, k_end_entry, massflow_entry])
             
+            print(f"patch_entries: {patch_entries}")
             # Insert loaded values if exisiting
             if i < len(patches_data):
                 for idx, entry in enumerate(patch_entries):
@@ -1724,6 +1726,9 @@ class CompressorGui:
             file.write(f"outlet_dist = {outlet_dist}\n")
 
         print("Parameters saved successfully.")
+    
+    # --- Old probably not used ---
+        
     def save_and_initialize(self):
         try:
             # Read existing JSON data
@@ -2250,8 +2255,9 @@ class CompressorGui:
                 VG.write_head_file(KM_grid_density, IM_grid_density, full_output_path,
                                    0, nrow_wert, len(stage_levels), Q3D_value, enable_bleed_air, 
                                    self.meanline_results)
-
+                
                 for data in grid_data_list:
+                    self.JTE = data['JTE']
                     VG.multall_grid_data_head_row(
                         full_output_path, len(data['x_new']), data['row_num'],
                         data['JLE'], data['JM'], data['JTE'],
@@ -2366,7 +2372,7 @@ class CompressorGui:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill="both", expand=True)
 
-        self.root.protocol("WM_DELETE_WINDOW", self.start_Multall)
+        #self.root.protocol("WM_DELETE_WINDOW", self.start_Multall)
                     
         # Fügt Tab listen ein
         notebook = ttk.Notebook(main_frame)  
@@ -2441,3 +2447,19 @@ if __name__ == "__main__":
     my_gui = CompressorGui()
     my_gui.loading_prepopulated_data()
     my_gui.render_gui()
+    
+    
+    
+    
+    
+    
+    '''
+    1. Press Generating Gird
+     --> give all data such as meanline thermo and all json data to the outputgenerating file
+     --> Stage_starte_gui(self, self.meanline, self.thermo)
+     
+    2. In Generating Grid (var_grid.py)
+        def Stage_starte_gui(mygui:json_data, meanline_data, thermo_data)
+            all data is here to find
+    
+    '''
