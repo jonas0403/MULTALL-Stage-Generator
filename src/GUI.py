@@ -1102,7 +1102,7 @@ class CompressorGui:
         self.save_button = ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open) 
         self.save_button.pack(pady=10, padx=10, fill='x')
         
-        self.load_settings()
+        #self.load_settings()
         
         #self.check_button_states()
 
@@ -1503,8 +1503,6 @@ class CompressorGui:
     
         choice_frame = ttk.LabelFrame(self.parameters_frame, text="Profile Choice")
         choice_frame.pack(fill='x', padx=5, pady=5)
-        ttk.Radiobutton(choice_frame, text="Use Default or Loaded Profiles", variable=self.main_choice, value="default").pack(anchor='w', padx=10, pady=2)
-        ttk.Radiobutton(choice_frame, text="Make a specific adjustment", variable=self.main_choice, value="adjust", command=self.open_specification_window).pack(anchor='w', padx=10, pady=2)
         
         self.create_profiles_button = ttk.Button(choice_frame, text="Create Default Profile(s)", command=self.create_profiles_and_update_gui) # Button zum Erstellen der Profile
         self.create_profiles_button.pack(pady=5, padx=10, fill='x')
@@ -1518,11 +1516,6 @@ class CompressorGui:
         adjust_frame.pack(fill='x', padx=5, pady=5)
         self.adjust_profiles_button = ttk.Button(adjust_frame, text="Make a specific adjustment", command= self.open_specification_window)
         self.adjust_profiles_button.pack(pady=5, padx=10, fill='x')
-    
-        load_frame = ttk.LabelFrame(self.parameters_frame, text="Profiles")
-        load_frame.pack(fill='x', padx=5, pady=5)
-        ttk.Button(load_frame, text="Load Rotor Profile", command=self.load_rotor_settings).pack(fill='x', padx=10, pady=5) # Auswahl für Profil Laden
-        ttk.Button(load_frame, text="Load Stator Profile", command=self.load_stator_settings).pack(fill='x', padx=10, pady=5)
         
         nrow_frame = ttk.LabelFrame(self.parameters_frame, text="Blade Rows")
         nrow_frame.pack(fill='x', padx=5, pady=5, anchor='n')
@@ -1535,7 +1528,7 @@ class CompressorGui:
         self.nrow_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
         
         ttk.Label(inner_nrow_frame, text= "Levels for Output:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        # self.levels_entry.insert(0, "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00") # Default Werte
+        #self.levels_entry.insert(0, "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
         self.levels_entry = ttk.Entry(inner_nrow_frame)
         self.levels_entry.grid(row=1, column=1, columnspan=2, sticky="ew", padx=5, pady=5)
         
@@ -1838,28 +1831,28 @@ class CompressorGui:
             file.write(f"levels = {self.levels_entry.get()}\n")
         print("Settings saved")
     
-    def load_settings(self):
-        try:
-            settings = {}
-            with open('Settings.txt', 'r') as file:
-                for line in file:
-                    line = line.strip()
-                    if ' = ' in line:
-                        try:
-                            key, value = line.split(' = ', 1)
-                            settings[key] = value
-                        except ValueError:
-                            continue    
+    # def load_settings(self):
+    #     try:
+    #         settings = {}
+    #         with open('Settings.txt', 'r') as file:
+    #             for line in file:
+    #                 line = line.strip()
+    #                 if ' = ' in line:
+    #                     try:
+    #                         key, value = line.split(' = ', 1)
+    #                         settings[key] = value
+    #                     except ValueError:
+    #                         continue    
                 
-            self.show_section_plot_var.set(settings.get('show_section_plot', "False"))
-            self.show_angle_dist_plot_var.set(settings.get('show_angle_dist_plot', "False")) 
+    #         self.show_section_plot_var.set(settings.get('show_section_plot', "False"))
+    #         self.show_angle_dist_plot_var.set(settings.get('show_angle_dist_plot', "False")) 
             
-            self.levels_entry.insert(0, settings.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00'))
-            nrow_value = int(settings.get('nrow', 2))
-            self.nrow_combo.set("Rotor Only" if nrow_value == 1 else "Complete Stage (Rotor & Stator)")
-        except FileNotFoundError:
-            self.levels_entry.insert(0, '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
-            self.nrow_combo.set("Complete Stage (Rotor & Stator)")
+    #         self.levels_entry.insert(0, settings.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00'))
+    #         nrow_value = int(settings.get('nrow', 2))
+    #         self.nrow_combo.set("Rotor Only" if nrow_value == 1 else "Complete Stage (Rotor & Stator)")
+    #     except FileNotFoundError:
+    #         self.levels_entry.insert(0, '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
+    #         self.nrow_combo.set("Complete Stage (Rotor & Stator)")
 ### Bis hier muss noch durch Lade Methode ersetzt werden. Hier nur aus Funktionsgründen kopiert
 
     def run_action_and_stay_open(self): # Speichert alles und schließt das Fesnter nicht
@@ -2043,6 +2036,7 @@ class CompressorGui:
         # --- Main Grid Settings  ---
         '''    
         
+        
         grid_data = { # Lade die Standartwerte
             'nrow': tk.IntVar(value=2),
             'im_selection' : tk.StringVar(value=37),   # Default-Wert für IM
@@ -2195,6 +2189,7 @@ class CompressorGui:
                 print("Please enter valid numbers for all conditions.")
                 
         def generate_grid():
+            save_and_initialize_grid()
             current_grid_settings = {}
             for key, widget in self.widgets.items():
                 current_grid_settings[key] = widget.get() 
