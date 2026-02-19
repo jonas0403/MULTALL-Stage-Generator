@@ -1514,11 +1514,6 @@ class CompressorGui:
         adjust_frame.pack(fill='x', padx=5, pady=5)
         self.adjust_profiles_button = ttk.Button(adjust_frame, text="Make a specific adjustment", command= self.open_specification_window)
         self.adjust_profiles_button.pack(pady=5, padx=10, fill='x')
-    
-        load_frame = ttk.LabelFrame(self.parameters_frame, text="Profiles")
-        load_frame.pack(fill='x', padx=5, pady=5)
-        ttk.Button(load_frame, text="Load Rotor Profile", command=self.load_rotor_settings).pack(fill='x', padx=10, pady=5) # Auswahl für Profil Laden
-        ttk.Button(load_frame, text="Load Stator Profile", command=self.load_stator_settings).pack(fill='x', padx=10, pady=5)
         
         nrow_frame = ttk.LabelFrame(self.parameters_frame, text="Blade Rows")
         nrow_frame.pack(fill='x', padx=5, pady=5, anchor='n')
