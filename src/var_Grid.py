@@ -467,30 +467,30 @@ def generate_and_plot_grid(nrow_wert, IM_grid_density, KM_grid_density, h_H_plot
         print(f"Punkte insgesamt (JM): {JM}, Einlass-Index (JLE): {JLE}, Auslass-Index (JTE): {JTE}")
         print(f"Anzahl der Punkte im Einlass: {n_max_in}, Anzahl der Punkte im Auslass: {n_max_out}")
         
-        x_new, d_new, R_new, Rtheta_new = Stage.calc_blade_row_coordinates(
-            row=row_num, 
-            j_prime_max=JM_dynamic, 
-            num_planes=5, 
-            n_max_in=n_max_in, 
-            l_inlet=1, 
-            n_max_out=n_max_out, 
-            l_outlet=1, 
-            Z_H=0.05, 
-            Z_S=0.95, 
-            levels=levels)
+        # x_new, d_new, R_new, Rtheta_new = Stage.calc_blade_row_coordinates(
+        #     row=row_num, 
+        #     j_prime_max=JM_dynamic, 
+        #     num_planes=5, 
+        #     n_max_in=n_max_in, 
+        #     l_inlet=1, 
+        #     n_max_out=n_max_out, 
+        #     l_outlet=1, 
+        #     Z_H=0.05, 
+        #     Z_S=0.95, 
+        #     levels=levels)
         
-        x_new_plot, d_new_plot, R_new_plot, Rtheta_new_plot = Stage.calc_blade_row_coordinates(
-            row=row_num, 
-            j_prime_max=j_prime_max_plot, 
-            num_planes=5, 
-            n_max_in=n_max_in, 
-            l_inlet=1, 
-            n_max_out=n_max_out, 
-            l_outlet=1, 
-            Z_H=0.05, 
-            Z_S=0.95, 
-            levels=[h_H_plot]
-        )
+        # x_new_plot, d_new_plot, R_new_plot, Rtheta_new_plot = Stage.calc_blade_row_coordinates(
+        #     row=row_num, 
+        #     j_prime_max=j_prime_max_plot, 
+        #     num_planes=5, 
+        #     n_max_in=n_max_in, 
+        #     l_inlet=1, 
+        #     n_max_out=n_max_out, 
+        #     l_outlet=1, 
+        #     Z_H=0.05, 
+        #     Z_S=0.95, 
+        #     levels=[h_H_plot]
+        # )
         
         # Speichere die berechneten Daten für diese Reihe
         all_rows_data.append({
