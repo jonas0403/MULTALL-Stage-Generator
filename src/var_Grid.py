@@ -744,43 +744,92 @@ def get_user_settings_from_gui(settings_loaded):
         variable=settings["show_plot"] # Standardmäßig aktiviert
     ).grid(row=0, column=3, sticky="w") 
 
+    def process_grid_data(gui_instance, meanline_data, thermo_data):
+        """
+        Nimmt die Daten aus der Haupt-GUI entgegen, entpackt sie und 
+        startet die Gittergenerierung (Multall .dat Erstellung).
+        """
+        print("\n--- Starte Entpacken der GUI-Daten in var_Grid ---")
     
-    def on_confirm():
-
+        # 1. Datenwörterbücher (Dictionaries) aus der GUI Instanz laden
+        grid_data = getattr(gui_instance, 'prepop_grid_data', {})
+        meta_data = getattr(gui_instance, 'prepop_metadata', {})
     
+        # 2. Spezifische Gitter-Parameter sicher auslesen (mit Fallback-Werten)
+        nrow_wert         = int(grid_data.get('nrow', 2))
+        IM_grid_density   = int(grid_data.get('im_selection', 37))
+        KM_grid_density   = int(grid_data.get('km_selection', 37))
+        JM_grid_density   = int(grid_data.get('JM_grid_density', 200))
+        inlet_percentage  = float(grid_data.get('inlet_percentage', 0.2))
+        outlet_percentage = float(grid_data.get('outlet_percentage', 0.15))
+        ref_chord_length  = float(grid_data.get('ref_chord_length', 134.4))
+        tip_clearance_mm  = float(grid_data.get('tip_clearance_rotor', 1.3))
+        Q3D_value         = bool(grid_data.get('Q3D_mode', False))
+        do_plot           = bool(grid_data.get('show_plot', False))
         
-        stage_levels_str = settings['levels'].get() # Holt die Ebenen als String
-        stage_levels = [float(level.strip()) for level in stage_levels_str.split(',') if level.strip()] # Wandelt den String in eine Liste von Float-Werten um
-        output_path = settings["output_folder"].get() # Holt den Ausgabeordner
-        
-        do_plot = settings['show_plot'].get()  # Holt den Status des Plot-Checkbox
-
-        settings_to_save = {
-            'output_folder': output_path # Speichert den Ausgabeordner aus GUI Eingabe
-        }
-
-        save_settings_to_file(settings_to_save)
-        
-        # holt alle Einstellungen aus der GUI
-        nrow_wert = settings['nrow'].get()
-        h_H_plot = settings['h_H_plot'].get()
-        tip_clearance_mm_rotor = settings['tip_clearance_rotor'].get()
-        #tip_clearance_mm_stator = settings['tip_clearance_stator'].get()
-        KM_grid_density = int(settings['km_selection'].get())
-        IM_grid_density = int(settings['im_selection'].get())
-        JM_grid_density = int(settings['JM_grid_density'].get())
-        inlet_percentage = settings['inlet_percentage'].get()
-        outlet_percentage = settings['outlet_percentage'].get()
-        ref_chord_length = settings['ref_chord_length'].get()
-        Q3D_value = settings['Q3D_mode'].get()
-        
-        # if tip_clearance_mm_rotor > 0:
-        #     KM_grid_density += 3
-        
+        # 3. Metadaten und Pfade auslesen
+        output_path       = meta_data.get('output_folder', '.')
+        stage_levels      = meta_data.get('levels', [0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.0])
+        enable_bleed_air  = meta_data.get('enable_bleed_air', False)
+        h_H_plot          = 0.5 # Standard Plot-Höhe, falls nicht explizit definiert
+    
+        # 4. Q3D Logik anwenden
         if Q3D_value:
-            KM_grid_density = 2 # Setzt KM auf 2 wenn Q3D aktiv ist
-        else: 
-            KM_grid_density = KM_grid_density # Ansonsten bleibt KM wie ausgewählt
+            KM_grid_density = 2
+            print("Q3D Modus aktiv: KM_grid_density wurde auf 2 gesetzt.")
+    
+        # 5. Spaltmaß relativ zur Kanalhöhe berechnen (unter Nutzung von meanline_data)
+        try:
+            D_S1 = meanline_data.get('D_S1', [0])[0]
+            D_H1 = meanline_data.get('D_H1', [0])[0]
+            total_height = (D_S1 - D_H1) / 2.0
+            # Umrechnung in Meter für Multall, falls nötig (abhängig von deinen Einheiten)
+            tip_clearance_multall = tip_clearance_mm / (total_height * 1000) if total_height > 0 else 0
+        except Exception as e:
+            print(f"Warnung bei der Spaltmaß-Berechnung: {e}")
+            tip_clearance_multall = 0
+    
+        print(f"Daten erfolgreich entpackt! Gitter Dimensionen: IM={IM_grid_density}, KM={KM_grid_density}, JM(Ref)={JM_grid_density}")
+    
+      
+
+    
+    # def on_confirm():
+
+    
+        
+    #     stage_levels_str = settings['levels'].get() # Holt die Ebenen als String
+    #     stage_levels = [float(level.strip()) for level in stage_levels_str.split(',') if level.strip()] # Wandelt den String in eine Liste von Float-Werten um
+    #     output_path = settings["output_folder"].get() # Holt den Ausgabeordner
+        
+    #     do_plot = settings['show_plot'].get()  # Holt den Status des Plot-Checkbox
+
+    #     settings_to_save = {
+    #         'output_folder': output_path # Speichert den Ausgabeordner aus GUI Eingabe
+    #     }
+
+    #     save_settings_to_file(settings_to_save)
+        
+    #     # holt alle Einstellungen aus der GUI
+    #     nrow_wert = settings['nrow'].get()
+    #     h_H_plot = settings['h_H_plot'].get()
+    #     tip_clearance_mm_rotor = settings['tip_clearance_rotor'].get()
+    #     #tip_clearance_mm_stator = settings['tip_clearance_stator'].get()
+    #     KM_grid_density = int(settings['km_selection'].get())
+    #     IM_grid_density = int(settings['im_selection'].get())
+    #     JM_grid_density = int(settings['JM_grid_density'].get())
+    #     inlet_percentage = settings['inlet_percentage'].get()
+    #     outlet_percentage = settings['outlet_percentage'].get()
+    #     ref_chord_length = settings['ref_chord_length'].get()
+    #     Q3D_value = settings['Q3D_mode'].get()
+        
+    #     # if tip_clearance_mm_rotor > 0:
+    #     #     KM_grid_density += 3
+        
+    #     if Q3D_value:
+    #         KM_grid_density = 2 # Setzt KM auf 2 wenn Q3D aktiv ist
+    #     else: 
+    #         KM_grid_density = KM_grid_density # Ansonsten bleibt KM wie ausgewählt
         
         # Berechnung der Spaltgröße in Multall
         total_height = (Stage.D_S1[0] - Stage.D_H1[0]) / 2.0
