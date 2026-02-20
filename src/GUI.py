@@ -21,7 +21,7 @@ from Stage_v3_working_with_bleedair import create_default_profiles, calculation_
 from Cubspline_function_v2 import cubspline
 from Thermodynamic_calc_GUI import Thermo
 from Fixed_radii_Meanline_GUI_v4 import meanline
-#import var_Grid as VG
+import var_Grid as VG
 
 
 current_dir = Path(__file__).parent.parent
@@ -2181,14 +2181,13 @@ class CompressorGui:
                 print("Parameters saved successfully to JSON.")
 
                 # 3. Interne Aktualisierung
-                self.prepop_grid_data = grid_data_save
-                
-                print("Calculation of Grid Data completed.")
-                 
+                self.prepop_grid_data = grid_data_save                 
             except ValueError:
                 print("Please enter valid numbers for all conditions.")
-                
+        
         def generate_grid():
+            
+            print("Saving Grid...")
             save_and_initialize_grid()
             current_grid_settings = {}
             for key, widget in self.widgets.items():
@@ -2271,7 +2270,27 @@ class CompressorGui:
             except Exception as e:
                 print(e)
                 messagebox.showerror("Fehler", f"Fehler: {e}")
-                    
+            '''
+            # ============================================================
+            # TODO (other branch): The following was an alternative simpler
+            # approach from branch b7c0ba - please review and decide if
+            # VG.process_grid_data(json_path) should replace the above.
+            # ============================================================
+              There was a merge conflict. Top not commented out version is 
+              the more completed one
+              Review lower commented out section to see if this is the correct
+              merged version
+            # ============================================================
+            '''
+            # print("Grid is saved.")
+            # print("Generating Grid...")
+            # VG.process_grid_data(json_path)
+            # print("Grid is generated.")
+            #
+            # '''
+            # GUI Logic
+            # '''
+
         for row_index, config in enumerate(ui_config):
             
             ttk.Label(self.settings_frame, text=config["label"]).grid(row=row_index, column=0, sticky="w", pady=5)
@@ -2317,11 +2336,11 @@ class CompressorGui:
         ).grid(row=0, column=0, sticky="w")
 
         # Save Button
-        save_button = ttk.Button(main_frame, text="Save and Initialize Parameters", command=save_and_initialize_grid)
-        save_button.pack(pady=20)
+        #save_button = ttk.Button(main_frame, text="Save and Initialize Parameters", command=save_and_initialize_grid)
+        #save_button.pack(pady=20)
         
         ttk.Button(main_frame, text="Generate Grid", command=generate_grid).pack(pady=5)   
-        save_button.pack(pady=20)   
+        #save_button.pack(pady=20)   
             
              
     
