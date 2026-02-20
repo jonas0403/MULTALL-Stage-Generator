@@ -14,6 +14,7 @@ import shutil
 from matplotlib.widgets import Slider
 import tkinter as tk
 from tkinter import filedialog
+import json
 
 
 import tkinter as tk
@@ -236,7 +237,7 @@ def bezier_control_points(file, row, angle_in, angle_out, chord_length):
             file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
             file.write("1.0, 1.0, 1.0, 1.0, 1.0\n") 
 
-def create_default_profiles(self):
+def create_default_profiles():
     
     if not os.path.exists("bezier_control_points_R.txt"):
         print("Generiere default Rotor File")
@@ -272,8 +273,9 @@ def save_profile(source_filename):
         except Exception as e:
             print(f"Error {e} beim speichern")                                                        
 
-def run_main_logic(new_adjustment_data):
-    
+def run_main_logic(compressor_gui_data, new_adjustment_data):
+    '''
+    should not be needed anymore
     global mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3
     global D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3
     global cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, l_R, l_S
@@ -283,18 +285,104 @@ def run_main_logic(new_adjustment_data):
     global l_R_rad, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
 
     global x_values, r_values, m_prime_values, x0
-    
-    results_meanline = meanline(GUI_On=0)
-
+    '''
+    #results_meanline = meanline()
+    '''
+    # Old
     (mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3, 
     D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, 
     cm1, cm2, cm3, delta_h_t, l_R, l_S, l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, 
     z_R, z_S, beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, 
-    fixed_radius_type) = results_meanline
+    fixed_radius_type) = compressor_gui_data.meanline_data()
+    '''
+    
+    '''
+    writing the Meanline-data out of the compact Dict into the already in use variable names
+    
+    '''
+    meanline = compressor_gui_data.meanline_data
+
+    # Process- & Fluidparameter
+    mflow = meanline['mflow']
+    n = meanline['n']
+    kappa = meanline['kappa']
+    R = meanline['R']
+    cp = meanline['cp']
+    i_st = meanline['i_st']
+
+    # Temperatures (Static & Total)
+    T_t1 = meanline['T_t1']
+    T_t2 = meanline['T_t2']
+    T_t3 = meanline['T_t3']
+    T_1 = meanline['T_1']
+    T_2 = meanline['T_2']
+    T_3 = meanline['T_3']
+
+    # Pressures (Static & Total)
+    p_1 = meanline['p_1']
+    p_2 = meanline['p_2']
+    p_3 = meanline['p_3']
+    p_t1 = meanline['p_t1']
+    p_t2 = meanline['p_t2']
+    p_t3 = meanline['p_t3']
+
+    # Gemoetrydiameters in Meters(Shroud, Hub, Mean)
+    D_S1 = meanline['D_S1']
+    D_S2 = meanline['D_S2']
+    D_S3 = meanline['D_S3']
+    D_H1 = meanline['D_H1']
+    D_H2 = meanline['D_H2']
+    D_H3 = meanline['D_H3']
+    D_M1 = meanline['D_M1']
+    D_M2 = meanline['D_M2']
+    D_M3 = meanline['D_M3']
+
+    # Velocity triangles & widths
+    b1 = meanline['b1']
+    b2 = meanline['b2']
+    b3 = meanline['b3']
+    cu1 = meanline['cu1']
+    cu2 = meanline['cu2']
+    cu3 = meanline['cu3']
+    u1 = meanline['u1']
+    u2 = meanline['u2']
+    u3 = meanline['u3']
+    cm1 = meanline['cm1']
+    cm2 = meanline['cm2']
+    cm3 = meanline['cm3']
+
+    # Energetics- & Bladeparameters
+    global z_R, z_S, l_R, l_S 
+    
+    delta_h_t = meanline['delta_h_t']
+    l_R = meanline['l_R']
+    l_S = meanline['l_S']
+    l_R_t_R = meanline['l_R_t_R']
+    l_S_t_S = meanline['l_S_t_S']
+    d_R_l_R = meanline['d_R_l_R']
+    d_S_l_S = meanline['d_S_l_S']
+    incidence_R = meanline['incidence_R']
+    incidence_S = meanline['incidence_S']
+    z_R = meanline['z_R']
+    z_S = meanline['z_S']
+
+    # Angles & Efficienties
+    beta_blade_1 = meanline['beta_blade_1']
+    beta_blade_2 = meanline['beta_blade_2']
+    alpha_blade_2 = meanline['alpha_blade_2']
+    alpha_blade_3 = meanline['alpha_blade_3']
+    TPR_M = meanline['TPR_M']
+    eta_sC_tt_M = meanline['eta_sC_tt_M']
+    eta_pC_tt_M = meanline['eta_pC_tt_M']
+
+    # Configurations
+    fixed_radius_type = meanline['fixed_radius_type']
+    plot_channel_contour = meanline['plot_channel_contour']
+    
 
     # values from radial equilibrium
-    h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
-    h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
+    h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_M1, D_M2, D_M3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
+    h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_M1, D_M2, D_M3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
     print("Successfully calculated meanline and radial equilibrium")
 
     main_choice = new_adjustment_data.get('main_choice', 'default')
@@ -372,7 +460,7 @@ def run_main_logic(new_adjustment_data):
                 file.write("m* for all levels:\n")
                 file.write("0.0,0.0,0.0,0.0,0.0\n0.3,0.3,0.3,0.3,0.3\n0.7,0.7,0.7,0.7,0.7\n1.0,1.0,1.0,1.0,1.0\n")  
             
-            channel(results_meanline)    
+            channel(meanline)    
             print(f"Veränderungen wurden gespeichert in {bcp_file}")
             save_profile(bcp_file)
             
@@ -380,34 +468,10 @@ def run_main_logic(new_adjustment_data):
         except(IOError, IndexError, ValueError) as e:
             print(f"Error {e}")
             return
-    
-    return {
-        'cp':                      cp,
-        'kappa':                   kappa,
-        'RPM':                     RPM,
-        'z_R':                     z_R,
-        'z_S':                     z_S,
-        'h_rel':                   h_rel,
-        'p_1':                     p_1,
-        'p_2':                     p_2,
-        'p_3':                     p_3,
-        'p_R_in':                  p_R_in,
-        'p_R_out':                 p_R_out,
-        'p_S_in':                  p_S_in,
-        'p_S_out':                 p_S_out,
-        'p_t1':                    p_t1,
-        'T_t1':                    T_t1,
-        'cm1':                     cm1,
-        'D_S1':                    D_S1,
-        'D_H1':                    D_H1,
-        'enable_bleed_air':        enable_bleed_air,
-        'h_rel':                   h_rel,
 
-        'calculation_of_section':    calculation_of_section,
-        'calc_blade_row_coordinates': calc_blade_row_coordinates,
-    }  
+
     
-    #area to change rotor:
+#area to change rotor:
 # length = []
 # h = [0.0 , 0.2, 0.5, 0.8, 1.0]
 # row = 1
@@ -577,7 +641,8 @@ def run_main_logic(new_adjustment_data):
 
 
 # general values, ellipis of LE and TE
-def overall_values(row, z_R, l_R, l_S):
+def overall_values(row, z_R, l_R, l_S):    
+  
     if row == 1:
         z = z_R
         # lenth of rotor blade h_rel = 50%
@@ -2690,282 +2755,6 @@ global x_values, r_values, m_prime_values, x0
 
 path = output_folder
 
-
-# function to create a MULTALL Dat
-def create_multall_dat(NROW, section, levels, rotor_data, stator_data):
-    NSEC = len(levels)
-    
-    
-    # data for all levels
-    if section == 0:
-        if NROW == 2:
-            print(f"stage_1_{NSEC}.dat with all {NSEC} sections for rotor and stator of first stage.")
-            dataName = f"stage_1_{NSEC}.dat"
-            output = os.path.join(path, dataName)
-            if os.path.exists(LOCK_FILE):
-                os.remove(LOCK_FILE)
-        if NROW == 1:
-            print(f"R_{NSEC}.dat with all {NSEC} sections for the rotor of first stage.")
-            dataName = f"R_{NSEC}.dat"
-            output = os.path.join(path, dataName)
-            if os.path.exists(LOCK_FILE):
-                os.remove(LOCK_FILE)
-
-        a = 0
-        b = NSEC
-        row = 1
-        
-        # define grid size
-        global JTE 
-        JM = 111
-        JLE = 26
-        JTE = 96
-        """
-
-        JM = 300
-        JLE = 30
-        JTE = 280
-        """
-
-        j_prime_max = JTE - (JLE - 1)
-        num_planes = 5
-        n_max_in = JLE
-        l_inlet = 1
-        n_max_out = JM - (JTE - 1)
-        l_outlet = 1
-        Z_H = 0.05
-        Z_S = 0.95
-
-        write_head_file(output, NSEC, NROW, section, enable_bleed_air)    
-        write_head_row(output, row, JM, JLE, JTE, RPM, section, NSEC)
-        z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
-        beta_M_a, beta_M_2, beta_M_3, beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP = blade_metal_BP(row)   
-        m_LE_0_5, m_TE_0_5, m_cntr_0_5, m_prime_cntr = mLE_TE_cntr(row)
-
-        x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
-        
-        """
-        #xRtheta_plot(Rtheta_new, R_new, x_new)
-        Rtheta_new_low = []
-        for i in range(len(Rtheta_new)):
-            Rtheta_new_low.append([])
-        
-        for i in range(len(d_new)):
-            for j in range(len(d_new[i])):
-                Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
-
-        for i in range(len(levels)):
-            for j in range(len(x_new[0])-1):
-                if x_new[i][j]>x_new[i][j+1]:
-                    print("To many J Values")
-
-        for i in range(len(levels)):
-            plt.plot(x_new[i], Rtheta_new[i])
-            plt.plot(x_new[i], Rtheta_new_low[i])
-            plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-            plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
-
-        plt.axis('equal')
-        plt.show()
-        """
-
-        write_coordinates(x_new, Rtheta_new, d_new, R_new, output, row, a, b, JM)
-        
-        if NROW == 2:
-
-            row = 2
-            z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
-            beta_M_a, beta_M_2, beta_M_3, beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP = blade_metal_BP(row)   
-            m_LE_0_5, m_TE_0_5, m_cntr_0_5, m_prime_cntr = mLE_TE_cntr(row)
-            
-            # define grid size
-            
-            JM =  150
-            JLE = 21
-            JTE = 140
-            """
-            JM =  104
-            JLE = 21
-            JTE = 91
-            """
-            j_prime_max = JTE - (JLE - 1)
-            num_planes = 5
-            n_max_in = JLE
-            l_inlet = 1
-            n_max_out = JM - (JTE - 1)
-            l_outlet = 1
-            Z_H = 0.05
-            Z_S = 0.95
-
-            x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
-            """
-            Rtheta_new_low = []
-            for i in range(len(Rtheta_new)):
-                Rtheta_new_low.append([])
-        
-            for i in range(len(d_new)):
-                for j in range(len(d_new[i])):
-                    Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
-            
-            for i in range(len(levels)):
-                plt.plot(x_new[i], Rtheta_new[i])
-                plt.plot(x_new[i], Rtheta_new_low[i])
-                plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-                plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
-
-            plt.xlabel("x [m]")
-            plt.ylabel("R\u03b8 [m]")
-            plt.show()
-            """
-            #xRtheta_plot(Rtheta_new, R_new, x_new)
-
-            write_head_row(output, row, JM, JLE, JTE, section, section, NSEC)
-            write_coordinates(x_new, Rtheta_new, d_new, R_new, output, row, a, b, JM)
-    
-        write_end_file(NROW, output, section)
-        create_bleed_air_card(NROW, output, rotor_data, stator_data)
-        
-        if NROW == 1:
-            plt.show()
-
-    else:
-        #data for a single selected level
-        if section <= 0 or section > NSEC:
-            print("Not allowed section range.")
-
-        if NROW == 2:
-            print(f"stage_1_section_{section}_of_{NSEC}.dat with section {section} of {NSEC} for rotor and stator of first stage.")
-            dataName = f"stage_1_section_{section}_of_{NSEC}.dat"
-            output = os.path.join(path, dataName)
-        
-        if NROW == 1:
-            print(f"rotor_1_section_{section}_of_{NSEC}.dat with section {section} of {NSEC} for rotor of first stage.")
-            dataName = f"rotor_1_section_{section}_of_{NSEC}.dat"
-            output = os.path.join(path, dataName)
-            
-        row = 1
-        a = section - 1
-        b = section
-
-        NSEC = 1
-        row = 1
-        
-        """
-        JM = 120
-        JLE = 26
-        JTE = 105
-        """
-        JM = 140
-        JLE = 26
-        JTE = 125
-        
-
-        j_prime_max = JTE - (JLE - 1)
-        num_planes = 5
-        n_max_in = JLE
-        l_inlet = 1
-        n_max_out = JM - (JTE - 1)
-        l_outlet = 1
-        Z_H = 0.05
-        Z_S = 0.95
-
-        write_head_file(output, NSEC, NROW, section, enable_bleed_air)    
-        write_head_row(output, row, JM, JLE, JTE, RPM, section, NSEC)
-        z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
-        beta_M_a, beta_M_2, beta_M_3, beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP = blade_metal_BP(row)   
-        m_LE_0_5, m_TE_0_5, m_cntr_0_5, m_prime_cntr = mLE_TE_cntr(row)
-
-        x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
-        """
-        #xRtheta_plot(Rtheta_new, R_new, x_new)
-        Rtheta_new_low = []
-        for i in range(len(Rtheta_new)):
-            Rtheta_new_low.append([])
-        
-        for i in range(len(d_new)):
-            for j in range(len(d_new[i])):
-                Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
-        
-        for i in range(len(levels)):
-            for j in range(len(x_new[0])-1):
-                if x_new[i][j]>x_new[i][j+1]:
-                    print("negative Volumes")
-
-        
-        for i in range(len(levels)):
-            plt.plot(x_new[i], Rtheta_new[i])
-            plt.plot(x_new[i], Rtheta_new_low[i])
-            plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-            plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
-
-        plt.axis('equal')
-        plt.show()
-        """
-        if NROW == 1:
-            plt.show()
-        
-        write_coordinates(x_new, Rtheta_new, d_new, R_new, output, row, a, b, JM)
-        Q3D_information(output)
-        
-        if NROW == 2:
-            
-            row = 2
-            
-            # define grid size
-            JM =  150
-            JLE = 21
-            JTE = 140
-
-            """
-            JM =  104
-            JLE = 21
-            JTE = 91
-            """
-
-            j_prime_max = JTE - (JLE - 1)
-            num_planes = 5
-            n_max_in = JLE
-            l_inlet = 1
-            n_max_out = JM - (JTE - 1)
-            l_outlet = 1
-            Z_H = 0.05
-            Z_S = 0.95
-        
-            z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
-            beta_M_a, beta_M_2, beta_M_3, beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP = blade_metal_BP(row)   
-            m_LE_0_5, m_TE_0_5, m_cntr_0_5, m_prime_cntr = mLE_TE_cntr(row)
-            x_new, d_new, R_new, Rtheta_new = calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels)
-            
-            #xRtheta_plot(Rtheta_new, R_new, x_new)
-            """
-            Rtheta_new_low = []
-            for i in range(len(Rtheta_new)):
-                Rtheta_new_low.append([])
-
-            for i in range(len(d_new)):
-                for j in range(len(d_new[i])):
-                    Rtheta_new_low[i].append(Rtheta_new[i][j]-d_new[i][j]) 
-            
-            for i in range(len(levels)):
-                for j in range(len(x_new[0])-1):
-                    if x_new[i][j]>x_new[i][j+1]:
-                        print("negative Volumes")
-            
-            for i in range(len(levels)):
-                plt.plot(x_new[i], Rtheta_new[i])
-                plt.plot(x_new[i], Rtheta_new_low[i])
-                plt.scatter(x_new[i], Rtheta_new[i], s = 3)
-                plt.scatter(x_new[i], Rtheta_new_low[i],s = 3)
-            
-            plt.show()
-            """
-        
-            write_head_row(output, row, JM, JLE, JTE, RPM, section, NSEC)
-            write_coordinates(x_new, Rtheta_new, d_new, R_new, output, row, a, b, JM)
-            Q3D_information(output)
-
-        write_end_file(NROW, output, section)
-        create_bleed_air_card(NROW, output, rotor_data, stator_data)
 
 # functions for adjusting bezier point
 def adjustBezierCurve_d_l(BezierPoints):
