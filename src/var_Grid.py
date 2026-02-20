@@ -746,6 +746,8 @@ def get_user_settings_from_gui(settings_loaded):
 
     
     def on_confirm():
+
+    
         
         stage_levels_str = settings['levels'].get() # Holt die Ebenen als String
         stage_levels = [float(level.strip()) for level in stage_levels_str.split(',') if level.strip()] # Wandelt den String in eine Liste von Float-Werten um
@@ -865,9 +867,9 @@ def get_user_settings_from_gui(settings_loaded):
 
 
 if __name__ == "__main__":
-    Stage.stage_starte_gui()
-    settings_stage = loaded_settings_from_file()
-    get_user_settings_from_gui(settings_stage) 
+    #Stage.stage_starte_gui()
+    #settings_stage = loaded_settings_from_file()
+    get_user_settings_from_gui(mygui:json_data, meanline_data, thermo_data) 
 
 
 '''
