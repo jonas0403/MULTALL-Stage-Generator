@@ -426,6 +426,7 @@ class CompressorGui:
                 self.num_stages = i_st_val
                 self.num_points = 2 * i_st_val + 1
                 
+                
                 # Standard values for the different fixed radius types
                 self.default_values = {
                     "shroud": [0.800] * self.num_points,
@@ -1086,7 +1087,7 @@ class CompressorGui:
         
         self.setup_parameters_tab()
         self.setup_plot_options_tab()
-        #Can maybe be ignored because it only gets called if bleed air is present self.create_bleed_input_widget()
+        self.create_bleed_input_widget()
         self.setup_inlet_outlet_tab()
         
         # Loading Data for the bleed air and the variable Intake and Outtake Area 
@@ -1097,10 +1098,9 @@ class CompressorGui:
         # Initial call to set up the Bleed AIr Tab based on loaded values
         parent_frame.after(100, lambda: self.update_bleed_air_display())
 
-                
-        ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open)
-        self.save_button = ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open) 
-        self.save_button.pack(pady=10, padx=10, fill='x')
+        # We dont need this button there is nothing to save there
+        # self.save_button = ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open) 
+        # self.save_button.pack(pady=10, padx=10, fill='x')
         
         #self.load_settings()
         
@@ -1492,7 +1492,7 @@ class CompressorGui:
     '''
         
     def create_profiles_and_update_gui(self):
-        create_default_profiles(self)
+        create_default_profiles(self, json_path)
         #self.check_button_states()
 
     
@@ -1501,38 +1501,26 @@ class CompressorGui:
         # main_frame = ttk.Frame(self.root, padding="10")
         # main_frame.pack(fill="both", expand=True) # Gruppierungscontainer
     
-        choice_frame = ttk.LabelFrame(self.parameters_frame, text="Profile Choice")
+        choice_frame = ttk.LabelFrame(self.parameters_frame, text="Bezier Profile Import / Export")
         choice_frame.pack(fill='x', padx=5, pady=5)
         
         self.create_profiles_button = ttk.Button(choice_frame, text="Create Default Profile(s)", command=self.create_profiles_and_update_gui) # Button zum Erstellen der Profile
         self.create_profiles_button.pack(pady=5, padx=10, fill='x')
         
-        self.load_rotor_button = ttk.Button(choice_frame, text="Load Rotor Profile", command=self.load_rotor_settings) # Auswahl für Profil Laden
+        self.load_rotor_button = ttk.Button(choice_frame, text="Load Rotor Profile", command=lambda: self.import_bezier_from_txt('rotor')) # Auswahl für Profil Laden
         self.load_rotor_button.pack(fill='x', padx=10, pady=5)
-        self.load_stator_button = ttk.Button(choice_frame, text="Load Stator Profile", command=self.load_stator_settings) # Auswahl für Profil Laden
+        self.load_stator_button = ttk.Button(choice_frame, text="Load Stator Profile", command=lambda: self.import_bezier_from_txt('stator')) # Auswahl für Profil Laden
         self.load_stator_button.pack(fill='x', padx=10, pady=5)
+        
+        ttk.Button(choice_frame, text="Export Profiles to TXT", command=self.export_bezier_to_txt).pack(fill='x', padx=10, pady=5)
 
         adjust_frame = ttk.LabelFrame(self.parameters_frame, text="Adjust Profiles")
         adjust_frame.pack(fill='x', padx=5, pady=5)
         self.adjust_profiles_button = ttk.Button(adjust_frame, text="Make a specific adjustment", command= self.open_specification_window)
         self.adjust_profiles_button.pack(pady=5, padx=10, fill='x')
+
         
-        nrow_frame = ttk.LabelFrame(self.parameters_frame, text="Blade Rows")
-        nrow_frame.pack(fill='x', padx=5, pady=5, anchor='n')
         
-        inner_nrow_frame = ttk.Frame(nrow_frame)
-        inner_nrow_frame.pack(fill='x', padx=10, pady=5)
-        
-        ttk.Label(inner_nrow_frame, text="Number of Blade Rows:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        self.nrow_combo = ttk.Combobox(inner_nrow_frame, values=["Complete Stage (Rotor & Stator)", "Rotor Only"], state="readonly")
-        self.nrow_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        
-        ttk.Label(inner_nrow_frame, text= "Levels for Output:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        #self.levels_entry.insert(0, "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
-        self.levels_entry = ttk.Entry(inner_nrow_frame)
-        self.levels_entry.grid(row=1, column=1, columnspan=2, sticky="ew", padx=5, pady=5)
-        
-        inner_nrow_frame.grid_columnconfigure(1, weight=1)  
     
         def save_adjustments_to_json(self, new_adjust_values):
         
@@ -1552,8 +1540,61 @@ class CompressorGui:
                 
             except Exception as e:
                 print(f"Error saving adjust settings to JSON: {e}")
+                
+    
+    def export_bezier_to_txt(self):
+        import json
+        import os
+        from tkinter import filedialog, messagebox
+
+        try:
+            with open(json_path, "r") as f:
+                data = json.load(f)
             
-            inner_nrow_frame.grid_columnconfigure(1, weight=1)
+            bezier_data = data.get("Bezier_point_data", {})
+            if not bezier_data:
+                messagebox.showerror("Error", "No Bezier data found in JSON! Please generate profiles first.")
+                return
+                
+            export_dir = filedialog.askdirectory(title="Choose a folder to save the TXT files")
+            if not export_dir:
+                return
+                
+            for blade_type in ["rotor", "stator"]:
+                if blade_type in bezier_data:
+                    b_data = bezier_data[blade_type]
+                    angle_key = "beta_S" if blade_type == "rotor" else "alpha_S"
+                    filename = f"bezier_control_points_{'R' if blade_type == 'rotor' else 'S'}.txt"
+                    filepath = os.path.join(export_dir, filename)
+                    
+                    with open(filepath, "w") as f:
+                        f.write(f"For each level h/H = [0, 0.2, 0.5, 0.8, 1.0]\n\n")
+                        f.write(f"1st to 4th control points for {angle_key} for all levels:\n")
+                        
+                        angles = b_data.get(angle_key, [0]*20)
+                        for i in range(4):
+                            row_vals = angles[i*5:(i+1)*5]
+                            f.write(", ".join(map(str, row_vals)) + "\n")
+                            
+                        f.write("\n1st to 4th control points for d/l for all levels:\n")
+                        thicks = b_data.get("d/l", [0]*20)
+                        for i in range(4):
+                            row_vals = thicks[i*5:(i+1)*5]
+                            f.write(", ".join(map(str, row_vals)) + "\n")
+                            
+                        f.write("\nm* for all levels:\n")
+                        mstars = b_data.get("m*", [0.0]*5 + [0.3]*5 + [0.7]*5 + [1.0]*5)
+                        for i in range(4):
+                            row_vals = mstars[i*5:(i+1)*5]
+                            f.write(", ".join(map(str, row_vals)) + "\n")
+                            
+            messagebox.showinfo("Success", f"Profil successfully exported to:\n{export_dir}")
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Error", f"Export gone wrong: {e}")
+
+    
+
 
     def setup_plot_options_tab(self):
         rotor_frame = ttk.LabelFrame(self.plot_options_frame, text="Rotor Profile")
@@ -1571,13 +1612,129 @@ class CompressorGui:
         ttk.Button(stator_frame, text="Show thickness distribution plot", command=self.show_plots_thickness_stator).pack(fill='x', padx=10, pady=10)
         
         
+    def export_bezier_to_txt(self):
+        import json
+        import os
+        from tkinter import filedialog, messagebox
 
+        try:
+            with open(json_path, "r") as f:
+                data = json.load(f)
+            
+            bezier_data = data.get("Bezier_point_data", {})
+            if not bezier_data:
+                messagebox.showerror("Error", "No Bezier data found in JSON! Please generate profiles first.")
+                return
+                
+            export_dir = filedialog.askdirectory(title="Select the folder to save the TXT files")
+            if not export_dir:
+                return
+                
+            # Writes both files (Rotor and Stator) into the selected directory
+            for blade_type in ["rotor", "stator"]:
+                if blade_type in bezier_data:
+                    b_data = bezier_data[blade_type]
+                    angle_key = "beta_S" if blade_type == "rotor" else "alpha_S"
+                    filename = f"bezier_control_points_{'R' if blade_type == 'rotor' else 'S'}.txt"
+                    filepath = os.path.join(export_dir, filename)
+                    
+                    with open(filepath, "w") as f:
+                        f.write(f"For each level h/H = [0, 0.2, 0.5, 0.8, 1.0]\n\n")
+                        f.write(f"1st to 4th control points for {angle_key} for all levels:\n")
+                        
+                        angles = b_data.get(angle_key, [0]*20)
+                        for i in range(4):
+                            row_vals = angles[i*5:(i+1)*5]
+                            f.write(", ".join(map(str, row_vals)) + "\n")
+                            
+                        f.write("\n1st to 4th control points for d/l for all levels:\n")
+                        thicks = b_data.get("d/l", [0]*20)
+                        for i in range(4):
+                            row_vals = thicks[i*5:(i+1)*5]
+                            f.write(", ".join(map(str, row_vals)) + "\n")
+                            
+                        f.write("\nm* for all levels:\n")
+                        mstars = b_data.get("m*", [0.0]*5 + [0.3]*5 + [0.7]*5 + [1.0]*5)
+                        for i in range(4):
+                            row_vals = mstars[i*5:(i+1)*5]
+                            f.write(", ".join(map(str, row_vals)) + "\n")
+                            
+            messagebox.showinfo("Success", f"Profiles successfully exported to:\n{export_dir}")
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Error", f"Export failed: {e}")
+
+    def import_bezier_from_txt(self, blade_type):
+        import json
+        from tkinter import filedialog, messagebox
+
+        # Opens the file dialog to select the .txt file
+        filepath = filedialog.askopenfilename(title=f"Select the {blade_type.capitalize()} TXT file", filetypes=[("Text files", "*.txt")])
+        if not filepath:
+            return
+            
+        try:
+            with open(filepath, "r") as f:
+                lines = f.readlines()
+                
+            angle_key = "beta_S" if blade_type == "rotor" else "alpha_S"
+            
+            # Helper function to extract exactly the 4 lines below a specific header
+            def extract_block(header_text):
+                block = []
+                idx = -1
+                for i, line in enumerate(lines):
+                    if header_text in line:
+                        idx = i
+                        break
+                if idx != -1:
+                    for i in range(1, 5):
+                        vals = [float(v.strip()) for v in lines[idx+i].split(",")]
+                        block.extend(vals)
+                return block
+                
+            angles = extract_block(f"1st to 4th control points for {angle_key}")
+            thicks = extract_block("1st to 4th control points for d/l")
+            mstars = extract_block("m* for all levels")
+            
+            if len(angles) != 20 or len(thicks) != 20:
+                messagebox.showerror("Error", "The file does not have the expected format! Values are missing.")
+                return
+                
+            # Silently saves the newly extracted TXT data into the JSON
+            with open(json_path, "r") as f:
+                data = json.load(f)
+                
+            if "Bezier_point_data" not in data:
+                data["Bezier_point_data"] = {}
+            if blade_type not in data["Bezier_point_data"]:
+                data["Bezier_point_data"][blade_type] = {}
+                
+            data["Bezier_point_data"][blade_type]["h/H"] = [0.0, 0.2, 0.5, 0.8, 1.0]
+            data["Bezier_point_data"][blade_type][angle_key] = angles
+            data["Bezier_point_data"][blade_type]["d/l"] = thicks
+            data["Bezier_point_data"][blade_type]["m*"] = mstars
+            
+            with open(json_path, "w") as f:
+                json.dump(data, f, indent=4)
+                
+            # Update the GUI instance memory so the program knows about the new values immediately
+            if blade_type == "rotor":
+                self.prepop_bezier_point_rotor = data["Bezier_point_data"][blade_type]
+            else:
+                self.prepop_bezier_point_stator = data["Bezier_point_data"][blade_type]
+                
+            messagebox.showinfo("Success", f"The {blade_type.capitalize()} profile was successfully imported into the JSON! The script will now use these values for calculation.")
+            
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Error", f"Import failed: {e}")
         
     
     def open_specification_window(self):
 
         def apply_adjustments():
-            settings = {
+            settings_adjustments = {
                 'main_choice': 'adjust',
                 'adjust_section_idx': self.specs["section_idx"].get().split(" ")[0],
                 'adjust_row': self.specs["row"].get(),
@@ -1585,7 +1742,7 @@ class CompressorGui:
                 'levels': self.levels_entry.get(),
                 'nrow': 1 if self.nrow_combo.get() == "Rotor Only" else 2
             }
-            run_main_logic(settings, self)
+            run_main_logic(settings_adjustments, self, json_path)
         
         spec_window = tk.Toplevel(self.root)
         spec_window.title("Adjustments")
@@ -1597,7 +1754,8 @@ class CompressorGui:
     
         # Erstellt ein DropDown Menü 
         ttk.Label(frame, text="Section Plan to change:").grid(row=0, column=0, sticky='w', pady=5)
-        section_combo = ttk.Combobox(frame, textvariable=self.specs["section_idx"], values=1, state="readonly")
+        
+        section_combo = ttk.Combobox(frame, textvariable=self.specs["section_idx"], values=['0.0', '0.2', '0.5', '0.8', '1.0'], state="readonly")
         section_combo.grid(row=0, column=1, pady=5)
         section_combo.current(2)
     
@@ -1855,32 +2013,32 @@ class CompressorGui:
     #         self.nrow_combo.set("Complete Stage (Rotor & Stator)")
 ### Bis hier muss noch durch Lade Methode ersetzt werden. Hier nur aus Funktionsgründen kopiert
 
-    def run_action_and_stay_open(self): # Speichert alles und schließt das Fesnter nicht
-        settings = {
-            "main_choice": self.main_choice.get(),
-        }
+    # def run_action_and_stay_open(self): # Speichert alles und schließt das Fesnter nicht
+    #     settings = {
+    #         "main_choice": self.main_choice.get(),
+    #     }
 
-        nrow_choice = self.nrow_combo.get()
-        settings["nrow"] = 1 if nrow_choice == "Rotor Only" else 2
+    #     nrow_choice = self.nrow_combo.get()
+    #     settings["nrow"] = 1 if nrow_choice == "Rotor Only" else 2
         
-        settings["levels"] = self.levels_entry.get()
+    #     settings["levels"] = self.levels_entry.get()
         
-        if settings["main_choice"] == "adjust":
-            section_str = self.specs["section_idx"].get()
-            section_map = {'0.0': 0, '0.1':1, '0.2': 2, '0.3': 3, '0.4': 4, '0.5': 5, '0.6': 6, '0.7': 7, '0.8': 8, '0.9': 9, '1.0': 10}
-            settings["adjust_section_idx"] = section_map.get(section_str, 2)
-            settings["adjust_row"] = self.specs['row'].get()
-            settings["adjust_parameter"] = self.specs['parameter'].get()
+    #     if settings["main_choice"] == "adjust":
+    #         section_str = self.specs["section_idx"].get()
+    #         section_map = {'0.0': 0, '0.1':1, '0.2': 2, '0.3': 3, '0.4': 4, '0.5': 5, '0.6': 6, '0.7': 7, '0.8': 8, '0.9': 9, '1.0': 10}
+    #         settings["adjust_section_idx"] = section_map.get(section_str, 2)
+    #         settings["adjust_row"] = self.specs['row'].get()
+    #         settings["adjust_parameter"] = self.specs['parameter'].get()
             
         
-        run_main_logic_result = run_main_logic(settings, self)
-        if run_main_logic_result is not None:
-            self.stage_data = run_main_logic_result
-            print("stage_data saved sucessfully")
+    #     run_main_logic_result = run_main_logic(settings, self)
+    #     if run_main_logic_result is not None:
+    #         self.stage_data = run_main_logic_result
+    #         print("stage_data saved sucessfully")
         
-        self.save_settings() # Speichert die Einstellungen in der Settings.txt
+    #     self.save_settings() # Speichert die Einstellungen in der Settings.txt
         
-        self.root.destroy() # Schließt das Fenster
+
         
     def show_plots_section_rotor(self):
         NROW = 1
@@ -2058,12 +2216,6 @@ class CompressorGui:
         
         ui_config = [
             {
-                "key": "nrow",
-                "label": "Stage Components (1=R, 2=R+S):",
-                "type": "entry",
-                "help": "Defines how many blade rows are included..."
-            },
-            {
                 "key": "ref_chord_length",
                 "label": "Reference Chord Length [mm]:",
                 "type": "entry",
@@ -2110,9 +2262,53 @@ class CompressorGui:
                 "help": "Distance between blade tip and shroud..."
             }
         ]   
-        
+           
         main_frame = ttk.Frame(parent_frame, padding="10")
         main_frame.pack(fill="both", expand=True)
+        
+        nrow_frame = ttk.LabelFrame(main_frame, text="Blade Rows")
+        nrow_frame.pack(fill='x', padx=5, pady=5, anchor='n')
+        
+        inner_nrow_frame = ttk.Frame(nrow_frame)
+        inner_nrow_frame.pack(fill='x', padx=10, pady=5)
+        
+        ttk.Label(inner_nrow_frame, text="Number of Blade Rows:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.nrow_combo = ttk.Combobox(inner_nrow_frame, values=["Complete Stage (Rotor & Stator)", "Rotor Only"], state="readonly")
+        
+        loaded_nrow = self.prepop_grid_data.get('nrow', 2)
+        if loaded_nrow == 1:
+            self.nrow_combo.set("Rotor Only")
+        else:
+            self.nrow_combo.set("Complete Stage (Rotor & Stator)")
+        
+        self.nrow_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        
+        ttk.Label(inner_nrow_frame, text= "Levels for Output:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.levels_entry = ttk.Entry(inner_nrow_frame)
+        
+        loaded_levels = self.prepop_metadata.get('levels', [0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.0])
+        levels_str = ", ".join(map(str, loaded_levels))
+        self.levels_entry.insert(0, levels_str)
+        
+        self.levels_entry.grid(row=1, column=1, columnspan=2, sticky="ew", padx=5, pady=5)
+        
+        ttk.Label(inner_nrow_frame, text="Output:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        self.output_entry = ttk.Entry(inner_nrow_frame)
+
+        loaded_output = self.prepop_metadata.get('output_folder')
+        self.output_entry.insert(0, loaded_output)
+        
+        self.output_entry.grid(row=2, column=1, columnspan=2, sticky="ew", padx=5, pady=5)
+        
+        def browse_grid_output():
+            from tkinter import filedialog
+            path = filedialog.askdirectory(title="Select Output Folder")
+            if path:
+                self.output_entry.delete(0, tk.END)
+                self.output_entry.insert(0, path)
+        
+        ttk.Button(inner_nrow_frame, text="Browse", command=browse_grid_output).grid(row=2, column=2, padx=5, pady=5)
+        inner_nrow_frame.grid_columnconfigure(1, weight=1)  
         
         self.settings_frame = ttk.LabelFrame(main_frame, text="Grid Configuration")
         self.settings_frame.pack(side="top" ,fill="x", anchor="n", pady=5)
@@ -2140,11 +2336,11 @@ class CompressorGui:
         def toggle_Q3D():
             KM_combobox = self.widgets['km_selection']
             if grid_data['Q3D_mode'].get():
-                grid_data['km_selection'].set(2) # Setzt KM auf 2
-                KM_combobox.config(state=tk.DISABLED) # Deaktiviert die Auswahl
+                grid_data['km_selection'].set(2) 
+                KM_combobox.config(state=tk.DISABLED) 
             else:
-                KM_combobox.config(state=tk.NORMAL) # Aktiviert die Auswahl
-                grid_data['km_selection'].set(37)  # Setzt KM zurück auf 37
+                KM_combobox.config(state=tk.NORMAL) 
+                grid_data['km_selection'].set(37)  
                 
         def toggle_SA():
             if grid_data['SA_mode'].get():
@@ -2157,11 +2353,17 @@ class CompressorGui:
             print(SA_model)
             
         def save_and_initialize_grid():
+
             print("Saving Parameter...")
             grid_data_save = {}
             
             for key, tk_variable in grid_data.items():
                 grid_data_save[key] = tk_variable.get()
+                
+            # --- NEU 1: nrow aus dem Dropdown auslesen und an grid_data anfügen ---
+            nrow_choice = self.nrow_combo.get()
+            grid_data_save['nrow'] = 1 if nrow_choice == "Rotor Only" else 2
+            # ----------------------------------------------------------------------
                 
             try:
                 all_json_data = {}
@@ -2169,21 +2371,38 @@ class CompressorGui:
                 try:
                     with open(json_path, 'r') as file:
                         all_json_data = json.load(file)
-                
                 except (FileNotFoundError, json.JSONDecodeError):
                     pass
                 
                 all_json_data['Grid_data'] = grid_data_save 
+                
+                levels_input = self.levels_entry.get()
+                levels_list = [float(x.strip()) for x in levels_input.split(',')]
+                output_value = self.output_entry.get()
+                
+                if 'Metadata' not in all_json_data:
+                    all_json_data['Metadata'] = {}
+                    
+                all_json_data['Metadata']['levels'] = levels_list
+                all_json_data['Metadata']['output_folder'] = output_value
                 
                 with open(json_path, 'w') as file:
                     json.dump(all_json_data, file, indent=4)
                     
                 print("Parameters saved successfully to JSON.")
 
-                # 3. Interne Aktualisierung
-                self.prepop_grid_data = grid_data_save                 
+                self.prepop_grid_data = grid_data_save
+                
+                if not hasattr(self, 'prepop_metadata'):
+                    self.prepop_metadata = {}
+                self.prepop_metadata['levels'] = levels_list
+                self.prepop_metadata['output_name'] = output_value
+                
             except ValueError:
-                print("Please enter valid numbers for all conditions.")
+                from tkinter import messagebox
+                messagebox.showerror("Eingabefehler", "Bitte überprüfe die Eingabe bei 'Levels'. Die Zahlen müssen mit Komma getrennt sein (z.B. 0.0, 0.5, 1.0).")
+            except Exception as e:
+                print(f"Ein Fehler ist beim Speichern aufgetreten: {e}")
         
         def generate_grid():
             
@@ -2376,6 +2595,8 @@ class CompressorGui:
         
         ttk.Button(popup_multall, text="No", command=cancel_and_exit, style="danger.TButton", width=10).pack(side="left", padx=20, pady=10)
         ttk.Button(popup_multall, text="Yes", command=start_multall_and_exit, style="success.TButton", width= 10).pack(side="right", padx=20, pady=10)
+    
+    
     
     
     def render_gui(self):

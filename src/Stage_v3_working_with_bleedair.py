@@ -17,6 +17,7 @@ from tkinter import filedialog
 import json
 
 
+import tkinter.messagebox as messagebox
 import tkinter as tk
 from tkinter import ttk, filedialog, Label, Toplevel
 
@@ -80,174 +81,107 @@ def plot_temp_alpha_beta(T_Plot, beta_R_Plot, alpha_S_Plot):
 
 
 #function for writing Bézier-points
-def bezier_control_points(file, row, angle_in, angle_out, chord_length):
-    
-    with open(file, "w+") as file:
-        file.write("For each level h/H = [0, 0.2, 0.5, 0.8, 1.0], there are four control points for the blade angle beta_S and the thickness d/l. The first and last control points for the blade angle beta_S are determined by radial equilibrium.\n\n")
+def create_default_profiles(self, json_path):  
+    print("Generating default profiles directly into JSON...")
+
+    try:
         
-        beta_S_BP_1, beta_S_BP_2, beta_S_BP_3, beta_S_BP_4 = [],[],[],[]
-        alpha_S_BP_1, alpha_S_BP_2, alpha_S_BP_3, alpha_S_BP_4 = [],[],[],[]
+        try:
+            run_main_logic(self)
+        except Exception as e:
+            print(f"Error executing run_main_logic: {e}")
+            messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first and make sure it's saved!")
+            return
         
-        # Calculated values for NACA similar
+        # 1. Fetch global variables previously calculated in the 1D tab (run_main_logic)
+        global h_rel, l_R, l_S, beta_blade_R_in, beta_blade_R_out, alpha_S_in, alpha_S_out
+        
+        h_H_base = [0.0, 0.2, 0.5, 0.8, 1.0]
         c_03 = 0.277558
         c_08 = 0.165432
-        
-        for i in range(len(h_H)):
-            for j in range(len(h_rel)):
+
+        def generate_dict(row, chord_lengths):
+            ang_1, ang_2, ang_3, ang_4 = [], [], [], []
+            for i in range(len(h_H_base)):
+                # Interpolate the angle at the 5 base heights if h_rel differs
                 if row == 1:
-                    if h_rel[j] == h_H[i]:
-                        beta_1 = angle_in[j]
-                        beta_2 = angle_out[j]
-                        
-                        delta_beta_0 = beta_2 - beta_1
-                        
-                        beta_new_03 = beta_1 - delta_beta_0 * c_03
-                        beta_new_08 = beta_1 - delta_beta_0 * c_08
-                        
-                        beta_S_BP_1.append(round(angle_in[j], 2))
-                        beta_S_BP_4.append(round(angle_out[j], 2))
-                        beta_S_BP_2.append(round(beta_new_03, 2))
-                        beta_S_BP_3.append(round(beta_new_08, 2))
-                elif row == 2:
-                    if h_rel[j] == h_H[i]:
-                        alpha_1 = alpha_S_in[i]
-                        alpha_2 = alpha_S_out[i]
-                        
-                        delta_alpha_0 = alpha_2 - alpha_1
-                        
-                        alpha_new_03 = alpha_1 - delta_alpha_0 * c_03
-                        alpha_new_08 = alpha_1 - delta_alpha_0 * c_08
-                        
-                        alpha_S_BP_1.append(round(alpha_S_in[j], 2))
-                        alpha_S_BP_4.append(round(alpha_S_out[j], 2))
-                        alpha_S_BP_2.append(round(alpha_new_03, 2))
-                        alpha_S_BP_3.append(round(alpha_new_08, 2))
+                    a_in = np.interp(h_H_base[i], h_rel, beta_blade_R_in)
+                    a_out = np.interp(h_H_base[i], h_rel, beta_blade_R_out)
+                else:
+                    # Stator historically uses alpha_S_in/out in this step
+                    a_in = np.interp(h_H_base[i], h_rel, alpha_S_in) 
+                    a_out = np.interp(h_H_base[i], h_rel, alpha_S_out)
+
+                delta = a_out - a_in
+                ang_1.append(round(float(a_in), 2))
+                ang_2.append(round(float(a_in - delta * c_03), 2))
+                ang_3.append(round(float(a_in - delta * c_08), 2))
+                ang_4.append(round(float(a_out), 2))
                 
-        if row == 1:
-            file.write("1st to 4th control points for beta_S for all levels:\n")
-            for i in range(5):
-                file.write(f"{beta_S_BP_1[i]}")
-                if i != 4:
-                    file.write(", ")
-            file.write("\n")
+            angles_combined = ang_1 + ang_2 + ang_3 + ang_4
+            
+            if row == 1:
+                rel_thick = np.array([[0.023, 0.020, 0.015, 0.011, 0.007],
+                                      [0.082, 0.071, 0.055, 0.038, 0.027],
+                                      [0.017, 0.015, 0.011, 0.008, 0.005],
+                                      [0.010, 0.009, 0.007, 0.005, 0.003]])
+                abs_thick = rel_thick * chord_lengths
+                thickness_combined = [round(float(val), 3) for row_vals in abs_thick for val in row_vals]
+                angle_key = "beta_S"
+            else:
+                rel_thick = np.array([[0.015, 0.015, 0.015, 0.015, 0.015],
+                                      [0.058, 0.058, 0.058, 0.058, 0.058],
+                                      [0.011, 0.011, 0.011, 0.011, 0.011],
+                                      [0.006, 0.006, 0.006, 0.006, 0.006]])
+                # Stator always used chord length at mid-height (index 2) for d/l in the old code
+                c_len = chord_lengths[2] if isinstance(chord_lengths, (list, np.ndarray)) else chord_lengths
+                abs_thick = rel_thick * c_len
+                thickness_combined = [round(float(val), 3) for row_vals in abs_thick for val in row_vals]
+                angle_key = "alpha_S"
 
-            for i in range(5):
-                file.write(f"{beta_S_BP_2[i]}")
-                if i != 4:
-                    file.write(", ")
-            file.write("\n")
-            
-            for i in range(5):
-                file.write(f"{beta_S_BP_3[i]}")
-                if i != 4:
-                    file.write(", ")            
-            file.write("\n")
+            return {
+                "h/H": h_H_base,
+                angle_key: angles_combined,
+                "d/l": thickness_combined,
+                "m*": [0.0]*5 + [0.3]*5 + [0.7]*5 + [1.0]*5
+            }
 
-            for i in range(5):
-                file.write(f"{beta_S_BP_4[i]}")
-                if i != 4:
-                    file.write(", ")
-            file.write("\n")
-            file.write("\n")
-            file.write("1st to 4th control points for d/l for all levels:\n")
-            
-            
-            # Relative NACA values 
-            
-            rel_thick = np.array([[0.023, 0.020, 0.015, 0.011, 0.007],
-                                  [0.082, 0.071, 0.055, 0.038, 0.027],
-                                  [0.017, 0.015, 0.011, 0.008, 0.005],
-                                  [0.010, 0.009, 0.007, 0.005, 0.003]])
-            
-            abs_thick = rel_thick * chord_length
-            
-            
-            for i in range(abs_thick.shape[0]):
-                val_write = [f"{value:.3f}" for value in abs_thick[i,:]]
-                
-                file.write(",".join(val_write))
-                file.write("\n")
+        # 2. Calculate chord lengths over the channel height
+        chord_length_R = np.interp(h_H_base, h_rel, l_R)
+        chord_length_S = np.interp(h_H_base, h_rel, l_S)
 
-            #file.write('2.71,2.37,1.86,1.46,1.27\n')
-            #file.write('3.58,3.13,2.45,1.93,1.68\n')
-            #file.write('3.58,3.13,2.45,1.93,1.68\n')
-            #file.write('2.71,2.37,1.86,1.46,1.27\n')
-                                    
-            file.write("\n")
-            file.write("m* for all levels:\n")
-            file.write("0.0, 0.0, 0.0, 0.0, 0.0\n")
-            file.write("0.3, 0.3, 0.3, 0.3, 0.3\n")
-            file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
-            file.write("1.0, 1.0, 1.0, 1.0, 1.0\n") 
+        # Build clean dictionaries for rotor and stator
+        rotor_dict = generate_dict(1, chord_length_R)
+        stator_dict = generate_dict(2, chord_length_S)
 
-        elif row == 2:
-            file.write("1st to 4th control points for alpha_S for all levels:\n")
-            for i in range(5):
-                file.write(f"{alpha_S_BP_1[i]}")
-                if i != 4:
-                    file.write(", ")
-            file.write("\n")
+        # 3. Load the current JSON
+        with open(json_path, 'r') as f:
+            data = json.load(f)
 
-            for i in range(5):
-                file.write(f"{alpha_S_BP_2[i]}")
-                if i != 4:
-                    file.write(", ")
-            file.write("\n")
+        if "Bezier_point_data" not in data:
+            data["Bezier_point_data"] = {}
             
-            for i in range(5):
-                file.write(f"{alpha_S_BP_3[i]}")
-                if i != 4:
-                    file.write(", ")            
-            file.write("\n")
+        data["Bezier_point_data"]["rotor"] = rotor_dict
+        data["Bezier_point_data"]["stator"] = stator_dict
 
-            for i in range(5):
-                file.write(f"{alpha_S_BP_4[i]}")
-                if i != 4:
-                    file.write(", ")
-            file.write("\n")
-            file.write("\n")
-            file.write("1st to 4th control points for d/l for all levels:\n")
-            
-             # Relative NACA values 
-            
-            rel_thick = np.array([[0.015, 0.015, 0.015, 0.015, 0.015],
-                                  [0.058, 0.058, 0.058, 0.058, 0.058],
-                                  [0.011, 0.011, 0.011, 0.011, 0.011],
-                                  [0.006, 0.006, 0.006, 0.006, 0.006]])
-        
-            
-            abs_thick = rel_thick * chord_length[2]
-            
-            for i in range(abs_thick.shape[0]):
-                val_write = [f"{value:.3f}" for value in abs_thick[i,:]]
-                
-                file.write(",".join(val_write))
-                file.write("\n")
-            
-            
-            #file.write('1.42, 1.48, 1.54, 1.59, 1.61\n')
-            #file.write('2.93, 3.06, 3.19, 3.28, 3.32\n')
-            #file.write('2.93, 3.06, 3.19, 3.28, 3.32\n')
-            #file.write('1.42, 1.48, 1.54, 1.59, 1.61\n')
-   
-            file.write("\n")
-            file.write("m* for all levels:\n")
-            file.write("0.0, 0.0, 0.0, 0.0, 0.0\n")
-            file.write("0.3, 0.3, 0.3, 0.3, 0.3\n")
-            file.write("0.7, 0.7, 0.7, 0.7, 0.7\n")
-            file.write("1.0, 1.0, 1.0, 1.0, 1.0\n") 
+        # 4. Overwrite the JSON
+        with open(json_path, 'w') as f:
+            json.dump(data, f, indent=4)
 
-def create_default_profiles():
-    
-    if not os.path.exists("bezier_control_points_R.txt"):
-        print("Generiere default Rotor File")
-        chord_length_R =  np.interp(h_H, h_rel, l_R) # Interpoliert die Sehnenlänge für die Standard Abschnitte
-        bezier_control_points("bezier_control_points_R.txt", 1, beta_blade_R_in, beta_blade_R_out, chord_length_R)
-    if not os.path.exists("bezier_control_points_S.txt"):
-        print("Generiere default Stator File")
-        chord_length_S =  np.interp(h_H, h_rel, l_S)
-        bezier_control_points("bezier_control_points_S.txt", 2, beta_blade_S_in, beta_blade_S_out, chord_length_S)
-    
+        if hasattr(self, "prepop_bezier_point_rotor"):
+            self.prepop_bezier_point_rotor = rotor_dict
+            self.prepop_bezier_point_stator = stator_dict
+
+        print("Default profiles successfully generated and saved to JSON!")
+        messagebox.showinfo("Success", "Default profiles successfully created and saved directly to the JSON file!")
+
+    except NameError as e:
+        print(f"Variable Error: {e}")
+        messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first before creating profiles! (Debug: #2)")
+    except Exception as e:
+        print(f"Error in create_default_profiles: {e}")
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
 def save_profile(source_filename):
         if not os.path.exists(source_filename):
             return
@@ -273,8 +207,8 @@ def save_profile(source_filename):
         except Exception as e:
             print(f"Error {e} beim speichern")                                                        
 
-def run_main_logic(new_adjustment_data, compressor_gui_data):
-    '''
+def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
+    
     #should not be needed anymore
     global mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3
     global D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3
@@ -285,7 +219,7 @@ def run_main_logic(new_adjustment_data, compressor_gui_data):
     global l_R_rad, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
 
     global x_values, r_values, m_prime_values, x0
-    '''
+    
     #results_meanline = meanline()
     '''
     # Old
@@ -300,6 +234,8 @@ def run_main_logic(new_adjustment_data, compressor_gui_data):
     writing the Meanline-data out of the compact Dict into the already in use variable names
     
     '''
+    global beta_blade_S_in, beta_blade_S_out, beta_blade_R_in, beta_blade_R_out, h_rel, l_S, l_R, alpha_S_in, alpha_S_out
+    
     meanline = compressor_gui_data.meanline_data
 
     # Process- & Fluidparameter
@@ -397,75 +333,77 @@ def run_main_logic(new_adjustment_data, compressor_gui_data):
     #chord_length_S = np.interp(h_H, h_rel, l_S) 
 
     
-    if main_choice == 'adjust': # Anpassung der Bézier Punkte
+    if main_choice == 'adjust': # Adjustment of Bezier points
         try:
             
             section_idx_str = new_adjustment_data['adjust_section_idx']
             section_idx_float = float(section_idx_str)
-            section_idx = h_H.index(section_idx_float)
+            
+            # Base heights
+            h_H_base = [0.0, 0.2, 0.5, 0.8, 1.0]
+            section_idx = h_H_base.index(section_idx_float)
             
             row_str = new_adjustment_data['adjust_row']
             parameter_str = new_adjustment_data['adjust_parameter']
-            h_val = h_H[section_idx] 
-            is_rotor = row_str == 'Rotor' # True für Rotor, False für Stator
-            row_num = 1 if is_rotor else 2 # 1 für Rotor, 2 für Stator
-            bcp_file = "bezier_control_points_R.txt" if is_rotor else "bezier_control_points_S.txt"
-            bcp_header = "beta_S" if is_rotor else "alpha_S"
-               
-            with open(bcp_file, 'r') as file:
-                lines = file.readlines()
-        
-            beta_points_all = []
-            d_l_points_all = []
-        
-            for i, line in enumerate(lines): #"enumerate" gibt sowohl den Index als auch den Wert der Zeile zurück
-                if line.strip().startswith(f"1st to 4th control points for {bcp_header}"): # sucht nach der Zeile mit dem Header
-                    raw_data =[lines[i+j+1].strip().split(',') for j in range(4)] # Liest die nächsten 4 Zeilen ein und teilt sie bei Kommas
-                    beta_points_all = [[float(raw_data[j][k]) for j in range(4)] for k in range(5)] # Transponieren der Daten zur weiteren Benutzung
-                    break
-    
-            for i, line in enumerate(lines):
-                if line.strip().startswith(f"1st to 4th control points for d/l"):
-                    raw_data =[lines[i+j+1].strip().split(',') for j in range(4)]
-                    d_l_points_all = [[float(raw_data[j][k]) for j in range(4)] for k in range(5)]
-                    break
+            h_val = h_H_base[section_idx] 
             
-            print(f"Debugging: Gelesener Parameter ist: {parameter_str}")
-    
-            # Je nach ausgewähltem Parameter die entsprechenden Bézier-Punkte anpassen
+            is_rotor = (row_str == 'Rotor')
+            row_num = 1 if is_rotor else 2
+            blade_key = "rotor" if is_rotor else "stator"
+            angle_key = "beta_S" if is_rotor else "alpha_S"
+
+            with open(json_path, 'r') as file:
+                data = json.load(file)
+                
+            b_data = data.get("Bezier_point_data", {}).get(blade_key, {})
+            if not b_data:
+                print(f"Error: No bezier data found for {row_str}. Please generate profiles first.")
+                return
+                
+            angles_flat = b_data.get(angle_key, [0]*20)
+            d_l_flat = b_data.get("d/l", [0]*20)
+            
+            print(f"Debugging: Selected parameter is: {parameter_str}")
+
             if parameter_str == 'Angle':
                 print(f"Adjustments for Angle in row {row_str}, section: {h_val}")
-                original_points = beta_points_all[section_idx] # Liste der Bézier-Punkte für den ausgewählten Abschnitt
-                new_points = adjustBezierCurve_beta(original_points) # Ruft die Funktion zum Anpassen der Bézier-Punkte auf
-                beta_points_all[section_idx] = new_points # Aktualisiert die Bézier-Punkte in der Liste
+
+                original_points = [angles_flat[section_idx + i*5] for i in range(4)]
+                
+
+                new_points = adjustBezierCurve_beta(original_points) 
+                
+
+                for i in range(4):
+                    angles_flat[section_idx + i*5] = new_points[i]
+                b_data[angle_key] = angles_flat
     
             elif parameter_str == 'Thickness':
                 print(f"Adjustments for Thickness in row {row_str}, section: {h_val}")
-                chord, *_ = calculation_of_section(h_val, row_num) #
-                original_points = d_l_points_all[section_idx]
+                chord, *_ = calculation_of_section(h_val, row_num) 
+                
+                original_points = [d_l_flat[section_idx + i*5] for i in range(4)]
                 new_points = adjustBezierCurve_d(original_points, chord)
-                d_l_points_all[section_idx] = new_points 
+                
+                for i in range(4):
+                    d_l_flat[section_idx + i*5] = new_points[i]
+                b_data["d/l"] = d_l_flat 
 
-            # Speichern der aktualisierten Bézier-Punkte zurück in die Datei
-            with open(bcp_file, "w+", newline='') as file:
-                file.write("For each level h/H = [0, 0.2, 0.5, 0.8, 1.0]\n\n")
-                file.write(f"1st to 4th control points for {bcp_header} for all levels:\n")
-                for i in range(4):
-                    file.write(','.join(map(str, [beta_points_all[j][i] for j in range(5)])) + '\n')
-                file.write("\n1st to 4th control points for d/l for all levels:\n")
-                for i in range(4):
-                    file.write(','.join(map(str, [d_l_points_all[j][i] for j in range(5)])) + '\n')
-                file.write("\n")
-                file.write("m* for all levels:\n")
-                file.write("0.0,0.0,0.0,0.0,0.0\n0.3,0.3,0.3,0.3,0.3\n0.7,0.7,0.7,0.7,0.7\n1.0,1.0,1.0,1.0,1.0\n")  
+            data["Bezier_point_data"][blade_key] = b_data
+            with open(json_path, "w") as file:
+                json.dump(data, file, indent=4)
+
+            if hasattr(compressor_gui_data, "prepop_bezier_point_rotor"):
+                if is_rotor:
+                    compressor_gui_data.prepop_bezier_point_rotor = b_data
+                else:
+                    compressor_gui_data.prepop_bezier_point_stator = b_data
             
             channel(meanline)    
-            print(f"Veränderungen wurden gespeichert in {bcp_file}")
-            save_profile(bcp_file)
-            
+            print(f"Adjustments successfully saved to JSON for {row_str}!")
                               
-        except(IOError, IndexError, ValueError) as e:
-            print(f"Error {e}")
+        except Exception as e:
+            print(f"Error during adjustment: {e}")
             return
 
 
@@ -2124,6 +2062,7 @@ class CompressorGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Settings for MULTALL file")
+        self.meanline_data = None
         
         # Add a dictionary for storing bleedair data
         self.bleed_air_data = {

@@ -149,7 +149,7 @@ def angle_blade_in(angle_in, angle_out, vel_in, vel_out, T_in, T_out, solidity, 
     print(f"T_out = {T_out}")
     print(f"T_in = {T_in}")
     Ma_in = vel_in / math.sqrt(kappa * R * T_in)
-    Ma_lim = min(Ma, 0.8)
+    Ma_lim = min(abs(Ma), 0.8)
     print(f"Ma_in({Ma_in})= vel_in({vel_in}) / math.sqrt(kappa({kappa}) * R({R}) * T_in({T_in})")
     print(f"Ma: {Ma}")
     print(f"Ma_lim: {Ma_lim}")
