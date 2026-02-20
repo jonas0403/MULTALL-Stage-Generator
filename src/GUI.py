@@ -739,7 +739,7 @@ class CompressorGui:
             
             if save_callback:
                 print("Calling save_callback...")  # Debug
-                save_callback(show_plot=plot_channel_contour)
+                save_callback()#save_callback(show_plot=plot_channel_contour)
             
             return D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour
                             
@@ -1585,7 +1585,7 @@ class CompressorGui:
                 'levels': self.levels_entry.get(),
                 'nrow': 1 if self.nrow_combo.get() == "Rotor Only" else 2
             }
-            run_main_logic(settings)
+            run_main_logic(settings, self)
         
         spec_window = tk.Toplevel(self.root)
         spec_window.title("Adjustments")
@@ -1873,7 +1873,7 @@ class CompressorGui:
             settings["adjust_parameter"] = self.specs['parameter'].get()
             
         
-        run_main_logic_result = run_main_logic(settings)
+        run_main_logic_result = run_main_logic(settings, self)
         if run_main_logic_result is not None:
             self.stage_data = run_main_logic_result
             print("stage_data saved sucessfully")
@@ -2227,12 +2227,6 @@ class CompressorGui:
                 tip_clearance_multall = tip_clearance_mm / (total_height * 1000)
 
                 print("Starting Grid calculations...")
-                ''' 
-                New Implementation of creating .dat
-                '''
-                VG.get_settings_from_gui(self, self.meanline, self.thermo)
-                
-                '''
                 
                 grid_data_list, grid_data_list_plot, JM_dynamic, JM = VG.generate_and_plot_grid(
                     nrow_wert, IM_grid_density, KM_grid_density,
@@ -2271,7 +2265,6 @@ class CompressorGui:
                     )
 
                 VG.write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, stage_levels, self.meanline_results)
-                '''
 
                 messagebox.showinfo("Erfolg", f"Gitter generiert:\n{full_output_path}")
 
@@ -2464,5 +2457,4 @@ if __name__ == "__main__":
         def Stage_starte_gui(mygui:json_data, meanline_data, thermo_data)
             all data is here to find
     
-
     '''

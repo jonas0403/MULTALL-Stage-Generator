@@ -272,8 +272,9 @@ def save_profile(source_filename):
         except Exception as e:
             print(f"Error {e} beim speichern")                                                        
 
-def run_main_logic(new_adjustment_data):
-    
+def run_main_logic(new_adjustment_data, compressor_gui_data):
+    '''
+    #should not be needed anymore
     global mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3
     global D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3
     global cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, l_R, l_S
@@ -283,18 +284,103 @@ def run_main_logic(new_adjustment_data):
     global l_R_rad, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
 
     global x_values, r_values, m_prime_values, x0
-    
-    results_meanline = meanline(GUI_On=0)
-
+    '''
+    #results_meanline = meanline()
+    '''
+    # Old
     (mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3, 
     D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, 
     cm1, cm2, cm3, delta_h_t, l_R, l_S, l_R_t_R, l_S_t_S, d_R_l_R, d_S_l_S, incidence_R, incidence_S, 
     z_R, z_S, beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, 
-    fixed_radius_type) = results_meanline
+    fixed_radius_type) = compressor_gui_data.meanline_data()
+    '''
+    
+    '''
+    writing the Meanline-data out of the compact Dict into the already in use variable names
+    
+    '''
+    meanline = compressor_gui_data.meanline_data
 
+    # Process- & Fluidparameter
+    mflow = meanline['mflow']
+    n = meanline['n']
+    kappa = meanline['kappa']
+    R = meanline['R']
+    cp = meanline['cp']
+    i_st = meanline['i_st']
+
+    # Temperatures (Static & Total)
+    T_t1 = meanline['T_t1']
+    T_t2 = meanline['T_t2']
+    T_t3 = meanline['T_t3']
+    T_1 = meanline['T_1']
+    T_2 = meanline['T_2']
+    T_3 = meanline['T_3']
+
+    # Pressures (Static & Total)
+    p_1 = meanline['p_1']
+    p_2 = meanline['p_2']
+    p_3 = meanline['p_3']
+    p_t1 = meanline['p_t1']
+    p_t2 = meanline['p_t2']
+    p_t3 = meanline['p_t3']
+
+    # Gemoetrydiameters in Meters(Shroud, Hub, Mean)
+    D_S1 = meanline['D_S1']
+    D_S2 = meanline['D_S2']
+    D_S3 = meanline['D_S3']
+    D_H1 = meanline['D_H1']
+    D_H2 = meanline['D_H2']
+    D_H3 = meanline['D_H3']
+    D_m1 = meanline['D_M1'] # Values are in meters nomenclature is wrong here
+    D_m2 = meanline['D_M2'] # Values are in meters nomenclature is wrong here
+    D_m3 = meanline['D_M3'] # Values are in meters nomenclature is wrong here
+
+    # Velocity triangles & widths
+    b1 = meanline['b1']
+    b2 = meanline['b2']
+    b3 = meanline['b3']
+    cu1 = meanline['cu1']
+    cu2 = meanline['cu2']
+    cu3 = meanline['cu3']
+    u1 = meanline['u1']
+    u2 = meanline['u2']
+    u3 = meanline['u3']
+    cm1 = meanline['cm1']
+    cm2 = meanline['cm2']
+    cm3 = meanline['cm3']
+
+    # Energetics- & Bladeparameters
+    delta_h_t = meanline['delta_h_t']
+    l_R = meanline['l_R']
+    l_S = meanline['l_S']
+    l_R_t_R = meanline['l_R_t_R']
+    l_S_t_S = meanline['l_S_t_S']
+    d_R_l_R = meanline['d_R_l_R']
+    d_S_l_S = meanline['d_S_l_S']
+    incidence_R = meanline['incidence_R']
+    incidence_S = meanline['incidence_S']
+    z_R = meanline['z_R']
+    z_S = meanline['z_S']
+
+    # Angles & Efficienties
+    beta_blade_1 = meanline['beta_blade_1']
+    beta_blade_2 = meanline['beta_blade_2']
+    alpha_blade_2 = meanline['alpha_blade_2']
+    alpha_blade_3 = meanline['alpha_blade_3']
+    TPR_M = meanline['TPR_M']
+    eta_sC_tt_M = meanline['eta_sC_tt_M']
+    eta_pC_tt_M = meanline['eta_pC_tt_M']
+
+    # Configurations
+    fixed_radius_type = meanline['fixed_radius_type']
+    plot_channel_contour = meanline['plot_channel_contour']
+    
+    
+    
     # values from radial equilibrium
-    h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
-    h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
+    h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
+    h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     print("Successfully calculated meanline and radial equilibrium")
 
     main_choice = new_adjustment_data.get('main_choice', 'default')
@@ -2090,6 +2176,7 @@ class CompressorGUI:
         
         self.bleed_air_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.bleed_air_frame, text="Bleed Air")
+        
         # Creat container frame for inputs for the bleed air
         self.bleed_input_container = ttk.Frame(self.bleed_air_frame)
         self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)

@@ -96,21 +96,21 @@
     },
     "Diameter_data": {
         "D_f1": [
-            0.8,
-            0.8,
-            0.8
+            0.51,
+            0.51,
+            0.51
         ],
         "D_f2": [
-            0.8,
-            0.8,
-            0.8
+            0.51,
+            0.51,
+            0.51
         ],
         "D_f3": [
-            0.8,
-            0.8,
-            0.8
+            0.51,
+            0.51,
+            0.52
         ],
-        "fixed_radius_type": "shroud",
+        "fixed_radius_type": "mean",
         "plot_channel_contour": false
     },
     "Bezier_point_data": {

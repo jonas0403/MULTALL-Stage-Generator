@@ -12,6 +12,7 @@ Pi = math.pi
 
 
 from Functions_losses import  angle_blade_in, angle_blade_out 
+#from GUI import CompressorGui cant be used here because it closes the circle 
 
 
 
@@ -78,7 +79,14 @@ def rad_eq_cu(appr, position, r, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref, Dh
     return cu
 
 #calculation of reference valuess
-def references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3):
+def references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3, CompressorGui):
+    # Here could be some errors due to a conversion between meters and milimeters because the original code used both units interchangably
+    meanline = CompressorGui.meanline_data
+    D_m1 = meanline['D_M1'] # Values are in meters nomenclature is wrong here
+    D_m2 = meanline['D_M2'] # Values are in meters nomenclature is wrong here
+    D_m3 = meanline['D_M3'] # Values are in meters nomenclature is wrong here
+    
+    
     cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = [], [], [], [], []
     for cu_list in [cu1, cu2, cu3]:
         cu_ref_in.append(cu_list[stage-1]) 
@@ -100,10 +108,21 @@ def references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3):
     return D_m1, D_m2, D_m3, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref
  
 # radial equilibrium for the rotor
-def radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3):
+def radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui):
+    meanline = CompressorGui.meanline_data
+    kappa = meanline['kappa']
+    R = meanline['R']
+    cp = meanline['cp']
+    
+    l_R_t_R = meanline['l_R_t_R']
+    d_R_l_R = meanline['d_R_l_R']
+    incidence_R = meanline['incidence_R']
+    incidence_S = meanline['incidence_S']
+    z_R = meanline['z_R']
     
     h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
-    cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3)
+
+    _, _, _, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3, CompressorGui)
     
     dh = 0.05
     h_rel = np.arange(0.0, 1.0 + dh, dh)
@@ -198,13 +217,22 @@ def radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3
     return h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
 
 # radial equilibrium for the stator         
-def radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3):        
+def radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui):        
     
     # inlet values of the stator are the outlet values of the rotor befor
-    h_rel, l_R, r_S_in, c_m_R_in, c_m_S_in, c_u_R_in, c_u_S_in, c_S_in, u_R_in, u_S_in, T_R_in, T_S_in, p_R_in, p_S_in, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_S_in, beta_S_in, beta_blade_R_in, beta_blade_R_out, D_R  = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
+    h_rel, l_R, r_S_in, c_m_R_in, c_m_S_in, c_u_R_in, c_u_S_in, c_S_in, u_R_in, u_S_in, T_R_in, T_S_in, p_R_in, p_S_in, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_S_in, beta_S_in, beta_blade_R_in, beta_blade_R_out, D_R  = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui)
     
     # outlet values of the stator should be inlet values of the following rotor
-    h_rel, l_R, r_R_out, c_m_S_out, c_m_R_out, c_u_S_out, c_u_R_out, c_R_out, u_S_out, u_R_out, T_S_out, T_R_out, p_S_out, p_R_out, Ma_abs_S_out, Ma_rel_S_out, roh_S_out, alpha_S_out, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage+1, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3)
+    h_rel, l_R, r_R_out, c_m_S_out, c_m_R_out, c_u_S_out, c_u_R_out, c_R_out, u_S_out, u_R_out, T_S_out, T_R_out, p_S_out, p_R_out, Ma_abs_S_out, Ma_rel_S_out, roh_S_out, alpha_S_out, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage+1, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui)
+    
+    meanline = CompressorGui.meanline_data
+    kappa = meanline['kappa']
+    R = meanline['R']
+    
+    l_S_t_S = meanline['l_S_t_S']
+    d_S_l_S = meanline['d_S_l_S']
+    incidence_S = meanline['incidence_S']
+    z_S = meanline['z_S']
     
     #Stator
     r_S_out = []

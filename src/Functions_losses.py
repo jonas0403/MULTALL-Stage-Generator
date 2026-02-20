@@ -144,8 +144,15 @@ def angle_blade_in(angle_in, angle_out, vel_in, vel_out, T_in, T_out, solidity, 
     
     # Prandl-Glauert transformation
     Ma = (vel_out + vel_in) / 2.0 / math.sqrt(kappa * R * (T_out + T_in) / 2.0)
+    print(f"vel_out = {vel_out}")
+    print(f"vel_in = {vel_in}")
+    print(f"T_out = {T_out}")
+    print(f"T_in = {T_in}")
     Ma_in = vel_in / math.sqrt(kappa * R * T_in)
     Ma_lim = min(Ma, 0.8)
+    print(f"Ma_in({Ma_in})= vel_in({vel_in}) / math.sqrt(kappa({kappa}) * R({R}) * T_in({T_in})")
+    print(f"Ma: {Ma}")
+    print(f"Ma_lim: {Ma_lim}")
     PGSF = math.sqrt(1 - Ma_lim ** 2)                                               # Prandl-Glauert scaling factor
     
     ang_mi = math.atan(PGSF * math.tan(ang_m))
