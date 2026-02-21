@@ -85,14 +85,33 @@ def plot_temp_alpha_beta(T_Plot, beta_R_Plot, alpha_S_Plot):
 def create_default_profiles(self, json_path):  
     print("Generating default profiles...")
 
+    
+    # Debugging screen 
+    
+       
     try:
         try:
-            run_main_logic({}, self, json_path) 
+            print(f"[DEBUG] Calling run_main_logic...")
+            print(f"[DEBUG] self.meanline_data type: {type(self.meanline_data)}")
+            print(f"[DEBUG] self.meanline_data value: {self.meanline_data}")
+            print(f"[DEBUG] hasattr meanline_data: {hasattr(self, 'meanline_data')}")
+            run_main_logic({'main_choice': 'default'}, self, json_path)
+        except Exception as e:
+            import traceback
+            print(f"[DEBUG] Error executing run_main_logic: {e}")
+            print(f"[DEBUG] Full traceback:")
+            traceback.print_exc()  # ← This shows you EXACTLY which line crashed
+            messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first and make sure it's saved!")
+            return 
+        '''
+    try:
+        try:
+            run_main_logic({'main_choice': 'default'}, self, json_path)
         except Exception as e:
             print(f"Error executing run_main_logic: {e}")
             messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first and make sure it's saved!")
             return
-        
+            '''
         global h_rel, l_R, l_S, beta_blade_R_in, beta_blade_R_out, alpha_S_in, alpha_S_out
         
         h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
@@ -350,8 +369,17 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     plot_channel_contour = meanline['plot_channel_contour']
     
     
+    '''
+    Defining variables from the channel function for further use
     
-    # values from radial equilibrium
+    '''
+    x_values, r_values, m_prime_values, x0 = channel(compressor_gui_data)
+    
+
+    '''
+    Defining the values calculated by the radial equilibrium function
+    
+    '''
     h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     print("Successfully calculated meanline and radial equilibrium")
@@ -360,7 +388,18 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     main_choice = new_adjustment_data.get('main_choice', 'default')
     #path = settings.get("output_folder", ".")
     #NROW = int(settings.get("nrow", 2))
-    levels_input = new_adjustment_data.get("levels", "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
+    #levels_input = new_adjustment_data.get("levels", "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
+    
+    
+    levels_input = new_adjustment_data.get("levels", [0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00])
+
+    # Handle both string and list input
+    if isinstance(levels_input, str):
+        levels_input = [float(x.strip()) for x in levels_input.split(',')]
+    elif isinstance(levels_input, list):
+        levels_input = [float(x) for x in levels_input]
+    
+    
     h_H = [0.0, 0.2, 0.5, 0.8, 1.0] # Standard Werte für die Abschnitte
     
 
@@ -436,7 +475,7 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
                 else:
                     compressor_gui_data.prepop_bezier_point_stator = b_data
             
-            channel(meanline)    
+                
             print(f"Adjustments successfully saved to JSON for {row_str}!")
                               
         except Exception as e:

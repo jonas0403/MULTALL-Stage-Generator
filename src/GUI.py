@@ -1085,19 +1085,25 @@ class CompressorGui:
         self.bleed_input_container = ttk.Frame(self.bleed_air_frame)
         self.bleed_input_container.pack(fill='both', expand=True, padx=10, pady=10)
         
+        
+        # Loading Data for the bleed air and the variable Intake and Outtake Area 
+        self.load_bleed_air_and_area_change() 
+        
+        
         self.setup_parameters_tab()
         self.setup_plot_options_tab()
         self.create_bleed_input_widget()
         self.setup_inlet_outlet_tab()
         
-        # Loading Data for the bleed air and the variable Intake and Outtake Area 
-        self.load_bleed_air_and_area_change()
+        
         
         # --- Can Not be ignored ---
         # --- Must be under her (I think) ---
         # Initial call to set up the Bleed AIr Tab based on loaded values
         parent_frame.after(100, lambda: self.update_bleed_air_display())
 
+        
+        
         # We dont need this button there is nothing to save there
         # self.save_button = ttk.Button(self.parameters_frame, text="Save and Initialize", command=self.run_action_and_stay_open) 
         # self.save_button.pack(pady=10, padx=10, fill='x')
@@ -1108,6 +1114,8 @@ class CompressorGui:
 
     def load_bleed_air_and_area_change(self):
         # Load settings from JSON
+        print("Loading settings from json bleed air and co gets called")
+        
         try:
             with open(json_path, 'r') as file:
                 all_json_data = json.load(file)
@@ -1122,13 +1130,51 @@ class CompressorGui:
                     self.output_folder_entry.delete(0, tk.END)
                     self.output_folder_entry.insert(0, metadata['output_folder'])
                 
-                
+                '''
+                # Not needed gets read in in grid defintion function
                 if 'levels' in metadata:
                     # Convert list back to comma-separated string
+                    
                     levels_str = ', '.join(str(x) for x in metadata['levels'])
                     self.levels_entry.delete(0, tk.END)
                     self.levels_entry.insert(0, levels_str)
                 
+                if 'levels' in metadata:
+                    # Convert list back to comma-separated string
+                    levels_str = ', '.join(str(x) for x in metadata['levels'])
+                    
+                    print(f"[DEBUG] levels_str = {levels_str}")
+                    print(f"[DEBUG] self = {self}")
+                    print(f"[DEBUG] hasattr levels_entry: {hasattr(self, 'levels_entry')}")
+                    print(f"[DEBUG] self.__dict__ keys: {list(self.__dict__.keys())}")
+                    
+                    if hasattr(self, 'levels_entry'):
+                        print(f"[DEBUG] levels_entry widget: {self.levels_entry}")
+                        print(f"[DEBUG] levels_entry type: {type(self.levels_entry)}")
+                        self.levels_entry.delete(0, tk.END)
+                        self.levels_entry.insert(0, levels_str)
+                    else:
+                        print("[DEBUG] ERROR: levels_entry does not exist on self!")
+                        print("[DEBUG] This means the widget was never created or was created on a different instance.")
+                       
+                        
+                if 'levels' in metadata:
+                    levels_str = ', '.join(str(x) for x in metadata['levels'])
+                    
+                    # Debug: check if you have a list of bleed row objects
+                    print(f"[DEBUG] dir(self) levels-related: {[x for x in dir(self) if 'level' in x.lower() or 'bleed' in x.lower() or 'row' in x.lower() or 'patch' in x.lower()]}")
+                    
+                    # Check rotor/stator patch entries since those exist on self
+                    print(f"[DEBUG] rotor_patch_entries: {self.rotor_patch_entries}")
+                    print(f"[DEBUG] stator_patch_entries: {self.stator_patch_entries}")
+                    for i, entry in enumerate(self.rotor_patch_entries):
+                        print(f"[DEBUG] rotor_patch_entries[{i}] type: {type(entry)}, attrs: {[x for x in dir(entry) if 'level' in x.lower()]}")
+                    for i, entry in enumerate(self.stator_patch_entries):
+                        print(f"[DEBUG] stator_patch_entries[{i}] type: {type(entry)}, attrs: {[x for x in dir(entry) if 'level' in x.lower()]}")
+                
+                ''' 
+                
+                        
                 if 'use_default_rotor_bezier' in metadata:
                     self.use_default_rotor_bezier_var.set(metadata['use_default_rotor_bezier'])
                 
@@ -1188,9 +1234,9 @@ class CompressorGui:
                         self.bleed_air_data['stator']['patches'].append(bleed_data[patch_key])
             print(f"self.bleed_air_data: {self.bleed_air_data}")
             
-            # Load Intale_Outtake_area
-            if 'Intale_Outtake_area' in all_json_data:
-                intake_data = all_json_data['Intale_Outtake_area']
+            # Load Intake_Outtake_area
+            if 'Intake_Outtake_area' in all_json_data:
+                intake_data = all_json_data['Intake_Outtake_area']
                 
                 if 'inlet_area' in intake_data:
                     self.inlet_area_var.set(intake_data['inlet_area'])
@@ -1208,7 +1254,7 @@ class CompressorGui:
             self.prepop_metadata = all_json_data.get('Metadata', {})
             self.prepop_grid_data = all_json_data.get('Grid_data', {})
             self.prepop_bleed_air_data = all_json_data.get('Bleed_air_data', {})
-            self.prepop_intake_outtake = all_json_data.get('Intale_Outtake_area', {})
+            self.prepop_intake_outtake = all_json_data.get('Intake_Outtake_area', {})
             
             print("Settings loaded successfully from JSON.")
             print(f"")
@@ -1273,6 +1319,7 @@ class CompressorGui:
         self.outlet_area_help_text = "Enter the Size of the Outlet as a factor of the Diameter of the last Blade Row. Default = 1 (same Size as the Diameter of the last Blade Row)"
         Tooltip(self.outlet_area_help, self.outlet_area_help_text)
         
+        print(f"self.outlet_area_var: {self.outlet_area_var.get()}")
         self.outlet_area_entry = ttk.Entry(self.outlet_frame, width=10, textvariable=self.outlet_area_var)
         self.outlet_area_entry.grid(row=0, column=1, padx=5, pady=5)
         
@@ -1417,7 +1464,7 @@ class CompressorGui:
             patch_frame = ttk.LabelFrame(parent_frame, text=f"Bleed Air Patch {i+1}")
             patch_frame.pack(fill='x',padx=5, pady=5)
             
-            patch_entries = num_patches
+            patch_entries = []
             
             # I coordinates
             i_label = ttk.Label(patch_frame, text="I start/end:")
@@ -1906,11 +1953,15 @@ class CompressorGui:
             }
             all_json_data['Metadata'] = new_metadata
             
+            '''
+            # Grid data can be ignored here
             # Save Grid_data
             new_grid_data = {
                 "nrow": int(self.nrow_entry.get())
             }
+            
             all_json_data['Grid_data'] = new_grid_data
+            '''
             
             # Save Bleed_air_data
             enable_bleed_air = self.enable_bleed_air_var.get()
@@ -1949,14 +2000,14 @@ class CompressorGui:
             
             all_json_data['Bleed_air_data'] = new_bleed_air_data
             
-            # Save Intale_Outtake_area
+            # Save Intake_Outtake_area
             new_intake_outtake = {
                 "inlet_area": float(self.inlet_area_var.get()),
                 "inlet_dist": float(self.inlet_dist_var.get()),
                 "outlet_area": float(self.outlet_area_var.get()),
                 "outlet_dist": float(self.outlet_dist_var.get())
             }
-            all_json_data['Intale_Outtake_area'] = new_intake_outtake
+            all_json_data['Intake_Outtake_area'] = new_intake_outtake
             
             # Write back to JSON
             with open(json_path, 'w') as file:
@@ -1964,7 +2015,7 @@ class CompressorGui:
             
             # Update prepopulated data 
             self.prepop_metadata = new_metadata
-            self.prepop_grid_data = new_grid_data
+            #self.prepop_grid_data = new_grid_data not saving grid data here
             self.prepop_bleed_air_data = new_bleed_air_data
             self.prepop_intake_outtake = new_intake_outtake
             
@@ -2606,7 +2657,28 @@ class CompressorGui:
         ttk.Button(popup_multall, text="No", command=cancel_and_exit, style="danger.TButton", width=10).pack(side="left", padx=20, pady=10)
         ttk.Button(popup_multall, text="Yes", command=start_multall_and_exit, style="success.TButton", width= 10).pack(side="right", padx=20, pady=10)
     
-    
+    def show_startup_dialog(self):
+        dialog = tk.Tk()
+        dialog.title("Startup")
+        dialog.resizable(False, False)
+
+        ttk.Label(dialog, text="Number of Stages:").grid(row=0, column=0, padx=10, pady=10, sticky='w')
+        
+        stage_var = tk.IntVar(value=3)
+        stage_entry = ttk.Entry(dialog, textvariable=stage_var, width=5)
+        stage_entry.grid(row=0, column=1, padx=10, pady=10)
+
+        def save_and_start():
+            try:
+                self.stage = int(stage_entry.get())
+                dialog.destroy()
+                self.render_gui()
+            except ValueError:
+                ttk.Label(dialog, text="Please enter a valid integer!", foreground="red").grid(row=2, columnspan=2)
+
+        ttk.Button(dialog, text="Save and Start GUI", command=save_and_start).grid(row=1, columnspan=2, pady=10)
+
+        dialog.mainloop() 
     
     
     def render_gui(self):
@@ -2691,7 +2763,7 @@ class Tooltip:
 if __name__ == "__main__":
     my_gui = CompressorGui()
     my_gui.loading_prepopulated_data()
-    my_gui.render_gui()
+    my_gui.show_startup_dialog()
     
     
     
