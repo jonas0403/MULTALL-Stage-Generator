@@ -2551,7 +2551,7 @@ class CompressorGui:
             # ============================================================
             '''
             print("Grid is saved.")
-            
+            # Warum gibts das zwei mal für den selben knopf?
             try:
                 run_main_logic({'main_choice': 'default'}, self, json_path)
             except Exception as e:
@@ -2562,7 +2562,7 @@ class CompressorGui:
                 return
             
             print("Generating Grid...")
-            VG.process_grid_data(json_path)
+            VG.process_grid_data(json_path, CompressorGui)
             print("Grid is generated.")
             
         

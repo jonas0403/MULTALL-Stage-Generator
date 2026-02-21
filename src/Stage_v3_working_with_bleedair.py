@@ -403,7 +403,7 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     h_H = [0.0, 0.2, 0.5, 0.8, 1.0] # Standard Werte für die Abschnitte
     
 
-    levels_input = [float(x.strip()) for x in levels_input.split(',')] # Liest die Levels ein und wandelt sie in eine Liste von Float-Werten um
+    #levels_input = [float(x.strip()) for x in levels_input.split(',')] # Liest die Levels ein und wandelt sie in eine Liste von Float-Werten um
     
     #chord_length_R = np.interp(h_H, h_rel, l_R) # Interpoliert die Sehnenlänge für die Standard Abschnitte
     #chord_length_S = np.interp(h_H, h_rel, l_S) 

@@ -66,7 +66,8 @@ def create_bleed_air_card(NROW, file, rotor_data, stator_data):
                     file.write('\t'.join(patches)+ '\n')
 
 ## Multall .dat File schreiben
-def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels):
+# Needs to be looped or called multiple times for each section IN EACH stage
+def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels, CompressorGui):
     section = 0
     NSEC
     
@@ -163,7 +164,7 @@ def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clear
         file.write("  IF_CUSP   IFANGLES \n")
         file.write("         0         0\n")
     
-def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, NSEC, Q3D_value, enable_bleed_air):
+def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, NSEC, Q3D_value, enable_bleed_air, CompressorGui):
     if enable_bleed_air == True:
         bleed_air = 1
     else: 
@@ -179,13 +180,15 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
         file.write("  IF_RESTART \n")
         file.write("         0\n")
         file.write("  NSTEPS_MAX, CONLIM\n")
-        if section == 0:
+        if CompressorGui.Stage > 1:
+            file.write("      12000  0.006000\n") # Documentation calls for more steps in multistage applications
+        elif section == 0:
             file.write("      9000  0.006000\n")
         else: 
             file.write("      60000  0.005000\n")
         file.write("   SFX,      SFT,      FAC_4TH,     NCHANGE \n")
         file.write("  0.005000  0.005000  0.800000      1000\n")
-        file.write("       NUMBER OF BLADE ROWS \n")
+        file.write("       NUMBER OF BLADE ROWS \n")# Number of blades in row?
         file.write(f"         {NROW}\n")
         file.write("        IM        KM \n")
         
@@ -239,13 +242,20 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
         file.write("        ILOS      NLOS      IBOUND \n")
         file.write("        10         5         0\n")
         file.write("   REYNO,     RF_VIS,   FTRANS, TURBVIS_LIM, PRANDTL, YPLUSWALL\n")
-        file.write("  800000.0     0.500     0.000  1000.000       1.0     0.000\n")
+        if CompressorGui.stage >1:
+            file.write("  800000.0     0.500     0.000  3000.000       1.0     0.000\n") #  The doc explicitly states: "higher values, up to 3000, may be necessary in multistage machines." 
+        else:
+            file.write("  800000.0     0.500     0.000  1000.000       1.0     0.000\n")
         file.write("   YPLAM      YPTURB \n")
         file.write("  5.000000 25.000000\n")
         file.write("      ISHIFT    NEXTRAP_LE  NEXTRAP_TE \n")
         file.write("         2        10        10\n")
         file.write("  (NSTG(N),N=1,NROWS) \n")
-        nstg_values = " ".join(["   1"] * NROW)
+        nstg_values = " ".join(["   1"] * NROW) # Needs to change to this:
+        '''
+        nstg_values = " ".join([str((i // 2) + 1) for i in range(NROW)])
+        
+        '''
         file.write(nstg_values + "\n")
         file.write("  5  TIME STEPS FOR PRINTOUT \n")
         file.write("      9000      9000      9000      9000      9000\n")
@@ -257,6 +267,7 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
 
 #writes the coordinates of all sections in a file for MULTALL
 # schreibt die Koordinaten aller Abschnitte in eine Datei für MULTALL
+# a? b? need a loop for writing all rows and stages
 def write_coordinates(x, rtheta, d, r, file, row, a, b, JM):
     with open(file, "a") as file:
         for i in range(a, b):       
@@ -282,8 +293,9 @@ def Q3D_information(file):
 
 # writes end of the file 
 def write_end_file(row, file, section, KM, levels):
-    
-    if row == 1:
+    # Here needs to be new logic because row only works for one stage 
+    #Some logic for the rows and NROW is missing
+    if row == 1: # Maybe use modulus here to get if the row is odd (rotor) or even (stator)
         x = round(Stage.p_R_out[0], 1)
         y = round(Stage.p_R_out[len(Stage.h_rel)-1], 1)
         t = round(Stage.T_t1[0], 4)
@@ -330,7 +342,8 @@ def write_end_file(row, file, section, KM, levels):
             file.write("   PDOWN_HUB   PDOWN_TIP \n")
             file.write(f"  {x}  {y}\n")
             file.write(" MIXING LENGTH LIMITS ON ALL BLADE ROWS\n")
-            for _ in range(row):
+            
+            for _ in range(row): # in here row needs to equal NROW (total number of blade rows), not just the current row number. 
                 file.write("  0.030000  0.030000  0.030000  0.030000  0.030000  0.020000\n")
             file.write("  FACTOR TO INCREASE THE TURBULENT VISCOSITY OVER THE FIRST NMIXUP STEPS \n")
             file.write("   2.00000 1000\n")
@@ -369,7 +382,31 @@ def write_end_file(row, file, section, KM, levels):
             file.write("   PDOWN_HUB   PDOWN_TIP\n")
             file.write(f"  {x}  {y}\n")
             file.write(" MIXING LENGTH LIMITS ON ALL BLADE ROWS\n")
-            for _ in range(row):
+            '''
+            ### Copied from docs ###
+            For each of NROWS blade rows input
+                XLLIM_IN The mixing length limit at the upstream boundary to the
+                blade row. Typical value = 0.02 .
+                XLLIM_LE The mixing length limit at the leading edge of the blade
+                row. Typical value = 0.03 .
+                XLLIM_TE The mixing length limit at the trailing edge of the blade
+                row. Typical value = 0.04 .
+                XLLIM_DN The mixing length limit at the exit boundary of the blade
+                row. Typical value = 0.05 .
+                FSTURB The free stream turbulent viscosity as a multiple of the
+                laminar viscosity. Usually = 0.0 but increase in regions of
+                high turbulence.
+                TURBVIS_DAMP On passing through a mixing plane the turbulent
+                viscosity downstream of the plane is this multiple of the
+                pitchwise averaged turbulent viscosity upstream of the
+                mixing plane. Typical value = 0.5, but this is very much a
+                guess.
+                There are NROWS lines of data needed here. Increase the mixing length limits and FSTURB
+                if the flow is known to be highly turbulent or in regions where separations occur.
+                The defaults are XLLIM_IN = 0.02, XLLIM_LE = 0.03, XLLIM_TE = 0.04, XLLIM_DN =
+                0.05, FSTURB = 1.0, TURBVIS_DAMP = 0.5 
+            '''
+            for _ in range(row): # This needs to loop for every row so twice per stage
                 file.write("  0.030000  0.030000  0.030000  0.030000  0.030000  0.020000\n")
             file.write("  FACTOR TO INCREASE THE TURBULENT VISCOSITY OVER THE FIRST NMIXUP STEPS\n")
             file.write("   2.00000 1000\n")
@@ -416,6 +453,13 @@ def generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_
 
         # Schaut wie groß die Schaufel bei 50 % ist und vergleicht mit dem Referenzwert
         actual_chord, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = Stage.calculation_of_section(0.5, row_num)
+        
+        # h_H_plot is never in the whole of the project defined
+        try:
+            h_H_plot = h_H_plot if h_H_plot else 0.5
+        except NameError:
+            h_H_plot = 0.5# What values is here needed? Default at 50%?
+        
         printing_chord, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = Stage.calculation_of_section(h_H_plot, row_num) 
         print(f"Sehnenlänge für Reihe {row_num}: {actual_chord:.2f} mm")
 
@@ -717,7 +761,27 @@ def get_user_settings_from_gui(settings_loaded):
     ).grid(row=0, column=3, sticky="w") 
     '''
 
-def process_grid_data(json_path):
+def process_grid_data(json_path, CompressorGui):
+    '''
+    Multistage LOGIC :
+    # 1. Write once
+        write_head_file(...)
+
+    # 2. Loop over rows
+        for row in all_rows_grid_data:
+            multall_grid_data_head_row(...)   # row header
+            write_coordinates(...)             # geometry sections
+            if enable_bleed_air:
+                create_bleed_air_card(...)     # bleed cards per row # Here will be issues at the moment bleed is only working for first stage
+
+    # 3. Write once at the end
+        if Q3D_value:
+            Q3D_information(...)
+
+        write_end_file(NROW, ...)   # inlet BCs + mixing length limits
+    '''
+    
+    
     
     """
     Nimmt die Daten aus der Haupt-GUI entgegen, entpackt sie und 
@@ -786,9 +850,10 @@ def process_grid_data(json_path):
 
     print("Writing Multall grid data head row...")
     # Wir übergeben hier unser neues Super-Dictionary "combined_multall_data"
-    write_head_file(KM_grid_density, IM_grid_density, full_output_path, 0, nrow_wert, NSEC, Q3D_value, enable_bleed_air, combined_multall_data=0)
-    print("Multall grid data head row written successfully.") 
+    write_head_file(KM_grid_density, IM_grid_density, full_output_path, 0, nrow_wert, NSEC, Q3D_value, enable_bleed_air, CompressorGui)# again what is: combined_multall_data=0 it never gets defined in the function
 
+    
+    # Calls grid/row data writing?? If so needs to be called per stage with the input of necasarry inputs
     for i, data in enumerate(all_rows_data_plot):
         row_num = data['row_num']
         x_coords = data['x_new'] 
@@ -800,7 +865,7 @@ def process_grid_data(json_path):
         JM_row = data['JM']
         NSEC_new = len(data['x_new'])
      
-        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_mm_rotor, levels, combined_multall_data=0)
+        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_mm_rotor, levels, CompressorGui) # i deleted combined_multall_data=0 because it was not called for in the definition of the function
         write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM_row)
         print(f"Grid data for row {row_num} written successfully.")
     

@@ -1,0 +1,68 @@
+Auflistung der Ordnerpfade für Volume Volume
+Volumeseriennummer : 6C9E-ED6E
+D:.
+|   main.py
+|   structure.txt
+|   
++---.dist
++---misc_functions
+|       add_data_from_files.py
+|       create_dat_files.py
+|       create_run_file.py
+|       new plotting programm.py
+|       plotting_data_for_verdichterkennfeld_v4_sorted.py
+|       
++---old
+|       Diameter_Values.txt
+|       GUI-old.py
+|       Meanline_Initial_Values.txt
+|       output_generator.py
+|       Populated_data.txt
+|       Stage_Luca.py
+|       Stage_v3_old_maybe_conflict.py
+|       Stage_v3_working_with_bleedair.py
+|       Thermo_Initial_Values.txt
+|       
++---src
+|   |   Bezier_curve.py
+|   |   Channel_v2.py
+|   |   Cubspline_function_v2.py
+|   |   Fixed_radii_Meanline_GUI_v4.py
+|   |   Functions_losses.py
+|   |   GUI _test_weil_jonas_verzweifelt.py
+|   |   GUI.py
+|   |   Interpolation.py
+|   |   output.py
+|   |   plot_channel.py
+|   |   Radial_equilibrium.py
+|   |   run_multall.py
+|   |   Stage_v3_working_with_bleedair.py
+|   |   Thermodynamic_calc_GUI.py
+|   |   var_Grid.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           Bezier_curve.cpython-313.pyc
+|           Channel_v2.cpython-313.pyc
+|           Cubspline_function_v2.cpython-313.pyc
+|           Fixed_radii_Meanline_GUI_v4.cpython-313.pyc
+|           Functions_losses.cpython-313.pyc
+|           GUI.cpython-313.pyc
+|           Interpolation.cpython-313.pyc
+|           plot_channel.cpython-313.pyc
+|           Radial_equilibrium.cpython-313.pyc
+|           Stage_v3_working_with_bleedair.cpython-313.pyc
+|           Thermodynamic_calc_GUI.cpython-313.pyc
+|           var_Grid.cpython-313.pyc
+|           
+\---static
+        bezier_control_points_R.txt
+        bezier_control_points_S.txt
+        Diameter_Values.txt
+        Meanline_Initial_Values.txt
+        Populated_data copy.json
+        Populated_data.json
+        Setting.txt
+        Settings.txt
+        Thermo_Initial_Values.txt
+        

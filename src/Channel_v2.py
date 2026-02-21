@@ -426,6 +426,8 @@ def channel(compressor_gui_data):
 
     # N: Nabe = Hub
     # G: Gehäuse = Shroud
+    # Hardcoded hights for the channel calculation
+    h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
 
     print(f"{l_R}")
 

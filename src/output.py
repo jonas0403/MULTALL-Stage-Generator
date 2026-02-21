@@ -317,7 +317,11 @@ def write_all_settings(data):
             file.write("      ISHIFT    NEXTRAP_LE  NEXTRAP_TE \n")
             file.write("         2        10        10\n")
             file.write("  (NSTG(N),N=1,NROWS) \n")
-            nstg_values = " ".join(["   1"] * NROW)
+            nstg_values = " ".join(["   1"] * NROW) # Needs to change to this:
+            '''
+            nstg_values = " ".join([f"{i:>10} {i:>10}" for i in range(1, NROW + 1)])
+            
+            '''
             file.write(nstg_values + "\n")
             file.write("  5  TIME STEPS FOR PRINTOUT \n")
             file.write("      9000      9000      9000      9000      9000\n")
