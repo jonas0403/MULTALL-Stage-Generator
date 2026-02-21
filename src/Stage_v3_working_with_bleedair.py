@@ -45,6 +45,7 @@ constant_r_parameter = 1
 
 LOCK_FILE = 'settings.lock'
 
+ACTIVE_JSON_PATH = None 
 h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
 LE_shift = 0.025
 Pi = math.pi
@@ -82,79 +83,113 @@ def plot_temp_alpha_beta(T_Plot, beta_R_Plot, alpha_S_Plot):
 
 #function for writing Bézier-points
 def create_default_profiles(self, json_path):  
-    print("Generating default profiles directly into JSON...")
+    print("Generating default profiles...")
 
     try:
-        
         try:
-            run_main_logic(self)
+            run_main_logic({}, self, json_path) 
         except Exception as e:
             print(f"Error executing run_main_logic: {e}")
             messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first and make sure it's saved!")
             return
         
-        # 1. Fetch global variables previously calculated in the 1D tab (run_main_logic)
         global h_rel, l_R, l_S, beta_blade_R_in, beta_blade_R_out, alpha_S_in, alpha_S_out
         
-        h_H_base = [0.0, 0.2, 0.5, 0.8, 1.0]
-        c_03 = 0.277558
-        c_08 = 0.165432
+        h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
 
-        def generate_dict(row, chord_lengths):
-            ang_1, ang_2, ang_3, ang_4 = [], [], [], []
-            for i in range(len(h_H_base)):
-                # Interpolate the angle at the 5 base heights if h_rel differs
-                if row == 1:
-                    a_in = np.interp(h_H_base[i], h_rel, beta_blade_R_in)
-                    a_out = np.interp(h_H_base[i], h_rel, beta_blade_R_out)
-                else:
-                    # Stator historically uses alpha_S_in/out in this step
-                    a_in = np.interp(h_H_base[i], h_rel, alpha_S_in) 
-                    a_out = np.interp(h_H_base[i], h_rel, alpha_S_out)
+        chord_length_R = np.interp(h_H, h_rel, l_R)
+        chord_length_S = np.interp(h_H, h_rel, l_S)
 
-                delta = a_out - a_in
-                ang_1.append(round(float(a_in), 2))
-                ang_2.append(round(float(a_in - delta * c_03), 2))
-                ang_3.append(round(float(a_in - delta * c_08), 2))
-                ang_4.append(round(float(a_out), 2))
-                
-            angles_combined = ang_1 + ang_2 + ang_3 + ang_4
+        sort_idx = np.argsort(h_rel)
+        h_rel_sorted = np.array(h_rel)[sort_idx]
+        l_R_sorted = np.array(l_R)[sort_idx]
+        l_S_sorted = np.array(l_S)[sort_idx]
+        
+        def generate_dict(row):
+    
+
+            # ── exakt dieselbe Mathematik wie in bezier_control_points ──
+            beta_S_BP_1, beta_S_BP_2, beta_S_BP_3, beta_S_BP_4 = [],[],[],[]
+            alpha_S_BP_1, alpha_S_BP_2, alpha_S_BP_3, alpha_S_BP_4 = [],[],[],[]
             
+            c_03 = 0.277558
+            c_07 = 0.165432
+            h_H = [0, 0.2, 0.5, 0.8, 1.0]
+            
+            for i in range(len(h_H)):
+                for j in range(len(h_rel)):
+                    if row == 1:
+                        if h_rel[j] == h_H[i]:
+                                beta_1 = beta_blade_R_in[j]
+                                beta_2 = beta_blade_R_out[j]
+                                
+                                # delta_beta_1 = beta_2 - bez
+            
+                                # c_03 = delta_beta_1/delta_beta_0
+                                # c_07 = delta_beta_2/delta_beta_0
+                                
+                                delta_beta_0 = beta_2 - beta_1
+                                
+                                beta_neu_03 = beta_2 - delta_beta_0 * c_03
+                                beta_neu_07 = beta_2 - delta_beta_0 * c_07
+                                
+                                beta_S_BP_1.append(round(beta_blade_R_in[j], 2))
+                                beta_S_BP_4.append(round(beta_blade_R_out[j], 2))
+                                beta_S_BP_2.append(round(beta_neu_03, 2))
+                                beta_S_BP_3.append(round(beta_neu_07, 2))
+
+                                #print(angle_in[j], beta_neu_03, beta_neu_07,angle_out[j],delta_beta_0,c_03,c_07)
+                                
+                                # beta_S_BP_1.append(round(angle_in[j], 2))
+                                # beta_S_BP_4.append(round(angle_out[j], 2))
+                                # beta_S_BP_2.append(round((beta_S_BP_4[i]-beta_S_BP_1[i])/3+beta_S_BP_1[i], 2))
+                                # beta_S_BP_3.append(round(2*(beta_S_BP_4[i]-beta_S_BP_1[i])/3+beta_S_BP_1[i], 2))
+                    elif row == 2:
+                        if h_rel[j] == h_H[i]:
+                            
+                                alpha_1 = alpha_S_in[j]
+                                alpha_2 = alpha_S_out[j]
+                                
+                                delta_alpha_0 = alpha_2 - alpha_1
+                                
+                                alpha_neu_03 = alpha_2 - delta_alpha_0 * c_03
+                                alpha_neu_07 = alpha_2 - delta_alpha_0 * c_07
+                                
+                                alpha_S_BP_1.append(round(alpha_S_in[j], 2))
+                                alpha_S_BP_4.append(round(alpha_S_out[j], 2))
+                                alpha_S_BP_2.append(round(alpha_neu_03, 2))
+                                alpha_S_BP_3.append(round(alpha_neu_07, 2))
+
             if row == 1:
-                rel_thick = np.array([[0.023, 0.020, 0.015, 0.011, 0.007],
-                                      [0.082, 0.071, 0.055, 0.038, 0.027],
-                                      [0.017, 0.015, 0.011, 0.008, 0.005],
-                                      [0.010, 0.009, 0.007, 0.005, 0.003]])
-                abs_thick = rel_thick * chord_lengths
-                thickness_combined = [round(float(val), 3) for row_vals in abs_thick for val in row_vals]
+                rel_thickness = np.array([[0.023,0.020,0.015,0.011,0.007],
+                                            [0.082,0.071,0.055,0.038,0.027],
+                                            [0.017,0.015,0.011,0.008,0.005],
+                                            [0.010,0.009,0.007,0.005,0.003]])
+                abs_thickness = rel_thickness * chord_length_R[2]
+                angles = beta_S_BP_1 + beta_S_BP_2 + beta_S_BP_3 + beta_S_BP_4
                 angle_key = "beta_S"
             else:
-                rel_thick = np.array([[0.015, 0.015, 0.015, 0.015, 0.015],
-                                      [0.058, 0.058, 0.058, 0.058, 0.058],
-                                      [0.011, 0.011, 0.011, 0.011, 0.011],
-                                      [0.006, 0.006, 0.006, 0.006, 0.006]])
-                # Stator always used chord length at mid-height (index 2) for d/l in the old code
-                c_len = chord_lengths[2] if isinstance(chord_lengths, (list, np.ndarray)) else chord_lengths
-                abs_thick = rel_thick * c_len
-                thickness_combined = [round(float(val), 3) for row_vals in abs_thick for val in row_vals]
+                rel_thickness = np.array([[0.015,0.015,0.015,0.015,0.015],
+                                            [0.058,0.058,0.058,0.058,0.058],
+                                            [0.011,0.011,0.011,0.011,0.011],
+                                            [0.006,0.006,0.006,0.006,0.006]])
+                abs_thickness = rel_thickness * chord_length_S[2]
+                angles = alpha_S_BP_1 + alpha_S_BP_2 + alpha_S_BP_3 + alpha_S_BP_4
                 angle_key = "alpha_S"
 
+            thickness_combined = [round(float(val), 3) for row_vals in abs_thickness for val in row_vals]
+
             return {
-                "h/H": h_H_base,
-                angle_key: angles_combined,
+                "h/H": list(h_H),
+                angle_key: angles,
                 "d/l": thickness_combined,
                 "m*": [0.0]*5 + [0.3]*5 + [0.7]*5 + [1.0]*5
             }
+            
+            
+        rotor_dict = generate_dict(1)
+        stator_dict = generate_dict(2)
 
-        # 2. Calculate chord lengths over the channel height
-        chord_length_R = np.interp(h_H_base, h_rel, l_R)
-        chord_length_S = np.interp(h_H_base, h_rel, l_S)
-
-        # Build clean dictionaries for rotor and stator
-        rotor_dict = generate_dict(1, chord_length_R)
-        stator_dict = generate_dict(2, chord_length_S)
-
-        # 3. Load the current JSON
         with open(json_path, 'r') as f:
             data = json.load(f)
 
@@ -164,7 +199,6 @@ def create_default_profiles(self, json_path):
         data["Bezier_point_data"]["rotor"] = rotor_dict
         data["Bezier_point_data"]["stator"] = stator_dict
 
-        # 4. Overwrite the JSON
         with open(json_path, 'w') as f:
             json.dump(data, f, indent=4)
 
@@ -173,14 +207,15 @@ def create_default_profiles(self, json_path):
             self.prepop_bezier_point_stator = stator_dict
 
         print("Default profiles successfully generated and saved to JSON!")
-        messagebox.showinfo("Success", "Default profiles successfully created and saved directly to the JSON file!")
+        messagebox.showinfo("Success", "Default profiles successfully created and saved to JSON!")
 
     except NameError as e:
         print(f"Variable Error: {e}")
-        messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first before creating profiles! (Debug: #2)")
+        messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first! (Debug: #2)")
     except Exception as e:
-        print(f"Error in create_default_profiles: {e}")
-        messagebox.showerror("Error", f"An error occurred: {e}")
+        import traceback
+        traceback.print_exc()
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
 
 def save_profile(source_filename):
         if not os.path.exists(source_filename):
@@ -208,7 +243,8 @@ def save_profile(source_filename):
             print(f"Error {e} beim speichern")                                                        
 
 def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
-    
+    global ACTIVE_JSON_PATH
+    ACTIVE_JSON_PATH = json_path
     #should not be needed anymore
     global mflow, RPM, kappa, R, cp, i_st, T_t1, T_t2, T_t3, T_1, T_2, T_3, p_1, p_2, p_3, p_t1, p_t2, p_t3
     global D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3
@@ -217,8 +253,8 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     global beta_blade_1, beta_blade_2, alpha_blade_2, alpha_blade_3, TPR_M, eta_sC_tt_M, eta_pC_tt_M, fixed_radius_type
     global h_rel, l_S_rad, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S
     global l_R_rad, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
-
     global x_values, r_values, m_prime_values, x0
+
     
     #results_meanline = meanline()
     '''
@@ -237,7 +273,7 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     global beta_blade_S_in, beta_blade_S_out, beta_blade_R_in, beta_blade_R_out, h_rel, l_S, l_R, alpha_S_in, alpha_S_out
     
     meanline = compressor_gui_data.meanline_data
-
+    
     # Process- & Fluidparameter
     mflow = meanline['mflow']
     n = meanline['n']
@@ -319,6 +355,7 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     print("Successfully calculated meanline and radial equilibrium")
+    
 
     main_choice = new_adjustment_data.get('main_choice', 'default')
     #path = settings.get("output_folder", ".")
@@ -657,11 +694,55 @@ def blade_metal_BP(ROW):
     return beta_M_a, beta_M_2, beta_M_3,  beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP
 '''
 
-# Bézier control points from csv file new
+# Bézier control points from csv file new# Bézier control points directly from JSON (ersetzt die alte .txt Version)
+def blade_metal_BP(ROW):
+    global ACTIVE_JSON_PATH
+    json_path = ACTIVE_JSON_PATH
+    try:
+        with open(json_path, 'r') as file:
+            data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error while reading JSON file: {e}")
+        return [], [], [], [], [], [], [], [], [[], [], [], []]
+        
+    blade_key = "rotor" if ROW == 1 else "stator"
+    angle_key = "beta_S" if ROW == 1 else "alpha_S"
+    
+    b_data = data.get("Bezier_point_data", {}).get(blade_key, {})
+    if not b_data:
+        print(f"No bezier data found for{blade_key} !")
+        return [], [], [], [], [], [], [], [], [[], [], [], []]
+        
+    angles = b_data.get(angle_key, [0]*20)
+    d_l = b_data.get("d/l", [0]*20)
+    m_star = b_data.get("m*", [0]*20)
+
+    beta_M_e = angles[0:5]    
+    beta_M_2 = angles[5:10]   
+    beta_M_3 = angles[10:15]  
+    beta_M_a = angles[15:20]  
+    
+    d_l_e = d_l[0:5]
+    d_l_2 = d_l[5:10]
+    d_l_3 = d_l[10:15]
+    d_l_a = d_l[15:20]
+    
+    m_star_BP = [
+        m_star[0:5],
+        m_star[5:10],
+        m_star[10:15],
+        m_star[15:20]
+    ]
+    
+    return beta_M_a, beta_M_2, beta_M_3, beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP
+''' 
+### OLD ###
 def blade_metal_BP(ROW):
     # beta_M_e, beta_M_2, beta_M_3, beta_M_a = [], [], [], []
     # d_l_e, d_l_2, d_l_3, d_l_a = [], [], [], []
     # m_star_BP = [[], [], [], []] 
+    
+    
     
     if ROW == 1:
         BCPfile = "bezier_control_points_R.txt"
@@ -709,7 +790,7 @@ def blade_metal_BP(ROW):
     m_star_BP = (m_star_data + [[]]*4)[:4]
     
     return beta_M_a, beta_M_3, beta_M_2, beta_M_e, d_l_a, d_l_3, d_l_2, d_l_e, m_star_BP 
-
+'''
 #Section to fix center of gravity for all sections
 #Calculation for h/H = 0.5 cut
 def calculation_of_section_0_5(row):

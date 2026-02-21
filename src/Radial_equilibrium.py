@@ -100,7 +100,7 @@ def references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3, Compressor
         cm_ref.append(cm_list[stage-1]) 
 
     for i in range(3):
-        r_ref.append(D_m2[i]/(1000*2))
+        r_ref.append(D_m2[i]/(2.0))
 
     for u_list in [u1, u2, u3]:
         u_ref.append(u_list[stage-1]) 
@@ -130,14 +130,16 @@ def radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3
     # Rotor inlet
     r_R_in = []
     for i in range(len(h_rel)): 
+        b1_m = b1[stage-1] / 1000
+        
         if constant_r_parameter == 0:
-            r_R_in.append((D_H1[stage-1]/2+h_rel[i]*b1[stage-1])/1000)
+            r_R_in.append(D_H1[stage-1]/2.0 + h_rel[i]*b1_m)
 
         elif constant_r_parameter == 1:
-            r_R_in.append((D_m1[stage-1]/2+(h_rel[i]-0.5)*b1[stage-1])/1000)
+            r_R_in.append(D_m1[stage-1]/2.0 + (h_rel[i]-0.5)*b1_m)
 
         elif constant_r_parameter == 2:
-            r_R_in.append((D_S1[stage-1]/2+(h_rel[i]-1)*b1[stage-1])/1000)
+            r_R_in.append(D_S1[stage-1]/2.0 + (h_rel[i]-1)*b1_m)
 
         else:
             print("Allowed constant radius parameter: 0, 1 and 2.")
@@ -165,14 +167,15 @@ def radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3
     # Rotor outlet/ stator inlet
     r_R_out = []
     for i in range(len(h_rel)): 
+        b2_m = b2[stage-1] / 1000.0
         if constant_r_parameter == 0:
-            r_R_out.append((D_H2[stage-1]/2+h_rel[i]*b2[stage-1])/1000)
+            r_R_out.append(D_H2[stage-1]/2.0 + h_rel[i]*b2_m)
 
         elif constant_r_parameter == 1:
-            r_R_out.append((D_m2[stage-1]/2+(h_rel[i]-0.5)*b2[stage-1])/1000)
+            r_R_out.append(D_m2[stage-1]/2.0 + (h_rel[i]-0.5)*b2_m)
 
         elif constant_r_parameter == 2:
-            r_R_out.append((D_S2[stage-1]/2+(h_rel[i]-1)*b2[stage-1])/1000)
+            r_R_out.append(D_S2[stage-1]/2.0 + (h_rel[i]-1)*b2_m)
 
         else:
             print("Allowed constant radius parameter: 0, 1 and 2.")
@@ -236,16 +239,16 @@ def radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3
     
     #Stator
     r_S_out = []
-    for i in range(len(h_rel)): 
+    for i in range(len(h_rel)):
+        b3_m = b3[stage-1] / 1000.0 
         if constant_r_parameter == 0:
-            r_S_out.append((D_H3[stage-1]/2+h_rel[i]*b3[stage-1])/1000)
+            r_S_out.append(D_H3[stage-1]/2.0 + h_rel[i]*b3_m)
 
         elif constant_r_parameter == 1:
-            r_S_out.append((D_m3[stage-1]/2+(h_rel[i]-0.5)*b3[stage-1])/1000)
+            r_S_out.append(D_m3[stage-1]/2.0 + (h_rel[i]-0.5)*b3_m)
 
         elif constant_r_parameter == 2:
-            r_S_out.append((D_S3[stage-1]/2+(h_rel[i]-1)*b3[stage-1])/1000)
-
+            r_S_out.append(D_S3[stage-1]/2.0 + (h_rel[i]-1)*b3_m)
         else:
             print("Allowed constant radius parameter: 0, 1 and 2.")
 
@@ -256,7 +259,7 @@ def radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3
     
     beta_blade_S_in, beta_blade_S_out = [], []
     for i in range(len(h_rel)):
-        beta_blade_S_in.append(angle_blade_in(alpha_S_in[i], alpha_S_out[i], c_S_in[i], u_S_out[i], T_S_in[i], T_S_out[i], l_S_t_S[stage-1],  d_S_l_S[stage-1], incidence_S[stage-1], R, kappa))
+        beta_blade_S_in.append(angle_blade_in(alpha_S_in[i], alpha_S_out[i], c_S_in[i], c_S_out[i], T_S_in[i], T_S_out[i], l_S_t_S[stage-1],  d_S_l_S[stage-1], incidence_S[stage-1], R, kappa))
         beta_blade_S_out.append(angle_blade_out(alpha_S_in[i], alpha_S_out[i], c_S_in[i], c_S_out[i], T_S_in[i], T_S_out[i], l_S_t_S[stage-1],  d_S_l_S[stage-1], incidence_S[stage-1], R, kappa))
     
     #Stator data

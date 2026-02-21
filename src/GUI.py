@@ -2360,10 +2360,8 @@ class CompressorGui:
             for key, tk_variable in grid_data.items():
                 grid_data_save[key] = tk_variable.get()
                 
-            # --- NEU 1: nrow aus dem Dropdown auslesen und an grid_data anfügen ---
             nrow_choice = self.nrow_combo.get()
             grid_data_save['nrow'] = 1 if nrow_choice == "Rotor Only" else 2
-            # ----------------------------------------------------------------------
                 
             try:
                 all_json_data = {}
@@ -2408,87 +2406,87 @@ class CompressorGui:
             
             print("Saving Grid...")
             save_and_initialize_grid()
-            current_grid_settings = {}
-            for key, widget in self.widgets.items():
-                current_grid_settings[key] = widget.get() 
+            # current_grid_settings = {}
+            # for key, widget in self.widgets.items():
+            #     current_grid_settings[key] = widget.get() 
 
-            try:
-                gd = self.prepop_grid_data
-                nrow_wert         = int(gd.get('nrow', 2))
-                KM_grid_density   = int(gd.get('km_selection', 37))
-                IM_grid_density   = int(gd.get('im_selection', 37))
-                JM_grid_density   = int(gd.get('JM_grid_density', 200))
-                inlet_percentage  = float(gd.get('inlet_percentage', 0.2))
-                outlet_percentage = float(gd.get('outlet_percentage', 0.15))
-                ref_chord_length  = float(gd.get('ref_chord_length', 134.4))
-                tip_clearance_mm  = float(gd.get('tip_clearance_rotor', 1.3))
-                Q3D_value         = bool(gd.get('Q3D_mode', False))
-                do_plot           = bool(gd.get('show_plot', False))
-                output_path       = gd.get('output_folder', '.')
+            # try:
+            #     gd = self.prepop_grid_data
+            #     nrow_wert         = int(gd.get('nrow', 2))
+            #     KM_grid_density   = int(gd.get('km_selection', 37))
+            #     IM_grid_density   = int(gd.get('im_selection', 37))
+            #     JM_grid_density   = int(gd.get('JM_grid_density', 200))
+            #     inlet_percentage  = float(gd.get('inlet_percentage', 0.2))
+            #     outlet_percentage = float(gd.get('outlet_percentage', 0.15))
+            #     ref_chord_length  = float(gd.get('ref_chord_length', 134.4))
+            #     tip_clearance_mm  = float(gd.get('tip_clearance_rotor', 1.3))
+            #     Q3D_value         = bool(gd.get('Q3D_mode', False))
+            #     do_plot           = bool(gd.get('show_plot', False))
+            #     output_path       = gd.get('output_folder', '.')
                 
-                if not hasattr(self, 'meanline_results') or not self.meanline_results:
-                    messagebox.showerror("Error", "No Meanline-Data found. Please calculate '1D-Settings' first!")
-                    return
+            #     if not hasattr(self, 'meanline_results') or not self.meanline_results:
+            #         messagebox.showerror("Error", "No Meanline-Data found. Please calculate '1D-Settings' first!")
+            #         return
                 
-                if hasattr(self, 'prepop_metadata') and 'levels' in self.prepop_metadata:
-                    stage_levels = self.prepop_metadata['levels']
-                else:
-                    # Fallback, in case Metadata is empty
-                    stage_levels = [0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.0]
+            #     if hasattr(self, 'prepop_metadata') and 'levels' in self.prepop_metadata:
+            #         stage_levels = self.prepop_metadata['levels']
+            #     else:
+            #         # Fallback, in case Metadata is empty
+            #         stage_levels = [0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.0]
 
-                if Q3D_value:
-                    KM_grid_density = 2
+            #     if Q3D_value:
+            #         KM_grid_density = 2
 
-                D_S1 = self.meanline_results['D_S1']
-                D_H1 = self.meanline_results['D_H1']
-                total_height = (D_S1[0] - D_H1[0]) / 2.0 
-                tip_clearance_multall = tip_clearance_mm / (total_height * 1000)
+            #     D_S1 = self.meanline_results['D_S1']
+            #     D_H1 = self.meanline_results['D_H1']
+            #     total_height = (D_S1[0] - D_H1[0]) / 2.0 
+            #     tip_clearance_multall = tip_clearance_mm / (total_height * 1000)
 
-                print("Starting Grid calculations...")
+            #     print("Starting Grid calculations...")
                 
-                grid_data_list, grid_data_list_plot, JM_dynamic, JM = VG.generate_and_plot_grid(
-                    nrow_wert, IM_grid_density, KM_grid_density,
-                    0.5, JM_grid_density,
-                    inlet_percentage, outlet_percentage,
-                    ref_chord_length, stage_levels,
-                    self.meanline_results 
-                )
+            #     grid_data_list, grid_data_list_plot, JM_dynamic, JM = VG.generate_and_plot_grid(
+            #         nrow_wert, IM_grid_density, KM_grid_density,
+            #         0.5, JM_grid_density,
+            #         inlet_percentage, outlet_percentage,
+            #         ref_chord_length, stage_levels,
+            #         self.meanline_results 
+            #     )
 
-                if do_plot:
-                    VG.plot_all(grid_data_list_plot, JM_dynamic)
+            #     if do_plot:
+            #         VG.plot_all(grid_data_list_plot, JM_dynamic)
 
-                if Q3D_value:
-                    output_name = f"multall_grid_Q3D_IM_{IM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
-                else:
-                    output_name = f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
+            #     if Q3D_value:
+            #         output_name = f"multall_grid_Q3D_IM_{IM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
+            #     else:
+            #         output_name = f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
 
-                full_output_path = os.path.join(output_path, output_name)
-                enable_bleed_air = self.meanline_results.get('enable_bleed_air', False)
+            #     full_output_path = os.path.join(output_path, output_name)
+            #     enable_bleed_air = self.meanline_results.get('enable_bleed_air', False)
 
-                VG.write_head_file(KM_grid_density, IM_grid_density, full_output_path,
-                                   0, nrow_wert, len(stage_levels), Q3D_value, enable_bleed_air, 
-                                   self.meanline_results)
+            #     VG.write_head_file(KM_grid_density, IM_grid_density, full_output_path,
+            #                        0, nrow_wert, len(stage_levels), Q3D_value, enable_bleed_air, 
+            #                        self.meanline_results)
                 
-                for data in grid_data_list:
-                    self.JTE = data['JTE']
-                    VG.multall_grid_data_head_row(
-                        full_output_path, len(data['x_new']), data['row_num'],
-                        data['JLE'], data['JM'], data['JTE'],
-                        KM_grid_density, tip_clearance_multall, stage_levels,
-                        self.meanline_results
-                    )
-                    VG.write_coordinates(
-                        data['x_new'], data['Rtheta_new'], data['d_new'], data['R_new'],
-                        full_output_path, data['row_num'], 0, len(data['x_new']), data['JM']
-                    )
+            #     for data in grid_data_list:
+            #         self.JTE = data['JTE']
+            #         VG.multall_grid_data_head_row(
+            #             full_output_path, len(data['x_new']), data['row_num'],
+            #             data['JLE'], data['JM'], data['JTE'],
+            #             KM_grid_density, tip_clearance_multall, stage_levels,
+            #             self.meanline_results
+            #         )
+            #         VG.write_coordinates(
+            #             data['x_new'], data['Rtheta_new'], data['d_new'], data['R_new'],
+            #             full_output_path, data['row_num'], 0, len(data['x_new']), data['JM']
+            #         )
 
-                VG.write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, stage_levels, self.meanline_results)
+            #     VG.write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, stage_levels, self.meanline_results)
 
-                messagebox.showinfo("Erfolg", f"Gitter generiert:\n{full_output_path}")
+            #     messagebox.showinfo("Erfolg", f"Gitter generiert:\n{full_output_path}")
 
-            except Exception as e:
-                print(e)
-                messagebox.showerror("Fehler", f"Fehler: {e}")
+            # except Exception as e:
+            #     print(e)
+            #     messagebox.showerror("Fehler", f"Fehler: {e}")
             '''
             # ============================================================
             # TODO (other branch): The following was an alternative simpler
@@ -2501,14 +2499,26 @@ class CompressorGui:
               merged version
             # ============================================================
             '''
-            # print("Grid is saved.")
-            # print("Generating Grid...")
-            # VG.process_grid_data(json_path)
-            # print("Grid is generated.")
-            #
-            # '''
-            # GUI Logic
-            # '''
+            print("Grid is saved.")
+            
+            try:
+                run_main_logic({'main_choice': 'default'}, self, json_path)
+            except Exception as e:
+                import traceback
+                print("\n--- FEHLER BEIM LADEN DER 1D-DATEN ---")
+                traceback.print_exc()
+                messagebox.showerror("Error", "Bitte berechne und speichere zuerst die 1D-Meanline-Daten!")
+                return
+            
+            print("Generating Grid...")
+            VG.process_grid_data(json_path)
+            print("Grid is generated.")
+            
+        
+        '''
+        GUI Logic
+        '''
+            
 
         for row_index, config in enumerate(ui_config):
             
