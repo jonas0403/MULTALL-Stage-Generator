@@ -321,6 +321,7 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
 # schreibt die Koordinaten aller Abschnitte in eine Datei für MULTALL
 # a? b? need a loop for writing all rows and stages
 def write_coordinates(x, rtheta, d, r, file, row, a, b, JM, global_row_num, current_stage):
+    #print(f" DEBUG x r and theta for the first 5 values: {x[0:5]}, {r[0:5]}, {rtheta[0:5]}  and last 5 values = {x[-5:]}, {r[-5:]}, {rtheta[-5:]}")
     with open(file, "a") as file:
         for i in range(a, b):       
             file.write(" ***************************************************************\n")
@@ -550,6 +551,8 @@ def generate_var_grid_data(nrow, IM_grid_density, KM_grid_density, JM_grid_densi
             Z_S=0.95, 
             levels=levels)
         
+        
+        print(f"DEBUG row_num={row_num}: x_new[0][0]={x_new[0][0]:.4f}, x_new[0][-1]={x_new[0][-1]:.4f}, R_new[0][0]={R_new[0][0]:.6f}")
         # x_new_plot, d_new_plot, R_new_plot, Rtheta_new_plot = Stage.calc_blade_row_coordinates(
         #     row=row_num, 
         #     j_prime_max=j_prime_max_plot, 
@@ -659,6 +662,7 @@ def process_grid_data(json_path, CompressorGui):
     output_path = Metadata['output_folder']
     levels = Metadata['levels']
 
+    print(f"DEBUG TIPCLEARENCE tip_clearance_mm_rotor = {tip_clearance_mm_rotor} b2 = {CompressorGui.meanline_data['b2']}")
     tip_clearance_multall = [tip_clearance_mm_rotor / x for x in CompressorGui.meanline_data['b2']]
 
 
@@ -703,7 +707,6 @@ def process_grid_data(json_path, CompressorGui):
         JM_row = data['JM']
         NSEC_new = len(data['x_new'])
 
-        
         # variable for the global row number
         global_row_num = i + 1
         
@@ -711,6 +714,14 @@ def process_grid_data(json_path, CompressorGui):
         current_stage = (i // 2) + 1
         
         print(f"DEBUG: i={i}, row_num={row_num}, current_stage={current_stage}")
+        
+        print(f"DEBUG row {global_row_num} (stage {current_stage}):")
+        print(f"  x_coords first section first point: {x_coords[0][0]:.4f}")
+        print(f"  x_coords first section last point:  {x_coords[0][-1]:.4f}")
+        print(f"  r_coords first section first point: {r_coords[0][0]:.4f}")
+        print(f"  r_coords first section last point:  {r_coords[0][-1]:.4f}")
+        
+        
         
         multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_multall, levels, CompressorGui, RPM, global_row_num, current_stage)
         write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM_row, global_row_num, current_stage)
@@ -785,7 +796,7 @@ def process_grid_data(json_path, CompressorGui):
             if f"stator_patch_{j+1}" in bleed_air_data
         ]
         
-        # CHANGE: one NBLEED card per blade row, in order rotor then stator per stage
+        # one NBLEED card per blade row, in order rotor then stator per stage
         for i, data in enumerate(all_rows_grid_data):
             row_num = data['row_num']
             current_stage = (i // 2) + 1

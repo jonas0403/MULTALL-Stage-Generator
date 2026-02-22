@@ -37,7 +37,12 @@ scriptpath = os.path.dirname(sys.argv[0])
 #print(scriptpath)
 os.chdir(scriptpath)
 
+''' Here needs to be a fix radial equilibirium needs to be called for all stages
 # parameter for radial equilibrium
+stage = 1
+approach = 1
+constant_r_parameter = 1
+'''
 stage = 1
 approach = 1
 constant_r_parameter = 1
@@ -88,15 +93,15 @@ def create_default_profiles(self, json_path):
        
     try:
         try:
-            print(f"[DEBUG] Calling run_main_logic...")
-            print(f"[DEBUG] self.meanline_data type: {type(self.meanline_data)}")
-            print(f"[DEBUG] self.meanline_data value: {self.meanline_data}")
-            print(f"[DEBUG] hasattr meanline_data: {hasattr(self, 'meanline_data')}")
+            #print(f"[DEBUG] Calling run_main_logic...")
+            #print(f"[DEBUG] self.meanline_data type: {type(self.meanline_data)}")
+            #print(f"[DEBUG] self.meanline_data value: {self.meanline_data}")
+            #print(f"[DEBUG] hasattr meanline_data: {hasattr(self, 'meanline_data')}")
             run_main_logic({'main_choice': 'default'}, self, json_path)
         except Exception as e:
             import traceback
-            print(f"[DEBUG] Error executing run_main_logic: {e}")
-            print(f"[DEBUG] Full traceback:")
+            #print(f"[DEBUG] Error executing run_main_logic: {e}")
+            #print(f"[DEBUG] Full traceback:")
             traceback.print_exc()  # ← This shows you EXACTLY which line crashed
             messagebox.showerror("Error", "Please calculate the Meanline (1D Settings) first and make sure it's saved!")
             return 
@@ -258,7 +263,30 @@ def save_profile(source_filename):
         except Exception as e:
             print(f"Error {e} beim speichern")                                                        
 
-def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
+channel_data = {}
+
+
+def init_channel_data(compressor_gui_data):
+    '''
+    Defining variables from the channel function for further use
+    
+    '''
+    global channel_data
+    for s in range(1, compressor_gui_data.stages_to_calc + 1):
+        compressor_gui_data.stage = s
+        x_values_s, r_values_s, m_prime_values_s, x0_s = channel(compressor_gui_data)
+        channel_data[s] = {
+            'x_values': x_values_s,
+            'r_values': r_values_s,
+            'm_prime_values': m_prime_values_s,
+            'x0': x0_s
+        }
+    
+    #x_values, r_values, m_prime_values, x0 = channel(compressor_gui_data)
+
+def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):# approach = 1 constant_r_parameter = 1 need to be defined here
+    # Calls the channel function to initialise the channel coordinates for all stages that are beeing calculated
+    init_channel_data(compressor_gui_data)
     global ACTIVE_JSON_PATH
     ACTIVE_JSON_PATH = json_path
     #should not be needed anymore
@@ -366,11 +394,9 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     plot_channel_contour = meanline['plot_channel_contour']
     
     
-    '''
-    Defining variables from the channel function for further use
     
-    '''
-    x_values, r_values, m_prime_values, x0 = channel(compressor_gui_data)
+    ##### Hugh error dimension of all variables to short because they are defined as one stage and for one stage only 
+    
     
 
     '''
@@ -380,7 +406,30 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
     h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     print("Successfully calculated meanline and radial equilibrium")
-    
+    # --- DEBUG PRINT START ---
+    print("\n" + "="*50)
+    print(f"DEBUG: radial_equilibrium_S Results")
+    print("="*50)
+
+    debug_vars = {
+        "Geometry": {"h_rel": h_rel, "l_S": l_S, "D_S": D_S},
+        "Velocities (cm)": {"c_m_S_in": c_m_S_in, "c_m_S_out": c_m_S_out},
+        "Velocities (cu/c)": {"c_u_S_in": c_u_S_in, "c_u_S_out": c_u_S_out, "c_S_out": c_S_out},
+        "Thermodynamics": {"T_S_in": T_S_in, "T_S_out": T_S_out, "p_S_in": p_S_in, "p_S_out": p_S_out},
+        "Angles (Deg)": {"alpha_S_in": alpha_S_in, "alpha_S_out": alpha_S_out, "beta_S_in": beta_S_in},
+        "Blade Angles": {"beta_blade_S_in": beta_blade_S_in, "beta_blade_S_out": beta_blade_S_out}
+    }
+
+    for category, vars in debug_vars.items():
+        print(f"\n[{category}]")
+        for name, value in vars.items():
+            # Check if it's a list/array to prevent flooding the console
+            if hasattr(value, "__len__") and not isinstance(value, str):
+                print(f"  {name:<18} : {value[:3]}... (Length: {len(value)})")
+            else:
+                print(f"  {name:<18} : {value}")
+    print("="*50 + "\n")
+    # --- DEBUG PRINT END ---
 
     main_choice = new_adjustment_data.get('main_choice', 'default')
     #path = settings.get("output_folder", ".")
@@ -831,6 +880,11 @@ def blade_metal_BP(ROW):
 #Calculation for h/H = 0.5 cut
 def calculation_of_section_0_5(row):
     rel_h = 0.5
+    
+    '''
+    Defining coordinates for all stages
+    '''
+    x0 = channel_data[stage]['x0']
 
     beta_M_a, beta_M_2, beta_M_3,  beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP= blade_metal_BP(row)
     z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
@@ -1121,6 +1175,11 @@ def calculation_of_section_0_5(row):
 
 # calculation of LE and TE coordinates
 def mLE_TE_cntr(row):
+    '''
+    Defining coordinates for all stages
+    '''
+    x0 = channel_data[stage]['x0']
+    
     
     if row % 2 != 0:
         k = 2
@@ -1136,6 +1195,13 @@ def mLE_TE_cntr(row):
 
 # calculation of a section coordiantes of a single row
 def calculation_of_section(rel_h, row):
+    
+    '''
+    Defining coordinates for all stages
+    '''
+    stage = (row - 1) // 2 + 1
+    r_values = channel_data[stage]['r_values']
+    m_prime_values = channel_data[stage]['m_prime_values']
 
     m_LE_0_5, m_TE_0_5, m_cntr_0_5, m_prime_cntr = mLE_TE_cntr(row)
     beta_M_a, beta_M_2, beta_M_3,  beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP= blade_metal_BP(row)
@@ -1475,6 +1541,16 @@ def calculation_of_section(rel_h, row):
 
 #R, x, y, and z coordinates for h/H = [0.0, 0.2, 0.5, 0.8, 1.0] 
 def coordinates(row):
+    
+    '''
+    Defining coordinates for all stages
+    '''
+    stage = (row - 1) // 2 + 1
+    x_values = channel_data[stage]['x_values']
+    r_values = channel_data[stage]['r_values']
+    m_prime_values = channel_data[stage]['m_prime_values']
+    
+    
     R_u, x_u, y_u, z_u, R_l, x_l, y_l, z_l = [], [], [], [], [], [], [], []
     R_theta_s_star_u, R_theta_s_star_l, beta_S, m_star_l,m_star_u = [], [], [], [], []
 
@@ -1505,7 +1581,9 @@ def coordinates(row):
             y_l.append(R_l[-1] * math.cos(R_theta_s_star_l_i[j] / R_l[-1]))
             z_u.append(R_u[-1] * math.sin(R_theta_s_star_u_i[j] / R_u[-1]))
             z_l.append(R_l[-1] * math.sin(R_theta_s_star_l_i[j] / R_l[-1]))
-
+    print(f"  DEBUG coordinates [{row}]: len(r_values)={len(r_values)}, len(x_values)={len(x_values)}, x_values[0][0]={x_values[0][0]:.4f}, x_values[0][-1]={x_values[0][-1]:.4f}")
+    
+    
     return x_u, R_theta_s_star_u, x_l, R_theta_s_star_l, R_u, beta_S
 
 #calculation of stage_new.dat values
@@ -1526,7 +1604,9 @@ def calculation_blade_coordinates(j_prime_max, row):
         m_prime_new.append(calculate_m_prime_new(j_prime[i]))
      
     x_u, R_theta_s_star_u, x_l, R_theta_s_star_l, R_u, beta_S = coordinates(row) 
-
+    print(f"  DEBUG calculation_blade_coordinates [{row}]: x_u[0]={x_u[0]:.4f}, x_u[124]={x_u[124]:.4f}, x_u[125]={x_u[125]:.4f}, len(x_u)={len(x_u)}")
+    
+    
     x_sec, Rtheta_sec, d_sec, R_sec = [], [], [], []
     for i in range(len(h_H)):
         x_sec.append([])
@@ -1564,7 +1644,17 @@ def calculation_blade_coordinates(j_prime_max, row):
     return x_sec, d_sec, R_sec, Rtheta_sec, beta_S, j_prime_max
 
 # calculation of inlet coordinates
-def inlet_coordinates(row, num_planes, n_max_in, l_inlet, x_sec, d_sec, R_sec, Rtheta_sec, beta_S, j_prime_max):        
+def inlet_coordinates(row, num_planes, n_max_in, l_inlet, x_sec, d_sec, R_sec, Rtheta_sec, beta_S, j_prime_max):   
+    
+    '''
+    Defining coordinates for all stages
+    '''
+    stage = (row - 1) // 2 + 1
+    x0 = channel_data[stage]['x0']    
+    x_values = channel_data[stage]['x_values']
+    r_values = channel_data[stage]['r_values']
+    
+     
     
     DX_in, DX1_in = [], []
 
@@ -1640,6 +1730,17 @@ def inlet_coordinates(row, num_planes, n_max_in, l_inlet, x_sec, d_sec, R_sec, R
 
 # calculation of outlet coordinates
 def outlet_coordinates(row, n_max_out, l_outlet, num_planes, x_sec, Rtheta_sec, beta_S):
+    '''
+    Defining coordinates for all stages
+    '''
+    stage = (row - 1) // 2 + 1
+    x0 = channel_data[stage]['x0']
+    x_values = channel_data[stage]['x_values']
+    r_values = channel_data[stage]['r_values']
+    
+    
+    
+    
     DX_out, DX1_out = [], []
     Rtheta_out_BP, Rtheta_out, Rtheta_prime_out_BP, Rtheta_prime_out, dx_out, l_out, x_out, R_out, d_out = [], [], [], [], [], [], [], [], []
     for _ in range(num_planes):
@@ -1814,12 +1915,17 @@ def coordinates_levels(levels, x, d, R, Rtheta):
 # function for calculation of blade row coordinates. It just activates other functions
 def calc_blade_row_coordinates(row, j_prime_max, num_planes, n_max_in, l_inlet, n_max_out, l_outlet, Z_H, Z_S, levels):
     x_sec, d_sec, R_sec, Rtheta_sec, beta_S, j_prime_max = calculation_blade_coordinates(j_prime_max, row) 
+    #print(f"  DEBUG [{row}] after calculation_blade_coordinates: x_sec[0][0]={x_sec[0][0]:.4f}, x_sec[0][-1]={x_sec[0][-1]:.4f}, R_sec[0][0]={R_sec[0][0]:.6f}")
     x_in, d_in, R_in, Rtheta_in = inlet_coordinates(row, num_planes, n_max_in, l_inlet, x_sec, d_sec, R_sec, Rtheta_sec, beta_S, j_prime_max) 
+    #print(f"  DEBUG [{row}] after inlet_coordinates:             x_in[0][0]={x_in[0][0]:.4f},  x_in[0][-1]={x_in[0][-1]:.4f},  R_in[0][0]={R_in[0][0]:.6f}")
     x_out, d_out, R_out, Rtheta_out = outlet_coordinates(row, n_max_out, l_outlet, num_planes, x_sec, Rtheta_sec, beta_S)
+    #print(f"  DEBUG [{row}] after outlet_coordinates:            x_out[0][0]={x_out[0][0]:.4f}, x_out[0][-1]={x_out[0][-1]:.4f}, R_out[0][0]={R_out[0][0]:.6f}")
     x, d, R, Rtheta = merge_coordinates(num_planes, j_prime_max, n_max_in, x_in, x_sec, x_out, d_in, d_sec, d_out, R_in, R_sec, R_out, Rtheta_in, Rtheta_sec, Rtheta_out)
+    #print(f"  DEBUG [{row}] after merge_coordinates:             x[0][0]={x[0][0]:.4f},    x[0][-1]={x[0][-1]:.4f},    R[0][0]={R[0][0]:.6f}")
     x, d, R, Rtheta = additional_section(Z_H, Z_S, x, d, R, Rtheta)
+    #print(f"  DEBUG [{row}] after additional_section:            x[0][0]={x[0][0]:.4f},    x[0][-1]={x[0][-1]:.4f},    R[0][0]={R[0][0]:.6f}")
     x_new, d_new, R_new, Rtheta_new = coordinates_levels(levels, x, d, R, Rtheta )
-    
+    #print(f"  DEBUG [{row}] after coordinates_levels:            x_new[0][0]={x_new[0][0]:.4f}, x_new[0][-1]={x_new[0][-1]:.4f}, R_new[0][0]={R_new[0][0]:.6f}")
     return x_new, d_new, R_new, Rtheta_new
 
 
