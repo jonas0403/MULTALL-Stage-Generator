@@ -50,17 +50,32 @@ def grid_adaption(grid_count, max=20, beta=2 ): # Erstellung von Gridabständen 
     
     return scaled_spacings
 
-def create_bleed_air_card(NROW, file, rotor_data, stator_data, current_stage):
+def create_bleed_air_card(file_path, patches_data, current_stage):
+    
+    stage_key = f"Stage {current_stage}"
+    
+    #filter patches for this stage only
+    stage_patches = [patches for patches in patches_data if patches[0] == stage_key]
+    
+    print(f"file_path = {file_path}, stage_key = {stage_key}, matches = {len(stage_patches)}")
+    with open(file_path, "a") as file:
+        #one NBLEED per call (one blade row)
+        file.write("NBLEED\n")
+        file.write(f"{len(stage_patches)}\n")
+        for patches in stage_patches:
+            file.write('\t'.join(str(p) for p in patches[1:]) + '\n')
+    
+    '''
     # Filter patches for current stage 
-    stage_key = f"stage_{current_stage}"
+    stage_key = f"Stage {current_stage}"
     
     # index 0 is stage string, rest are coords and mflow
     rotor_stage_patches = [patches for patches in rotor_data if patches[0] == stage_key]
     stator_stage_patches = [patches for patches in stator_data if patches[0] == stage_key]
     
     # Nbleed needs to be written for each row in each stage 
-    print(f"file = {file}")
-    with open(file, "a") as file:
+    print(f"file_path = {file_path}")
+    with open(file_path, "a") as file:
         # Rotor NBLEED always written
         file.write("NBLEED\n")
         file.write(f"{len(rotor_stage_patches)}\n")
@@ -73,7 +88,7 @@ def create_bleed_air_card(NROW, file, rotor_data, stator_data, current_stage):
             file.write(f"{len(stator_stage_patches)}\n")
             for patches in stator_stage_patches:
                 file.write('\t'.join(str(p) for p in patches[1:])+ '\n')
-    
+    '''
     
     # Old bleed air card writing. Not usuable for multistage purposes
     '''
@@ -93,15 +108,24 @@ def create_bleed_air_card(NROW, file, rotor_data, stator_data, current_stage):
     '''
 ## Multall .dat File schreiben
 # Needs to be looped or called multiple times for each section IN EACH stage
-def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels, CompressorGui, RPM):
+def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels, CompressorGui, RPM, row_num, current_stage_num):
     section = 0
+    
+    current_stage = current_stage_num - 1
+    print(f"Debug current_stage (idx) = {current_stage}")
+    print(f"Debug current_stage_num = {current_stage_num}")
+    
+    global_row_num = row_num - 1
+    print(f"Debug global_row_num (idx) = {global_row_num}")
+    print(f"Debug global_row = {row_num}")
+    
     
     ktipstart = 0
     ktipend = 0
     actual_tip_clearance = 0
-    
-    if tip_clearance > 0:
-        if row == 1:
+    print(f"DEBUG: current_stage value is {current_stage} and type is {type(current_stage)}")
+    if tip_clearance[current_stage] > 0:
+        if row_num %2 != 0:
             ktipstart = KM - 4
             ktipend = KM
             actual_tip_clearance = tip_clearance
@@ -110,22 +134,25 @@ def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clear
             ktipend = 0
             actual_tip_clearance = 0.0
     
-    if tip_clearance == 0:
+    if tip_clearance[current_stage] == 0:
         actual_tip_clearance = 0
         ktipstart = 0
         ktipend = 0
 
     if section == 0:
-        if row == 1:
-            x = round(Stage.p_1[0], 1)
-            y = round(Stage.p_2[0], 1)
-            z = RPM[0]
-            blades = Stage.z_R[0]
-        elif row == 2:
-            x = round(Stage.p_2[0], 1)
-            y = round(Stage.p_3[0], 1)
+        if row_num % 2 != 0:  # Odd rows = rotor
+            x = round(Stage.p_1[current_stage], 1)
+            y = round(Stage.p_2[current_stage], 1)
+            z = RPM[0] #  rpm can stay 0 bceause rpm is const over stages
+            blades = Stage.z_R[current_stage]
+        else: # even rows = stator
+            x = round(Stage.p_2[current_stage], 1)
+            y = round(Stage.p_3[current_stage], 1)
             z = 0.0
-            blades = Stage.z_S[0]
+            blades = Stage.z_S[current_stage]
+    '''
+    # section = 0 is hardcoded so this can be ignored
+    # Dont delete incase of changing away from hardcoded section definition
     else:
         if row == 1:
             i = levels[section-1]
@@ -145,11 +172,11 @@ def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clear
             
             blades = Stage.z_S[0]
             z = 0.0
-
+    '''
     with open(file_path, "a") as file:
         file.write(" ***************************************************************\n")
         file.write(" ************STARTING THE INPUT FOR EACH BLADE ROW**************\n")
-        file.write(f"  BLADE ROW NUMBER =        {row}                                           \n")
+        file.write(f"  BLADE ROW NUMBER =        {global_row_num + 1}                                           \n")
         file.write("    NUMBER OF BLADES IN ROW \n")
         file.write(f"        {blades}\n")                                       
         file.write("        JM        JLE       JTE \n")
@@ -159,11 +186,11 @@ def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clear
         if ktipstart > 0:
             
             file.write("  FRACTIP1,     FRACTIP2 \n")
-            file.write(f"  {actual_tip_clearance:.8f}       {actual_tip_clearance:.8f}\n")
+            file.write(f"  {actual_tip_clearance[current_stage]:.8f}       {actual_tip_clearance[current_stage]:.8f}\n")
         
             file.write("  FTHICK(K) \n")
             ftchick_values = [1.0] * KM
-            if tip_clearance > 0:
+            if tip_clearance[current_stage] > 0:
                 ftchick_values[ktipstart-2] = 0.9
                 ftchick_values[ktipstart-1] = 0.5
             for k in range(ktipstart, KM):
@@ -214,7 +241,7 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
         file.write("   SFX,      SFT,      FAC_4TH,     NCHANGE \n")
         file.write("  0.005000  0.005000  0.800000      1000\n")
         file.write("       NUMBER OF BLADE ROWS \n")# Number of blades in row?
-        file.write(f"         {NROW}\n")
+        file.write(f"         {CompressorGui.stages_to_calc * NROW}\n")
         file.write("        IM        KM \n")
         
         if section == 0:
@@ -276,11 +303,11 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
         file.write("      ISHIFT    NEXTRAP_LE  NEXTRAP_TE \n")
         file.write("         2        10        10\n")
         file.write("  (NSTG(N),N=1,NROWS) \n")
+        '''
         nstg_values = " ".join(["   1"] * NROW) # Needs to change to this:
         '''
-        nstg_values = " ".join([str((i // 2) + 1) for i in range(NROW)])
-        
-        '''
+        #prints only stage values instead of 2*stage: nstg_values = " ".join([str((i // 2) + 1) for i in range(CompressorGui.stages_to_calc)])        
+        nstg_values = " ".join([str((i // 2) + 1) for i in range(CompressorGui.stages_to_calc * 2)])
         file.write(nstg_values + "\n")
         file.write("  5  TIME STEPS FOR PRINTOUT \n")
         file.write("      9000      9000      9000      9000      9000\n")
@@ -293,7 +320,7 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
 #writes the coordinates of all sections in a file for MULTALL
 # schreibt die Koordinaten aller Abschnitte in eine Datei für MULTALL
 # a? b? need a loop for writing all rows and stages
-def write_coordinates(x, rtheta, d, r, file, row, a, b, JM):
+def write_coordinates(x, rtheta, d, r, file, row, a, b, JM, global_row_num, current_stage):
     with open(file, "a") as file:
         for i in range(a, b):       
             file.write(" ***************************************************************\n")
@@ -317,7 +344,7 @@ def Q3D_information(file):
 
 
 # writes end of the file 
-def write_end_file(row, file, section, KM, levels):
+def write_end_file(row, file, section, KM, levels, CompressorGui):
     # Here needs to be new logic because row only works for one stage 
     # Some logic for the rows and NROW is missing
     if row == 1: # Maybe use modulus here to get if the row is odd (rotor) or even (stator)
@@ -368,7 +395,7 @@ def write_end_file(row, file, section, KM, levels):
             file.write(f"  {x}  {y}\n")
             file.write(" MIXING LENGTH LIMITS ON ALL BLADE ROWS\n")
             
-            for _ in range(row): # in here row needs to equal NROW (total number of blade rows), not just the current row number. 
+            for _ in range(row * CompressorGui.stages_to_calc): # in here row needs to equal NROW (total number of blade rows), not just the current row number. 
                 file.write("  0.030000  0.030000  0.030000  0.030000  0.030000  0.020000\n")
             file.write("  FACTOR TO INCREASE THE TURBULENT VISCOSITY OVER THE FIRST NMIXUP STEPS \n")
             file.write("   2.00000 1000\n")
@@ -467,12 +494,15 @@ def plot_all(grid_data_list, grid_density):
     plt.axis('equal')
     plt.show()
 
-def generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density, inlet_percentage, outlet_percentage, reference_chord_length, levels):
+def generate_var_grid_data(nrow, IM_grid_density, KM_grid_density, JM_grid_density, inlet_percentage, outlet_percentage, reference_chord_length, levels, CompressorGui):
     
     # Liste, um die Ergebnisse jeder Schaufelreihe zu speichern
     all_rows_grid_data = []
     all_rows_data_plot = []
 
+    # Variable to calc which rows will be calculated
+    nrow_wert = nrow * CompressorGui.stages_to_calc
+    
     for row_num in range(1, nrow_wert + 1):
         print(f"\nVerarbeite Schaufelreihe {row_num} (Dichte: {JM_grid_density})")
 
@@ -500,7 +530,7 @@ def generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_
         JTE = n_max_in + j_prime_max - 1
         JM = n_max_in + n_max_out + j_prime_max - 2
         
-        if row_num == 1:
+        if row_num % 2 != 0:
             JM_dynamic_rotor = JM_dynamic
         else:
             JM_dynamic_stator = JM_dynamic
@@ -636,13 +666,14 @@ def process_grid_data(json_path, CompressorGui):
 
     enable_bleed_air = bleed_air_data['enable_bleed_air']
     
-    all_rows_grid_data = generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density, inlet_percentage, outlet_percentage, ref_chord_length, levels)
+    all_rows_grid_data = generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density, inlet_percentage, outlet_percentage, ref_chord_length, levels, CompressorGui)
     
-
-    JM_dynamic_rotor = all_rows_grid_data[0]['JM_dynamic']
+    # old hardcoded first value
+    #JM_dynamic_rotor = all_rows_grid_data[0]['JM_dynamic']
+    JM_dynamic_rotor = [row['JM_dynamic'] for row in all_rows_grid_data[::2]]
     
     if nrow_wert > 1:
-        JM_dynamic_stator = all_rows_grid_data[1]['JM_dynamic']
+        JM_dynamic_stator = [row['JM_dynamic'] for row in all_rows_grid_data[1::2]]
     else:
         JM_dynamic_stator = 0
 
@@ -671,21 +702,97 @@ def process_grid_data(json_path, CompressorGui):
         JTE = data['JTE']
         JM_row = data['JM']
         NSEC_new = len(data['x_new'])
+
         
+        # variable for the global row number
         global_row_num = i + 1
         
-        current_stage = (i / 2) + 1
-     
-        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_multall, levels, CompressorGui, RPM)
-        write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM_row)
+        # variable for the stage number
+        current_stage = (i // 2) + 1
+        
+        print(f"DEBUG: i={i}, row_num={row_num}, current_stage={current_stage}")
+        
+        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_multall, levels, CompressorGui, RPM, global_row_num, current_stage)
+        write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM_row, global_row_num, current_stage)
+        '''
+        # possible worng location of bleed air 
+        if enable_bleed_air:
+            rotor_data = [
+                bleed_air_data[f"rotor_patch_{j+1}"] 
+                for j in range(bleed_air_data.get('rotor_patches', 0))
+                if f"rotor_patch_{j+1}" in bleed_air_data
+            ]
+            stator_data = [
+                bleed_air_data[f"stator_patch_{j+1}"] 
+                for j in range(bleed_air_data.get('stator_patches', 0))
+                if f"stator_patch_{j+1}" in bleed_air_data
+            ]
+            
+            # call once per row, passing rotor or stator data depending on row type
+            if row_num == 1:  # rotor row
+                create_bleed_air_card(full_output_path, rotor_data, current_stage)
+            else:  # stator row
+                create_bleed_air_card(full_output_path, stator_data, current_stage)
+        '''
         print(f"Grid data for row {row_num} written successfully.")
+    '''
+    # Maybe placement of bleedair was wrong 
+    if enable_bleed_air:
+        rotor_data = [
+            bleed_air_data[f"rotor_patch_{j+1}"] 
+            for j in range(bleed_air_data.get('rotor_patches', 0))
+            if f"rotor_patch_{j+1}" in bleed_air_data
+        ]
+        stator_data = [
+            bleed_air_data[f"stator_patch_{j+1}"] 
+            for j in range(bleed_air_data.get('stator_patches', 0))
+            if f"stator_patch_{j+1}" in bleed_air_data
+        ]
+        
+        # CHANGE: one NBLEED card per blade row, in order rotor then stator per stage
+        for i, data in enumerate(all_rows_grid_data):
+            row_num = data['row_num']
+            current_stage = (i // 2) + 1
+            
+            if i % 2 == 0:  # rotor
+                create_bleed_air_card(full_output_path, rotor_data, current_stage)
+            else:  # stator
+                create_bleed_air_card(full_output_path, stator_data, current_stage)
+
+    
+    '''
     
     if Q3D_value:
         Q3D_information(full_output_path)
         print("Q3D information written successfully.")
     
     print("Starting writing end of file...")
-    write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, levels)
+    write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, levels, CompressorGui)
     print(f"Grid data for all rows written to {full_output_path} successfully.")
     
     print("All tasks completed successfully.")
+
+    
+    if enable_bleed_air:
+        rotor_data = [
+            bleed_air_data[f"rotor_patch_{j+1}"] 
+            for j in range(bleed_air_data.get('rotor_patches', 0))
+            if f"rotor_patch_{j+1}" in bleed_air_data
+        ]
+        stator_data = [
+            bleed_air_data[f"stator_patch_{j+1}"] 
+            for j in range(bleed_air_data.get('stator_patches', 0))
+            if f"stator_patch_{j+1}" in bleed_air_data
+        ]
+        
+        # CHANGE: one NBLEED card per blade row, in order rotor then stator per stage
+        for i, data in enumerate(all_rows_grid_data):
+            row_num = data['row_num']
+            current_stage = (i // 2) + 1
+            
+            if i % 2 == 0:  # rotor
+                create_bleed_air_card(full_output_path, rotor_data, current_stage)
+            else:  # stator
+                create_bleed_air_card(full_output_path, stator_data, current_stage)
+
+    

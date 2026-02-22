@@ -134,7 +134,7 @@ def create_default_profiles(self, json_path):
             
             for i in range(len(h_H)):
                 for j in range(len(h_rel)):
-                    if row == 1:
+                    if row % 2 != 0:
                         if h_rel[j] == h_H[i]:
                                 beta_1 = beta_blade_R_in[j]
                                 beta_2 = beta_blade_R_out[j]
@@ -160,7 +160,7 @@ def create_default_profiles(self, json_path):
                                 # beta_S_BP_4.append(round(angle_out[j], 2))
                                 # beta_S_BP_2.append(round((beta_S_BP_4[i]-beta_S_BP_1[i])/3+beta_S_BP_1[i], 2))
                                 # beta_S_BP_3.append(round(2*(beta_S_BP_4[i]-beta_S_BP_1[i])/3+beta_S_BP_1[i], 2))
-                    elif row == 2:
+                    elif row % 2 == 0:
                         if h_rel[j] == h_H[i]:
                             
                                 alpha_1 = alpha_S_in[j]
@@ -176,7 +176,7 @@ def create_default_profiles(self, json_path):
                                 alpha_S_BP_2.append(round(alpha_neu_03, 2))
                                 alpha_S_BP_3.append(round(alpha_neu_07, 2))
 
-            if row == 1:
+            if row % 2 != 0 :
                 rel_thickness = np.array([[0.023,0.020,0.015,0.011,0.007],
                                             [0.082,0.071,0.055,0.038,0.027],
                                             [0.017,0.015,0.011,0.008,0.005],
@@ -653,7 +653,7 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
 # general values, ellipis of LE and TE
 def overall_values(row, z_R, l_R, l_S):    
   
-    if row == 1:
+    if row % 2 != 0:
         z = z_R
         # lenth of rotor blade h_rel = 50%
         s_1D = round(l_R[10]/1000, 4)                   
@@ -661,7 +661,7 @@ def overall_values(row, z_R, l_R, l_S):
         elipse_LE = 3
         elipse_TE = 3
     
-    elif row == 2:
+    elif row % 2 == 0:
         z = z_S
         # lenth of rotor blade h_rel = 50%
         s_1D = round(l_S[10]/1000, 4)                      
@@ -731,7 +731,7 @@ def blade_metal_BP(ROW):
 '''
 
 # Bézier control points from csv file new# Bézier control points directly from JSON (ersetzt die alte .txt Version)
-def blade_metal_BP(ROW):
+def blade_metal_BP(row):
     global ACTIVE_JSON_PATH
     json_path = ACTIVE_JSON_PATH
     try:
@@ -741,8 +741,8 @@ def blade_metal_BP(ROW):
         print(f"Error while reading JSON file: {e}")
         return [], [], [], [], [], [], [], [], [[], [], [], []]
         
-    blade_key = "rotor" if ROW == 1 else "stator"
-    angle_key = "beta_S" if ROW == 1 else "alpha_S"
+    blade_key = "rotor" if row % 2 != 0 else "stator"
+    angle_key = "beta_S" if row % 2 != 0 else "alpha_S"
     
     b_data = data.get("Bezier_point_data", {}).get(blade_key, {})
     if not b_data:
@@ -1110,9 +1110,9 @@ def calculation_of_section_0_5(row):
     m_prime_cntr = coa1[124]/coa3[124]
     Rtet_prime_cntr = coa2[124]/coa3[124]
 
-    if row == 1:
+    if row % 2 != 0:
         k = 2
-    elif row == 2:
+    elif row % 2 == 0:
         k = 5
 
     m_cntr_0_5 = m_prime_cntr*s_0_5/s_star*1000+x0[k]                               #m*cntr
@@ -1122,9 +1122,9 @@ def calculation_of_section_0_5(row):
 # calculation of LE and TE coordinates
 def mLE_TE_cntr(row):
     
-    if row == 1:
+    if row % 2 != 0:
         k = 2
-    elif row == 2:
+    elif row % 2 == 0:
         k = 5
     
     m_cntr_0_5, m_prime_cntr = calculation_of_section_0_5(row)
@@ -1580,9 +1580,9 @@ def inlet_coordinates(row, num_planes, n_max_in, l_inlet, x_sec, d_sec, R_sec, R
         R_in.append([])
         d_in.append([])
     
-    if row == 1:
+    if  row % 2 != 0:
         k = 0
-    elif row == 2:
+    elif row % 2 == 0:
         k = 3
 
     for i in range(num_planes):
@@ -1653,10 +1653,10 @@ def outlet_coordinates(row, n_max_out, l_outlet, num_planes, x_sec, Rtheta_sec, 
         R_out.append([])
         d_out.append([])
 
-    if row == 1:
+    if row % 2 != 0:
         k = 3       
 
-    elif row == 2:
+    elif row % 2 == 0:
         k = 6    
 
     for i in range(num_planes):
@@ -1948,18 +1948,18 @@ def write_head_file(file, NSEC, NROW, section, enable_bleed_air):
 # writes head of the row
 def write_head_row(file, row, JM, JLE, JTE, RPM, section, NSEC):
     if section == 0:
-        if row == 1:
+        if row % 2 != 0:
             x = round(p_1[0], 1)
             y = round(p_2[0], 1)
             z = RPM[0]
             blades = z_R[0]
-        elif row == 2:
+        elif row % 2 == 0:
             x = round(p_2[0], 1)
             y = round(p_3[0], 1)
             z = 0.0
             blades = z_S[0]
     else:
-        if row == 1:
+        if row % 2 != 0 :
             i = levels[section-1]
             for j in range(len(h_rel)):
                 if round(h_rel[j],2) == i:
@@ -1968,7 +1968,7 @@ def write_head_row(file, row, JM, JLE, JTE, RPM, section, NSEC):
 
             z = RPM[0]
             blades = z_R[0]
-        elif row == 2:
+        elif row % 2 == 0:
             i = levels[section-1]
             for j in range(len(h_rel)):
                 if round(h_rel[j],2) == i:
@@ -2006,14 +2006,14 @@ def write_head_row(file, row, JM, JLE, JTE, RPM, section, NSEC):
 # writes end of the file 
 def write_end_file(row, file, section):
     
-    if row == 1:
+    if row % 2 != 0 :
         x = round(p_R_out[0], 1)
         y = round(p_R_out[len(h_rel)-1], 1)
         t = round(T_t1[0], 4)
         p = round(p_t1[0], 1)
         um = round(cm1[0], 4)
     
-    elif row == 2:
+    elif row % 2 == 0:
         x = round(p_S_out[0], 1)
         y = round(p_S_out[len(h_rel)-1], 1)
         t = round(T_t1[0], 4)
@@ -2075,14 +2075,14 @@ def write_end_file(row, file, section):
             file.write("  FACTOR TO INCREASE THE TURBULENT VISCOSITY OVER THE FIRST NMIXUP STEPS \n")
             file.write("   2.00000 1000\n")
         else:         
-            if row == 1:
+            if row % 2 != 0:
                 i = levels[section-1]
                 for j in range(len(h_rel)):
                     if round(h_rel[j],2) == i:
                         x = round(p_R_out[j], 1)
                         y = round(p_R_out[j], 1)
 
-            elif row == 2:
+            elif row % 2 == 0:
                 i = levels[section-1]
                 for j in range(len(h_rel)):
                     if round(h_rel[j],2) == i:

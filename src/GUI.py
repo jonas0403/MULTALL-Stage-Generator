@@ -2310,7 +2310,8 @@ class CompressorGui:
             'SA_mode': tk.BooleanVar(value=False)  # Standardwert für die SA Turbulence Model
         }
         
-        im_km_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
+        km_options = ["5", "21", "25", "29", "33", "37", "41", "45", "49", "53", "57", "61", "65", "69", "73", "77", "81", "89"]
+        im_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
         jm_options = [str(i) for i in range(8, 800, 8)]
         
         ui_config = [
@@ -2325,14 +2326,14 @@ class CompressorGui:
                 "key": "km_selection",
                 "label": "Grid Dimension (KM):",
                 "type": "combobox",
-                "values": im_km_options,
+                "values": km_options,
                 "help": "Points of Grid in Radial Direction..."
             },
             {
                 "key": "im_selection",
                 "label": "Grid Dimension (IM):",
                 "type": "combobox",
-                "values": im_km_options,
+                "values": im_options,
                 "help": "Points of Grid in Circumferential Direction..."
             },
             {
@@ -2372,14 +2373,54 @@ class CompressorGui:
         inner_nrow_frame.pack(fill='x', padx=10, pady=5)
         
         ttk.Label(inner_nrow_frame, text="Number of Blade Rows:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+        self.nrow_combo = ttk.Combobox(inner_nrow_frame, values=["Complete Stage (Rotor & Stator)", "Rotor Only"], state="readonly")
+        self.nrow_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+
+        # CHANGE: question mark label to the right of combobox, same pattern as bleed air tooltips
+        nrow_q_label = ttk.Label(inner_nrow_frame, text="?", cursor="question_arrow")
+        nrow_q_label.grid(row=0, column=2, padx=2, pady=5, sticky='w')
+        Tooltip(nrow_q_label, "Multi-stage analysis requires both Rotor and Stator components for continuity.")
+
+        loaded_nrow = self.prepop_grid_data.get('nrow')
+
+        # CHANGE: lock combobox if stages_to_calc > 1
+        if self.stages_to_calc > 1:
+            self.nrow_combo.set("Complete Stage (Rotor & Stator)")
+            self.nrow_combo.config(state="disabled")
+        else:
+            if loaded_nrow == 1:
+                self.nrow_combo.set("Rotor Only")
+            else:
+                self.nrow_combo.set("Complete Stage (Rotor & Stator)")
+        
+        '''
+        ttk.Label(inner_nrow_frame, text="Number of Blade Rows:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
         self.nrow_combo = ttk.Combobox(inner_nrow_frame, values=["Complete Stage (Rotor & Stator)", "Rotor Only"], state="readonly")
         
-        loaded_nrow = self.prepop_grid_data.get('nrow', 2)
+        loaded_nrow = self.prepop_grid_data.get('nrow')
+        
+        # locking the combobox to select if only the rotor were to be calculated if sages to calc is larger than one
+        if self.stages_to_calc != 1:
+            # Force "Complete Stage" regardless of loaded data if stages > 1
+            self.nrow_combo.set("Complete Stage (Rotor & Stator)")
+            self.nrow_combo.config(state="disabled") # Lock the box
+            
+            # Add a small Tooltip to explain why it is locked
+            row_label = inner_nrow_frame.winfo_children()[-2] # Accessing the Label
+            Tooltip(row_label, "Multi-stage analysis requires both Rotor and Stator components for continuity.")
+        else:
+            # Normal behavior for single stage: use the loaded value
+            if loaded_nrow == 1:
+                self.nrow_combo.set("Rotor Only")
+            else:
+                self.nrow_combo.set("Complete Stage (Rotor & Stator)")
+        
         if loaded_nrow == 1:
             self.nrow_combo.set("Rotor Only")
         else:
             self.nrow_combo.set("Complete Stage (Rotor & Stator)")
-        
+        '''
         self.nrow_combo.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
         
         ttk.Label(inner_nrow_frame, text= "Levels for Output:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
