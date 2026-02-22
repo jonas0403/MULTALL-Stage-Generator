@@ -42,9 +42,6 @@ stage = 1
 approach = 1
 constant_r_parameter = 1
 
-
-LOCK_FILE = 'settings.lock'
-
 ACTIVE_JSON_PATH = None 
 h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
 LE_shift = 0.025
@@ -416,7 +413,7 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):
             section_idx_float = float(section_idx_str)
             
             # Base heights
-            h_H_base = [0.0, 0.2, 0.5, 0.8, 1.0]
+            h_H_base = [0.0, 0.2, 0.5, 0.8, 1.0] # Why hardcoded?
             section_idx = h_H_base.index(section_idx_float)
             
             row_str = new_adjustment_data['adjust_row']
@@ -2804,8 +2801,8 @@ def read_parameters_from_file(filename):
 
     except FileNotFoundError:
         print("File not found. Please ensure the Setting.txt exists.")
-
-read_parameters_from_file('Setting.txt')
+'''
+#read_parameters_from_file('Setting.txt')
 NROW = nrow
 
 # values from channel calculation
@@ -2813,7 +2810,7 @@ global x_values, r_values, m_prime_values, x0
 #x_values, r_values, m_prime_values, x0 = channel(h_H,stage, float(inlet_area), float(inlet_dist), float(outlet_area), float(outlet_dist), fixed_radius_type)
 
 path = output_folder
-
+'''
 
 # functions for adjusting bezier point
 def adjustBezierCurve_d_l(BezierPoints):

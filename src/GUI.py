@@ -834,9 +834,11 @@ class CompressorGui:
                     
                     if param == 'n':
                         entry = ttk.Entry(frame, width=10)
-                        entry.insert(0, str(values[0]))  # just show the first value
-                        entry.grid(row=i, column=1, columnspan=len(values), padx=5, pady=5)
-                        entries[param].append(entry)
+                        entry.insert(0, str(values[0]))  # asks for only one RPM value
+                        entry.grid(row=i, column=1, padx=5, pady=5, sticky='w')
+                        num_stages = self.stage 
+                        for _ in range(num_stages):
+                            entries[param].append(entry)
                     else:
                         for j, value in enumerate(values):
                             entry = ttk.Entry(frame, width=10)

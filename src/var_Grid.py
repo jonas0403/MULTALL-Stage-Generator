@@ -95,7 +95,6 @@ def create_bleed_air_card(NROW, file, rotor_data, stator_data, current_stage):
 # Needs to be looped or called multiple times for each section IN EACH stage
 def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels, CompressorGui, RPM):
     section = 0
-    NSEC
     
     ktipstart = 0
     ktipend = 0
@@ -681,6 +680,10 @@ def process_grid_data(json_path, CompressorGui):
         JTE = data['JTE']
         JM_row = data['JM']
         NSEC_new = len(data['x_new'])
+        
+        global_row_num = i + 1
+        
+        current_stage = (i / 2) + 1
      
         multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_mm_rotor, levels, CompressorGui, RPM)
         write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM_row)

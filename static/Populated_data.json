@@ -9,7 +9,9 @@
     },
     "Meanline_input_data": {
         "n": [
-            10080.0
+            10081.0,
+            10081.0,
+            10081.0
         ],
         "psi_h": [
             0.9,
@@ -264,7 +266,7 @@
         }
     },
     "Metadata": {
-        "output_folder": "C:/Users/Luca1/Desktop/01_Multall_01/01_Multall_01",
+        "output_folder": "D:/Uni/Bachelorarbeit/test2/Bachelorarbeit/static",
         "main_choice": "default",
         "levels": [
             0.0,
