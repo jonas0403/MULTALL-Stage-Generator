@@ -92,7 +92,7 @@ def create_gui():
 
     root.mainloop()
     
-def Thermo(p_t_in, T_t_in, mflow, R, cp, TPR):
+def Thermo(p_t_in, T_t_in, mflow, R, cp, TPR, i_st):
     #global p_t_in, T_t_in, mflow, R, cp, TPR
 
     
@@ -110,7 +110,7 @@ def Thermo(p_t_in, T_t_in, mflow, R, cp, TPR):
     delta_h_t = cp*(T_t_a-T_t_in)
     u_m_approx = 332.0
     psi_h_t_st = 1.0
-    i_st = 3
+    
     u_m = math.sqrt(2*delta_h_t/(i_st*psi_h_t_st))
 
     P = mflow*delta_h_t

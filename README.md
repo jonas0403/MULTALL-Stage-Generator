@@ -72,7 +72,7 @@ The following packages are part of the Python standard library and require no se
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/MULTALL-Stage-Generator.git
+git clone https://github.com/jonas0403/MULTALL-Stage-Generator.git
 cd MULTALL-Stage-Generator
 ```
 
@@ -114,9 +114,10 @@ All calculation inputs are stored in a single `.json` file. This file serves as 
 
 | # | Feature |
 |---|---------|
-| 4 | Automatic bash file generation to run multiple simulations with varying inlet pressures for compressor map generation |
-| 5 | Integrated compressor map plotting tool |
-| 6 | Automatic simulation launch in a separate command window |
+| 4 | Changing the meanline calculation to accept more or less than three stages
+| 5 | Automatic bash file generation to run multiple simulations with varying inlet pressures for compressor map generation |
+| 6 | Integrated compressor map plotting tool |
+| 7 | Automatic simulation launch in a separate command window |
 
 Contributions towards any of these are especially welcome — see [Contributing](#contributing) below.
 

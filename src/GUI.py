@@ -127,7 +127,8 @@ class CompressorGui:
                     new_thermo_values['mflow'],
                     new_thermo_values['R'],
                     new_thermo_values['cp'],
-                    new_thermo_values['TPR']
+                    new_thermo_values['TPR'],
+                    self.stage
                 )
                 print("Calculation of Thermodynamic Data completed.") 
             except ValueError:
@@ -830,12 +831,26 @@ class CompressorGui:
                     ttk.Label(frame, text=f"{gui_name}:").grid(row=i, column=0, padx=5, pady=5, sticky='w')
                     entries[param] = []
                     values = self.prepop_meanline_input_data[param]
+                    
+                    if param == 'n':
+                        entry = ttk.Entry(frame, width=10)
+                        entry.insert(0, str(values[0]))  # just show the first value
+                        entry.grid(row=i, column=1, columnspan=len(values), padx=5, pady=5)
+                        entries[param].append(entry)
+                    else:
+                        for j, value in enumerate(values):
+                            entry = ttk.Entry(frame, width=10)
+                            entry.insert(0, str(value))
+                            entry.grid(row=i, column=j+1, padx=5, pady=5)
+                            entries[param].append(entry)
+                    '''
+                    # Old. RPM should only be one input box because the value is const over that whole compressor
                     for j, value in enumerate(values):
                         entry = ttk.Entry(frame, width=10)
                         entry.insert(0, str(value))
                         entry.grid(row=i, column=j+1, padx=5, pady=5)
                         entries[param].append(entry)
-
+                    '''
             def save_and_initialize_meanline(show_plot):
                 print(f"Writing using the save_and_initialize function. Show_plot = {show_plot}")
                 
@@ -1095,6 +1110,10 @@ class CompressorGui:
         self.create_bleed_input_widget()
         self.setup_inlet_outlet_tab()
         
+        # Save button for the whole of the 3D-Tab, saving all entered data in these tabs
+        # Sits below all of the four tabs
+        self.save_button_inlet_outlet = ttk.Button(parent_frame, text="Save", command=self.save_and_initialize_3D_tab)
+        self.save_button_inlet_outlet.pack(pady=10, side='bottom')
         
         
         # --- Can Not be ignored ---
@@ -1336,9 +1355,11 @@ class CompressorGui:
         self.outlet_dist_entry.grid(row=1, column=1, padx=5, pady=5)
         
         # Save Button
-        self.save_button_inlet_outlet = ttk.Button(self.inlet_outlet_frame, text="Save", command=self.save_and_initialize)
+        '''
+        # Save button moves to below all tabs
+        self.save_button_inlet_outlet = ttk.Button(self.inlet_outlet_frame, text="Save", command=self.save_and_initialize_3D_tab)
         self.save_button_inlet_outlet.pack(pady=10, side='bottom')
-
+        '''
         
         
     def update_bleed_air_display(self, *args):
@@ -1459,6 +1480,9 @@ class CompressorGui:
             if isinstance(widget, ttk.LabelFrame):
                 widget.destroy()
         
+        # Building stage list from self.stage  for the dropdown to choose which stage 
+        stage_options = [f"Stage {i+1}" for i in range(self.stage)] if hasattr(self, 'stage') and self.stage > 0 else ["Stage 1"]
+        
         # Creat new Input widget for each Patch
         for i in range(num_patches):
             patch_frame = ttk.LabelFrame(parent_frame, text=f"Bleed Air Patch {i+1}")
@@ -1466,57 +1490,76 @@ class CompressorGui:
             
             patch_entries = []
             
+            
+            # Stage selection Dropdown menu at the top of each patch
+            stage_label = ttk.Label(patch_frame, text="Stage:")
+            stage_label.grid(row=0,column=0,padx=5, pady=2, sticky='w')
+            stage_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
+            stage_q_label.grid(row=0, column=3, padx=2, pady=2, sticky='w')
+            Tooltip(stage_q_label, "Select which stage this bleed air patch applies to")
+            stage_var = tk.StringVar(value=stage_options[0])
+            stage_dropdown = ttk.Combobox(patch_frame, textvariable=stage_var, values=stage_options, state="readonly", width=10)
+            stage_dropdown.grid(row=0, column=1, columnspan=2, padx=5, pady=2)
+            
+
+            
             # I coordinates
             i_label = ttk.Label(patch_frame, text="I start/end:")
-            i_label.grid(row=0,column=0,padx=5, pady=2, sticky='w')
+            i_label.grid(row=1,column=0,padx=5, pady=2, sticky='w')
             i_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
-            i_q_label.grid(row=0, column=3, padx=2, pady=2, sticky='w')
+            i_q_label.grid(row=1, column=3, padx=2, pady=2, sticky='w')
             Tooltip(i_q_label, " The I-Coordinates define the Spanwise direction. If using standard Grid and Blade settings, choose Values between 1 and 37. If you want to have bleed air over the whole spane enter 1 and 37")
             i_start_entry = ttk.Entry(patch_frame, width=5)
-            i_start_entry.grid(row=0, column=1, padx=5, pady=2)
+            i_start_entry.grid(row=1, column=1, padx=5, pady=2)
             i_end_entry = ttk.Entry(patch_frame, width=5)
-            i_end_entry.grid(row=0, column=2, padx=5, pady=2)
+            i_end_entry.grid(row=1, column=2, padx=5, pady=2)
             
             # J coordinates
             j_label = ttk.Label(patch_frame, text="J start/end:")
-            j_label.grid(row=1,column=0,padx=5, pady=2, sticky='w')
+            j_label.grid(row=2,column=0,padx=5, pady=2, sticky='w')
             j_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
-            j_q_label.grid(row=1, column=3, padx=2, pady=2, sticky='w')
+            j_q_label.grid(row=2, column=3, padx=2, pady=2, sticky='w')
             Tooltip(j_q_label, f"The J-Coordinates define the Axial direction. With default Gird and Bladevalues 1 is defined as the start of the Blade while 96 is defined as the End of the blade")
             j_start_entry = ttk.Entry(patch_frame, width=5)
-            j_start_entry.grid(row=1, column=1, padx=5, pady=2)
+            j_start_entry.grid(row=2, column=1, padx=5, pady=2)
             j_end_entry = ttk.Entry(patch_frame, width=5)
-            j_end_entry.grid(row=1, column=2, padx=5, pady=2)
+            j_end_entry.grid(row=2, column=2, padx=5, pady=2)
             
             # K coordinates
             k_label = ttk.Label(patch_frame, text="K start/end:")
-            k_label.grid(row=2,column=0,padx=5, pady=2, sticky='w')
+            k_label.grid(row=3,column=0,padx=5, pady=2, sticky='w')
             k_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
-            k_q_label.grid(row=2, column=3, padx=2, pady=2, sticky='w')
+            k_q_label.grid(row=3, column=3, padx=2, pady=2, sticky='w')
             Tooltip(k_q_label, "The K-Coordinate is defined as the Radial direction with 1 being the Hub wall and 37 being the Shroud wall (for the standard Grid and channel Settings). If you only want Bleed air to be extracted from one of the wall enter 1 and 1 or 37 and 37. It is also possible to extract Bleed air from the Stators and Rotors")
             k_start_entry = ttk.Entry(patch_frame, width=5)
-            k_start_entry.grid(row=2, column=1, padx=5, pady=2)
+            k_start_entry.grid(row=3, column=1, padx=5, pady=2)
             k_end_entry = ttk.Entry(patch_frame, width=5)
-            k_end_entry.grid(row=2, column=2, padx=5, pady=2)
+            k_end_entry.grid(row=3, column=2, padx=5, pady=2)
             
             # Massflow
             mflow_label = ttk.Label(patch_frame, text="Extraced Bleed Air (kg/s):")
-            mflow_label.grid(row=3, column=0, padx=5, pady=2, sticky='w')
+            mflow_label.grid(row=4, column=0, padx=5, pady=2, sticky='w')
             mflow_q_label = ttk.Label(patch_frame, text="?", cursor="question_arrow")
-            mflow_q_label.grid(row=3, column=3, padx=2, pady=2, sticky='w')
+            mflow_q_label.grid(row=4, column=3, padx=2, pady=2, sticky='w')
             Tooltip(mflow_q_label, "The massflow rate is defined in kg/s. Specify how much Bleed air you want to be extracted in this Bleed air patch")
             massflow_entry = ttk.Entry(patch_frame, width=10)
-            massflow_entry.grid(row=3, column=1, columnspan=2, padx=5, pady=2)
+            massflow_entry.grid(row=4, column=1, columnspan=2, padx=5, pady=2)
             
             # Store Enter entries
-            patch_entries.extend([i_start_entry, i_end_entry, j_start_entry, j_end_entry, k_start_entry, k_end_entry, massflow_entry])
+            patch_entries.extend([stage_var, i_start_entry, i_end_entry, j_start_entry, j_end_entry, k_start_entry, k_end_entry, massflow_entry])
+            
             
             print(f"patch_entries: {patch_entries}")
             # Insert loaded values if exisiting
             if i < len(patches_data):
-                for idx, entry in enumerate(patch_entries):
-                    if idx < len(patches_data[i]):
-                        entry.insert(0,patches_data[i][idx])
+                saved_patch = patches_data[i]
+                # Load stage (index 0)
+                if len(saved_patch) > 0 and saved_patch[0] in stage_options:
+                    stage_var.set(saved_patch[0])
+                # Load remaining entries (indices 1-7 in saved data into entries index 1-7)
+                for idx, entry in enumerate(patch_entries[1:], start=1):
+                    if idx < len(saved_patch):
+                        entry.insert(0, saved_patch[idx])
                         
             if blade_type == 'rotor':
                 self.rotor_patch_entries.append(patch_entries)
@@ -1568,7 +1611,7 @@ class CompressorGui:
 
         
         
-    
+        # Is this needed?
         def save_adjustments_to_json(self, new_adjust_values):
         
             try:
@@ -1856,6 +1899,7 @@ class CompressorGui:
             shutil.copy(filepath, "bezier_control_points_S.txt")
             print(f"Stator Profile loaded: {filepath}")
 
+    '''
     # not in use anymore
     def save_and_initialize_old(self):
         
@@ -1924,10 +1968,10 @@ class CompressorGui:
             file.write(f"outlet_dist = {outlet_dist}\n")
 
         print("Parameters saved successfully.")
-    
-    # --- Old probably not used ---
+    '''
+    # --- Used for the saving of the 3D tab currently located in the Area change tab of the 3 d tab ---
         
-    def save_and_initialize(self):
+    def save_and_initialize_3D_tab(self):
         try:
             # Read existing JSON data
             with open(json_path, 'r') as file:
@@ -1975,26 +2019,28 @@ class CompressorGui:
                 # Save rotor patches
                 for i, entries in enumerate(self.rotor_patch_entries):
                     patch_data = [
-                        int(entries[0].get()),
+                        entries[0].get(),
                         int(entries[1].get()),
                         int(entries[2].get()),
                         int(entries[3].get()),
                         int(entries[4].get()),
                         int(entries[5].get()),
-                        float(entries[6].get())
+                        int(entries[6].get()),
+                        float(entries[7].get())
                     ]
                     new_bleed_air_data[f"rotor_patch_{i+1}"] = patch_data
                 
                 # Save stator patches
                 for i, entries in enumerate(self.stator_patch_entries):
                     patch_data = [
-                        int(entries[0].get()),
+                        entries[0].get(),
                         int(entries[1].get()),
                         int(entries[2].get()),
                         int(entries[3].get()),
                         int(entries[4].get()),
                         int(entries[5].get()),
-                        float(entries[6].get())
+                        int(entries[6].get()),
+                        float(entries[7].get())
                     ]
                     new_bleed_air_data[f"stator_patch_{i+1}"] = patch_data
             
@@ -2662,21 +2708,47 @@ class CompressorGui:
         dialog.title("Startup")
         dialog.resizable(False, False)
 
+        # Asks for the amount of stages
         ttk.Label(dialog, text="Number of Stages:").grid(row=0, column=0, padx=10, pady=10, sticky='w')
         
         stage_var = tk.IntVar(value=3)
         stage_entry = ttk.Entry(dialog, textvariable=stage_var, width=5)
         stage_entry.grid(row=0, column=1, padx=10, pady=10)
+        # Changing amount of stages cant be done at this very moment. Box entry cant be modified
+        stage_entry.config(state='readonly')
 
+        # Asks for the amount of stages to be calculated
+        ttk.Label(dialog, text="Stages to Calculate:").grid(row=1, column=0, padx=10, pady=10, sticky='w')
+        
+        stages_to_calc_var = tk.IntVar(value=3)
+        stages_to_calc_entry = ttk.Entry(dialog, textvariable=stages_to_calc_var, width=5)
+        stages_to_calc_entry.grid(row=1, column=1, padx=10, pady=10)
+        
+        # error label incase of stages_to_calc_entry > stage_entry
+        error_label = ttk.Label(dialog, text="", foreground="red")
+        error_label.grid(row=2, columnspan=2)
+        
         def save_and_start():
             try:
-                self.stage = int(stage_entry.get())
+                num_stages = int(stage_entry.get())
+                num_to_calc = int(stages_to_calc_entry.get())
+                
+                if num_to_calc > num_stages:
+                    error_label.config(text=f"Stages to calculate ({num_to_calc}) cannot exceed total stages ({num_stages})!")
+                    return
+                
+                if num_to_calc < 1:
+                    error_label.config(text="Stages to calculate must be at least 1!")
+                    return
+                
+                self.stage = num_stages
+                self.stages_to_calc = num_to_calc
                 dialog.destroy()
                 self.render_gui()
             except ValueError:
-                ttk.Label(dialog, text="Please enter a valid integer!", foreground="red").grid(row=2, columnspan=2)
+                error_label.config(text="Please enter a valid integer!")
 
-        ttk.Button(dialog, text="Save and Start GUI", command=save_and_start).grid(row=1, columnspan=2, pady=10)
+        ttk.Button(dialog, text="Save and Start GUI", command=save_and_start).grid(row=3, columnspan=2, pady=10)
 
         dialog.mainloop() 
     
@@ -2709,7 +2781,7 @@ class CompressorGui:
         notebook.add(other, text="Other-Settings")
                 
         self.zeroD_tab(zeroD)
-        self.oneD_tab(oneD, i_st_val = 3)
+        self.oneD_tab(oneD, self.stage)
         self.threeD_tab(threeD)
         self.grid_definition_tab(grid)
         #self.write_multall_data_tab(multall_data)

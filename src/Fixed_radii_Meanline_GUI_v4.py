@@ -819,7 +819,7 @@ def meanline(thermo_data, meanline_data, diameter_data, plot_channel_contour):
     alpha_1 = [90]*i_st
     alpha_3 = [90]*i_st
 
-     # --- Pre-allocate lists for calculated flow properties ---
+    # --- Pre-allocate lists for calculated flow properties ---
     # These will be populated stage by stage in the main loop
     u1, u2, u3, u1_u2, u2_u2= [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st, [0.0]*i_st
     h_R_l_R, t_R, l_R_t_R = [0.0]*i_st, [0.0]*i_st, [0.0]*i_st

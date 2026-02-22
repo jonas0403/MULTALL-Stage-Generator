@@ -9,8 +9,6 @@
     },
     "Meanline_input_data": {
         "n": [
-            10080.0,
-            10080.0,
             10080.0
         ],
         "psi_h": [
@@ -310,6 +308,7 @@
         "rotor_patches": 0,
         "stator_patches": 1,
         "stator_patch_1": [
+            "Stage 1",
             1,
             37,
             10,

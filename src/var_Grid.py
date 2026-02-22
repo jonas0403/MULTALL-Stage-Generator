@@ -50,7 +50,33 @@ def grid_adaption(grid_count, max=20, beta=2 ): # Erstellung von Gridabständen 
     
     return scaled_spacings
 
-def create_bleed_air_card(NROW, file, rotor_data, stator_data):
+def create_bleed_air_card(NROW, file, rotor_data, stator_data, current_stage):
+    # Filter patches for current stage 
+    stage_key = f"stage_{current_stage}"
+    
+    # index 0 is stage string, rest are coords and mflow
+    rotor_stage_patches = [patches for patches in rotor_data if patches[0] == stage_key]
+    stator_stage_patches = [patches for patches in stator_data if patches[0] == stage_key]
+    
+    # Nbleed needs to be written for each row in each stage 
+    print(f"file = {file}")
+    with open(file, "a") as file:
+        # Rotor NBLEED always written
+        file.write("NBLEED\n")
+        file.write(f"{len(rotor_stage_patches)}\n")
+        for patches in rotor_stage_patches:
+            file.write('\t'.join(str(p) for p in patches[1:])+ '\n')
+            
+        # Stator NBLEED needs to be writte if NROW != 1
+        if NROW != 1:
+            file.write("NBLEED\n")
+            file.write(f"{len(stator_stage_patches)}\n")
+            for patches in stator_stage_patches:
+                file.write('\t'.join(str(p) for p in patches[1:])+ '\n')
+    
+    
+    # Old bleed air card writing. Not usuable for multistage purposes
+    '''
     print(f"file={file}")
     with open(file, "a") as file:
         if len(rotor_data) != 0 or len(stator_data) != 0:
@@ -64,7 +90,7 @@ def create_bleed_air_card(NROW, file, rotor_data, stator_data):
                 file.write(f"{len(stator_data)}\n")
                 for patches in stator_data:
                     file.write('\t'.join(patches)+ '\n')
-
+    '''
 ## Multall .dat File schreiben
 # Needs to be looped or called multiple times for each section IN EACH stage
 def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels, CompressorGui):
@@ -180,8 +206,8 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
         file.write("  IF_RESTART \n")
         file.write("         0\n")
         file.write("  NSTEPS_MAX, CONLIM\n")
-        if CompressorGui.Stage > 1:
-            file.write("      12000  0.006000\n") # Documentation calls for more steps in multistage applications
+        if CompressorGui.stages_to_calc > 1:
+            file.write("      120000  0.006000\n") # Documentation calls for more steps in multistage applications
         elif section == 0:
             file.write("      9000  0.006000\n")
         else: 
@@ -242,7 +268,7 @@ def write_head_file(KM_grid_density, IM_grid_density, file_path, section, NROW, 
         file.write("        ILOS      NLOS      IBOUND \n")
         file.write("        10         5         0\n")
         file.write("   REYNO,     RF_VIS,   FTRANS, TURBVIS_LIM, PRANDTL, YPLUSWALL\n")
-        if CompressorGui.stage >1:
+        if CompressorGui.stages_to_calc >1:
             file.write("  800000.0     0.500     0.000  3000.000       1.0     0.000\n") #  The doc explicitly states: "higher values, up to 3000, may be necessary in multistage machines." 
         else:
             file.write("  800000.0     0.500     0.000  1000.000       1.0     0.000\n")
@@ -294,7 +320,7 @@ def Q3D_information(file):
 # writes end of the file 
 def write_end_file(row, file, section, KM, levels):
     # Here needs to be new logic because row only works for one stage 
-    #Some logic for the rows and NROW is missing
+    # Some logic for the rows and NROW is missing
     if row == 1: # Maybe use modulus here to get if the row is odd (rotor) or even (stator)
         x = round(Stage.p_R_out[0], 1)
         y = round(Stage.p_R_out[len(Stage.h_rel)-1], 1)
@@ -475,10 +501,10 @@ def generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_
         JTE = n_max_in + j_prime_max - 1
         JM = n_max_in + n_max_out + j_prime_max - 2
         
-        # if row_num == 1:
-        #     JM_dynamic_rotor = JM_dynamic
-        # else:
-        #     JM_dynamic_stator = JM_dynamic
+        if row_num == 1:
+            JM_dynamic_rotor = JM_dynamic
+        else:
+            JM_dynamic_stator = JM_dynamic
         print(f"Dynamische Gitterpunkte (nur Schaufel): {JM_dynamic}")
         print(f"Punkte insgesamt (JM): {JM}, Einlass-Index (JLE): {JLE}, Auslass-Index (JTE): {JTE}")
         print(f"Anzahl der Punkte im Einlass: {n_max_in}, Anzahl der Punkte im Auslass: {n_max_out}")
