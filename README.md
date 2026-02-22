@@ -31,6 +31,29 @@ This tool replaces both with a modern, interactive GUI, making the preprocessing
 
 ---
 
+## Results & Visualization
+
+<table>
+  <tr>
+    <td width="50%">
+      <strong>Compressor Map</strong> generated from MULTALL simulation data:<br><br>
+      The compressor map was produced by running multiple MULTALL simulations across varying inlet conditions and channel contours. Each curve represents a different channel geometry, allowing direct comparison of aerodynamic performance across design variants.
+    </td>
+    <td width="50%">
+      <strong>ParaView flow visualization</strong> inside rotor and stator:<br><br>
+      The flow field visualization was created using <a href="https://www.paraview.org/">ParaView</a>, an open-source data analysis and visualization tool. It shows the internal flow structure through the rotor and stator passages as computed by the MULTALL CFD solver.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="static/image/compressormap_differen_channel_contours.JPG" width="400"/>
+    </td>
+    <td width="50%">
+      <img src="static/image/airflow_visualization_rotor_stator.png" width="400"/>
+    </td>
+  </tr>
+</table>
+
 ## Installation
 
 ### Requirements
