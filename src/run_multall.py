@@ -10,18 +10,33 @@ class MultallSimulation:
         self.status_label = status_label
         
         self.full_file_path = ""
+        self.multall_file_path = ""
         self.working_dir = ""
         self.data_name = ""
         
+    def choose_file_multall(self):
+        self.full_file_path = tk.filedialog.askdirectory(title="Select a Multall directory")
+        
+        if self.full_file_path:
+            
+            self.working_dir = self.full_file_path
+            
+            print(f"Multall executable path: {self.working_dir}")
+            print(f"Data name: {self.data_name}")
+            
+            self.status_label.config(text=f"Selected Multall Path: {self.working_dir}", foreground="green")
+        
+        else:
+            self.status_label.config(text="Please Select Multall Path first", foreground="red")    
+            
     def choose_file(self):
         self.full_file_path = tk.filedialog.askopenfilename(title="Select a file", filetypes=[("All files", "*.*")])
         
         if self.full_file_path:
             
-            self.working_dir, self.data_name = os.path.split(self.full_file_path)
+            self.data_name = self.full_file_path
             
             print(f"Selected file: {self.full_file_path}")
-            print(f"Multall executable path: {self.working_dir}")
             print(f"Data name: {self.data_name}")
             
             self.status_label.config(text=f"Selected file: {self.data_name}", foreground="green")
@@ -35,10 +50,11 @@ class MultallSimulation:
             return
 
         try:
-            execcutable = "multall.exe"
-            cmd = f'"{execcutable} < {self.data_name}"'
-            full_cmd = f'start "Multall calculations..." cmd /k "cd /d "{self.working_dir}" && {cmd}"'
- 
+            execcutable = self.working_dir
+            cmd = f'multall.exe < "{self.data_name}"'
+            full_cmd = f'start "Multall calculations" cmd /k "{cmd}"'
+
+            
             subprocess.Popen(full_cmd, shell=True, cwd=self.working_dir)
             
             self.master.destroy()
@@ -48,7 +64,8 @@ class MultallSimulation:
         
         window.destroy()
 
-if __name__ == "__main__":    
+if __name__ == "__main__": 
+   
     window = tk.Tk()
     window.title("Multall Launcher")
     tk.Label(window, text="Multall Launcher", font=("Arial", 16)).pack(pady=10)
@@ -61,6 +78,9 @@ if __name__ == "__main__":
     file_status_label.pack(pady=10)
 
     sim = MultallSimulation(window, file_status_label)
+    
+    btn_multall = tk.Button(main_frame, text="Select a Multall directory", command=sim.choose_file_multall)
+    btn_multall.pack(pady=5, fill='x')
 
     btn_select = tk.Button(main_frame, text="Select File to calculate", command=sim.choose_file)
     btn_select.pack(pady=5, fill='x')

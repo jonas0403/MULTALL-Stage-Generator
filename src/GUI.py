@@ -2170,9 +2170,6 @@ class CompressorGui:
     def show_plots_section_stator(self):
         NROW = 2   
         h = [0.0 , 0.2, 0.5, 0.8, 1.0]
-        
-        if not os.path.exists("bezier_control_points_R.txt") or not os.path.exists("bezier_control_points_S.txt"):
-            print("Bezier control point files are missing. Please load or create them first.")
             
         length = []
         row = 2
@@ -2683,7 +2680,7 @@ class CompressorGui:
             if config["key"] == "ref_chord_length":
                 ttk.Checkbutton(
                     self.settings_frame, 
-                    text="Activate Mode", 
+                    text="Change reference Chord length", 
                     variable=grid_data['ref_chord_length_mode'], 
                     command=toggle_ref_chord
                 ).grid(row=row_index, column=3, padx=10) 
