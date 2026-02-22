@@ -2608,7 +2608,7 @@ class CompressorGui:
                 return
             
             print("Generating Grid...")
-            VG.process_grid_data(json_path, CompressorGui)
+            VG.process_grid_data(json_path, self)
             print("Grid is generated.")
             
         
@@ -2761,7 +2761,7 @@ class CompressorGui:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill="both", expand=True)
 
-        #self.root.protocol("WM_DELETE_WINDOW", self.start_Multall)
+        self.root.protocol("WM_DELETE_WINDOW", self.start_Multall)
                     
         # Fügt Tab listen ein
         notebook = ttk.Notebook(main_frame)  

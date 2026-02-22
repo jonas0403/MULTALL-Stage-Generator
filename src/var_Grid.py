@@ -93,7 +93,7 @@ def create_bleed_air_card(NROW, file, rotor_data, stator_data, current_stage):
     '''
 ## Multall .dat File schreiben
 # Needs to be looped or called multiple times for each section IN EACH stage
-def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels, CompressorGui):
+def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clearance, levels, CompressorGui, RPM):
     section = 0
     NSEC
     
@@ -103,7 +103,7 @@ def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clear
     
     if tip_clearance > 0:
         if row == 1:
-            ktipstart = KM - 2
+            ktipstart = KM - 4
             ktipend = KM
             actual_tip_clearance = tip_clearance
         else:
@@ -120,7 +120,7 @@ def multall_grid_data_head_row(file_path, NSEC, row, JLE, JM, JTE, KM, tip_clear
         if row == 1:
             x = round(Stage.p_1[0], 1)
             y = round(Stage.p_2[0], 1)
-            z = Stage.RPM[0]
+            z = RPM[0]
             blades = Stage.z_R[0]
         elif row == 2:
             x = round(Stage.p_2[0], 1)
@@ -481,16 +481,16 @@ def generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_
         actual_chord, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = Stage.calculation_of_section(0.5, row_num)
         
         # h_H_plot is never in the whole of the project defined
-        try:
-            h_H_plot = h_H_plot if h_H_plot else 0.5
-        except NameError:
-            h_H_plot = 0.5# What values is here needed? Default at 50%?
+        # try:
+        #     h_H_plot = h_H_plot if h_H_plot else 0.5
+        # except NameError:
+        #     h_H_plot = 0.5# What values is here needed? Default at 50%?
         
-        printing_chord, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = Stage.calculation_of_section(h_H_plot, row_num) 
+        #printing_chord, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = Stage.calculation_of_section(h_H_plot, row_num) 
         print(f"Sehnenlänge für Reihe {row_num}: {actual_chord:.2f} mm")
 
         JM_dynamic = int(round((actual_chord / reference_chord_length) * JM_grid_density))
-        j_prime_max_plot = int(round((printing_chord / reference_chord_length) * JM_grid_density))      
+        #j_prime_max_plot = int(round((printing_chord / reference_chord_length) * JM_grid_density))      
         
         #dynamische Berechnung der Anzahl der Gitterpunkte im Einlass und Auslass
         n_max_in = int(round(JM_dynamic * inlet_percentage))
@@ -545,7 +545,8 @@ def generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_
             'JLE': JLE,
             'JTE': JTE,
             'IM': IM_grid_density,
-            'KM': KM_grid_density
+            'KM': KM_grid_density,
+            'JM_dynamic': JM_dynamic
         })
         
         # all_rows_data_plot.append({
@@ -556,236 +557,8 @@ def generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_
         #     'Rtheta_new': Rtheta_new_plot
         # })
     
-    return all_rows_grid_data, all_rows_data_plot, JM_dynamic
+    return all_rows_grid_data
 
-'''     
-   
-        # if tip_clearance_mm_rotor > 0:
-        #     KM_grid_density += 3
-        
-        if Q3D_value:
-            KM_grid_density = 2 # Setzt KM auf 2 wenn Q3D aktiv ist
-        else: 
-            KM_grid_density = KM_grid_density # Ansonsten bleibt KM wie ausgewählt
-        
-        # Berechnung der Spaltgröße in Multall
-        total_height = (Stage.D_S1[0] - Stage.D_H1[0]) / 2.0
-        tip_clearance_multall = (tip_clearance_mm_rotor / total_height)
-        tip_clearance_percentage = (tip_clearance_mm_rotor / total_height) * 100        
-
-        # Führt die Gittergenerierung und das Plotten durch
-        print("Starting calculation of dynamic grid...")
-        grid_data_list, grid_data_list_plot, JM_dynamic, JM = generate_and_plot_grid(nrow_wert, IM_grid_density, KM_grid_density, h_H_plot, JM_grid_density, inlet_percentage, outlet_percentage, ref_chord_length, stage_levels)
-        print("Grid calculation completed.")
-        print(f"IM: {IM_grid_density}, KM: {KM_grid_density}, Grid Density: {JM_grid_density}")
-       
-        if do_plot:
-            print("Plotting grid data...")
-            plot_all(grid_data_list_plot, JM_dynamic)
-            print("Grid data plotted successfully.")
-        
-        else:
-            print("Plotting skipped as per user selection.")
-        
-        if Q3D_value:
-            output_name = f"multall_grid_Q3D_IM_{IM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
-        else:
-            output_name = f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}_ref_chord_{ref_chord_length}.dat"
-            
-        full_output_path = os.path.join(output_path, output_name)
-        file_path = full_output_path
-        section = 0 
-        
-        NSEC = len(stage_levels)
-
-        print("Writing Multall grid data head row...")
-        write_head_file(KM_grid_density, IM_grid_density, full_output_path, section, nrow_wert, NSEC, Q3D_value, enable_bleed_air)
-        print("Multall grid data head row written successfully.")
-        
-        for i, data in enumerate(grid_data_list):
-            row_num = data['row_num']
-            x_coords = data['x_new'] 
-            d_coords = data['d_new']
-            r_coords = data['R_new']
-            rtheta_coords = data['Rtheta_new']
-            JLE = data['JLE']
-            JTE = data['JTE']
-            JM = data['JM']
-            NSEC_new = len(data['x_new'])
-        
-            print("Writing Multall grid data head row...")
-            multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM, JTE, KM_grid_density, tip_clearance_multall, stage_levels)
-            print("Multall grid data head row written successfully.")
-
-            print(f"Writing coordinates for row {row_num}...")
-            write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM)
-            print(f"Grid data for row {row_num} written successfully.")
-        
-        if Q3D_value:
-            Q3D_information(full_output_path)
-            print("Q3D information written successfully.")
-        
-        print("Starting writing end of file...")
-        write_end_file(nrow_wert, full_output_path, section, KM_grid_density, stage_levels)
-        print(f"Grid data for all rows written to {full_output_path} successfully.")
-        
-        print("All tasks completed successfully.")
-        
-        # dialog = MultallPathDialog(window)
-        # multall_executable_path = dialog.result_path
-        
-        # if multall_executable_path:
-        #     print(f"Multall executable path: {multall_executable_path}")
-        #     run_multall_simulation(full_output_path, multall_executable_path)
-        #     print("Multall simulation completed.")
-        
-        window.destroy()
-        
-        
-    confirm_button = ttk.Button(main_frame, text="Generate Grid", command=on_confirm)
-    confirm_button.pack(pady=15, fill="x")
-
-    window.mainloop()
-
-
-
-# GUI zur Eingabe der Benutzereinstellungen
-def get_user_settings_from_gui(settings_loaded):
-
-    def browse_output_folder():
-        path = filedialog.askdirectory()
-        if path:            
-            output_folder_entry.delete(0, tk.END) # Löscht alte Inhalte
-            output_folder_entry.insert(0, path) # Neuer Pfad
-
-    window = tk.Tk()
-    window.title("Dynamic Grid-Generator")
-    
-    loaded_levels = settings_loaded.get('levels', '0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00')
-    loaded_output = settings_loaded.get('output_folder', '')
-    
-            
-    settings = { # Lade die Standartwerte
-        'nrow': tk.IntVar(value=2),
-        'h_H_plot': tk.DoubleVar(value=0.5),
-        'im_selection' : tk.StringVar(value=37),   # Default-Wert für IM
-        'km_selection' : tk.StringVar(value=37),   # Default-Wert für KM
-        'ref_chord_length': tk.DoubleVar(value=134.4),  # Default-Wert für Referenz-Sehnenlänge
-        'JM_grid_density': tk.IntVar(value=200),  # Default-Wert für Referenz-Gitterpunkte
-        'tip_clearance_rotor': tk.DoubleVar(value=1.3),  # Standardwert von 1.3mm
-        #'tip_clearance_stator': tk.DoubleVar(value=1.5),  # Standardwert von 1.5mm
-        'inlet_percentage': tk.DoubleVar(value=0.2),  # Standardwert von 20%
-        'outlet_percentage': tk.DoubleVar(value=0.15),  # Standardwert von 15%
-        'levels': tk.StringVar(value=loaded_levels),  # Standardwerte für die Ebenen
-        'output_folder': tk.StringVar(value=loaded_output),  # Standardwert für den Ausgabe
-        'show_plot': tk.BooleanVar(value=False),  # Standardwert für die Anzeige des Plots
-        'Q3D_mode': tk.BooleanVar(value=False)  # Standardwert für Q3D Modus
-    }
-    
-    main_frame = ttk.Frame(window, padding="10")
-    main_frame.pack(fill="both", expand=True)
-
-        
-    # Fügt Tab listen ein
-    notebook = ttk.Notebook(main_frame)  
-    notebook.pack(fill='both', expand=True, padx=10, pady=10)
-        
-    grid_tab = ttk.Frame(notebook, padding=10)
-    stage_tab = ttk.Frame(notebook, padding=10)
-        
-    notebook.add(grid_tab, text="Grid")
-    notebook.add(stage_tab, text="Additional Settings")
-    
-    def toggle_Q3D():
-        if settings['Q3D_mode'].get():
-            KM_grid_combobox.set("2") # Setzt KM auf 2
-            KM_grid_combobox.config(state=tk.DISABLED) # Deaktiviert die Auswahl
-        else:
-            KM_grid_combobox.config(state=tk.NORMAL) # Aktiviert die Auswahl
-            KM_grid_combobox.set("37")  # Setzt KM zurück auf 37
-
-    settings_frame = ttk.LabelFrame(main_frame, text="Grid-Settings", padding="10")
-    settings_frame.pack(fill="x", expand=True, pady=5)
-    
-    settings_frame_stage = ttk.LabelFrame(main_frame, text="Stage-Settings", padding="10")
-    settings_frame_stage.pack(fill="x", expand=True, pady=5)
-        
-    # Füllt die Tabs mit Inhalt   
-    ttk.Label(stage_tab, text="Please define the levels (0.0 to 1.0):").grid(row=10, column=0, sticky="w", pady=5)
-    ttk.Entry(stage_tab, textvariable=settings['levels'], width=50).grid(row=10, column=1, sticky="w", pady=5)
-
-    # Eingabefelder für Rotor- und Stator-Einstellungen
-    ttk.Label(grid_tab, text="Stage Components (1=R, 2=R+S):").grid(row=0, column=0, sticky="w", pady=5)
-    ttk.Entry(grid_tab, textvariable=settings['nrow'], width=10).grid(row=0, column=1, sticky="w", pady=5)
-            
-    ttk.Label(grid_tab, text="Reference Chord Length [mm]:").grid(row=1, column=0, sticky="w", pady=5)
-    ttk.Entry(grid_tab, textvariable=settings['ref_chord_length'], width=10).grid(row=1, column=1, sticky="w", pady=5)
-
-    # Gitterdichte-Auswahl IMxKM
-    ttk.Label(grid_tab, text="Grid Dimension (KM):").grid(row=2, column=0, sticky="w", pady=5)
-    im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
-    KM_grid_combobox = ttk.Combobox(grid_tab, textvariable=settings['km_selection'], values=im_km_grid_options, state="readonly")
-    KM_grid_combobox.grid(row=2, column=1, sticky="w", pady=5)
-    KM_grid_combobox.set("37")  # Standardwert auf "37"
-    
-    Q3D_frame = ttk.LabelFrame(grid_tab, text="Q3D Mode", padding="10")
-    Q3D_frame.grid(row=9, column=0, columnspan=2, sticky="ew", pady=10, padx=5)
-    ttk.Checkbutton(
-        Q3D_frame,
-        text="Activate Q3D Mode (Sets KM to 2)",
-        variable=settings['Q3D_mode'],
-        command=toggle_Q3D
-    ).grid(row=0, column=0, sticky="w")
-            
-    ttk.Label(grid_tab, text="Grid Dimension (IM):").grid(row=3, column=0, sticky="w", pady=5)
-    im_km_grid_options = ["5", "13", "21", "29", "37", "45", "53", "71", "79", "86", "94"]
-    IM_grid_combobox = ttk.Combobox(grid_tab, textvariable=settings['im_selection'], values=im_km_grid_options, state="readonly")
-    IM_grid_combobox.grid(row=3, column=1, sticky="w", pady=5)
-    IM_grid_combobox.set("37")  # Standardwert auf "37"
-            
-    # Gitterdichte-Auswahl für die Feinheit JM    
-    ttk.Label(grid_tab, text="Fineness (Reference Points):").grid(row=5, column=0, sticky="w", pady=5)
-    JM_value = [i for i in range(8, 800, 8)]  # Generiert Werte von 8 bis 800 in 9er-Schritten
-    JM_grid_options = [str(i) for i in JM_value]
-    JM_grid_combobox = ttk.Combobox(grid_tab, textvariable=settings['JM_grid_density'], values=JM_grid_options, state="readonly")
-    JM_grid_combobox.grid(row=5, column=1, sticky="w", pady=5)
-    JM_grid_combobox.set("296")  # Standardwert auf "300"
-            
-    # Drop-Down-Menü für Plotting Height
-    ttk.Label(grid_tab, text="Inlet Points (% of JM):").grid(row=6, column=0, sticky="w", pady=5) 
-    ttk.Entry(grid_tab, textvariable=settings['inlet_percentage'], width=10).grid(row=6, column=1, sticky="w", pady=5) 
-                                
-    # Drop-Down-Menü für Plotting Height
-    ttk.Label(grid_tab, text="Outlet Points (% of JM):").grid(row=7, column=0, sticky="w", pady=5) 
-    ttk.Entry(grid_tab, textvariable=settings['outlet_percentage'], width=10).grid(row=7, column=1, sticky="w", pady=5)  
-            
-    # Eingabefeld für Rotor-Spaltgröße
-    ttk.Label(grid_tab, text="Spaltgröße Rotor (mm):").grid(row=8, column=0, sticky="w", pady=5)
-    ttk.Entry(grid_tab, textvariable=settings['tip_clearance_rotor'], width=10).grid(row=8, column=1, sticky="w", pady=5)
-            
-    # Eingabefeld für Rotor-Spaltgröße
-    # ttk.Label(settings_frame, text="Spaltgröße Stator (mm):").grid(row=7, column=0, sticky="w", pady=5)
-    # ttk.Entry(settings_frame, textvariable=settings['tip_clearance_stator'], width=10).grid(row=7, column=1, sticky="w", pady=5)
-
-    ttk.Label(stage_tab, text="Output Folder:").grid(row=0, column=0, sticky='w', padx=5, pady=5)
-    output_folder_entry = ttk.Entry(stage_tab, textvariable=settings['output_folder'] ,width=40)
-    output_folder_entry.grid(row=0, column=1, sticky='ew')
-    ttk.Button(stage_tab, text="Browse", command=browse_output_folder).grid(row=0, column=2)
-
-    plot_frame = ttk.LabelFrame(stage_tab, text="Plotting", padding="10")
-    plot_frame.grid(row=11, column=0, columnspan=3, sticky="ew", pady=10, padx=5)
-
-    #Menü für Plotting Height
-    ttk.Label(plot_frame, text="Please define Plotting Height (0 to 1.0)").grid(row=0, column=0, sticky="w", pady=5) 
-    ttk.Entry(plot_frame, textvariable=settings['h_H_plot'], width=10).grid(row=0, column=1, sticky="w", pady=5)
-
-    
-    ttk.Checkbutton(
-        plot_frame, 
-        text="Plot Grid after Generation", 
-        variable=settings["show_plot"] # Standardmäßig aktiviert
-    ).grid(row=0, column=3, sticky="w") 
-    '''
 
 def process_grid_data(json_path, CompressorGui):
     '''
@@ -826,7 +599,7 @@ def process_grid_data(json_path, CompressorGui):
             pass
         
         grid_data_gui = all_json_data['Grid_data'] 
-        #meanline_data_gui = all_json_data['Meanline_input_data']
+        meanline_data_gui = all_json_data['Meanline_input_data']
         #thermo_data_gui = all_json_data['Thermo_data']
         Metadata = all_json_data['Metadata']
         bleed_air_data = all_json_data['Bleed_air_data']
@@ -841,34 +614,52 @@ def process_grid_data(json_path, CompressorGui):
         Unpacking Grid Data
         '''
 
-    IM_grid_density = grid_data_gui['im_selection']
-    KM_grid_density = grid_data_gui['km_selection']
-    JM_grid_density = grid_data_gui['JM_grid_density']
-    nrow_wert = grid_data_gui['nrow']
-    tip_clearance_mm_rotor = grid_data_gui['tip_clearance_rotor']
+    IM_grid_density = int(grid_data_gui['im_selection'])
+    KM_grid_density = int(grid_data_gui['km_selection'])
+    JM_grid_density = int(grid_data_gui['JM_grid_density'])
+    nrow_wert = int(grid_data_gui['nrow'])
+    tip_clearance_mm_rotor = float(grid_data_gui['tip_clearance_rotor'])
     Q3D_value = grid_data_gui['Q3D_mode']
-    ref_chord_length = grid_data_gui['ref_chord_length']
-    inlet_percentage = grid_data_gui['inlet_percentage']
-    outlet_percentage = grid_data_gui['outlet_percentage']
+    ref_chord_length = float(grid_data_gui['ref_chord_length'])
+    inlet_percentage = float(grid_data_gui['inlet_percentage'])
+    outlet_percentage = float(grid_data_gui['outlet_percentage'])
     SA_Mode = grid_data_gui['SA_mode']
+
+    RPM = meanline_data_gui['n']
+    D_S1 = meanline_data_gui['D_S1']
+    D_S2 = meanline_data_gui['D_S2']
+    D_S3 = meanline_data_gui['D_S3']
+    D_H1 = meanline_data_gui['D_H1']
+    D_H2 = meanline_data_gui['D_H2']
+    D_H3 = meanline_data_gui['D_H3']
     
     output_path = Metadata['output_folder']
     levels = Metadata['levels']
-    
+
+    total_height_1 = (Stage.D_S1[0] - Stage.D_H1[0]) / 2.0
+    total_height_2 = (Stage.D_S2[0] - Stage.D_H2[0]) / 2.0
+    total_height_3 = (Stage.D_S3[0] - Stage.D_H3[0]) / 2.0
+
+    tip_clearance_multall_1 = (tip_clearance_mm_rotor / total_height_1)
+    tip_clearance_multall_2 = (tip_clearance_mm_rotor / total_height_2)
+    tip_clearance_multall_3 = (tip_clearance_mm_rotor / total_height_3)
+
     enable_bleed_air = bleed_air_data['enable_bleed_air']
     
+    all_rows_grid_data = generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density, inlet_percentage, outlet_percentage, ref_chord_length, levels)
     
+
+    JM_dynamic_rotor = all_rows_grid_data[0]['JM_dynamic']
     
-    
-    
-    
-    
-    all_rows_grid_data, all_rows_data_plot, JM_dynamic = generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density, inlet_percentage, outlet_percentage, ref_chord_length, levels)
-    
-    if Q3D_value:
-        output_name = f"multall_grid_Q3D_IM_{IM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}.dat"
+    if nrow_wert > 1:
+        JM_dynamic_stator = all_rows_grid_data[1]['JM_dynamic']
     else:
-        output_name = f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}_JM_{JM_dynamic}_rows_{nrow_wert}_ref_chord_{ref_chord_length}.dat"
+        JM_dynamic_stator = 0
+
+    if Q3D_value:
+        output_name = f"multall_grid_Q3D_IM_{IM_grid_density}__R_{JM_dynamic_rotor}_S_{JM_dynamic_stator}_rows_{nrow_wert}.dat"
+    else:
+        output_name = f"multall_grid_IM_{IM_grid_density}_KM_{KM_grid_density}_R_{JM_dynamic_rotor}_S_{JM_dynamic_stator}_rows_{nrow_wert}.dat"
         
     full_output_path = os.path.join(output_path, output_name)
     
@@ -880,7 +671,7 @@ def process_grid_data(json_path, CompressorGui):
 
     
     # Calls grid/row data writing?? If so needs to be called per stage with the input of necasarry inputs
-    for i, data in enumerate(all_rows_data_plot):
+    for i, data in enumerate(all_rows_grid_data):
         row_num = data['row_num']
         x_coords = data['x_new'] 
         d_coords = data['d_new']
@@ -891,7 +682,7 @@ def process_grid_data(json_path, CompressorGui):
         JM_row = data['JM']
         NSEC_new = len(data['x_new'])
      
-        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_mm_rotor, levels, CompressorGui) # i deleted combined_multall_data=0 because it was not called for in the definition of the function
+        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_mm_rotor, levels, CompressorGui, RPM)
         write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM_row)
         print(f"Grid data for row {row_num} written successfully.")
     
@@ -900,68 +691,7 @@ def process_grid_data(json_path, CompressorGui):
         print("Q3D information written successfully.")
     
     print("Starting writing end of file...")
-    write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, levels, combined_multall_data=0)
+    write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, levels)
     print(f"Grid data for all rows written to {full_output_path} successfully.")
     
     print("All tasks completed successfully.")
-        
-
-    
-
-    # def on_confirm():
-
-    
-        
-    #     stage_levels_str = settings['levels'].get() # Holt die Ebenen als String
-    #     stage_levels = [float(level.strip()) for level in stage_levels_str.split(',') if level.strip()] # Wandelt den String in eine Liste von Float-Werten um
-    #     output_path = settings["output_folder"].get() # Holt den Ausgabeordner
-        
-    #     do_plot = settings['show_plot'].get()  # Holt den Status des Plot-Checkbox
-
-    #     settings_to_save = {
-    #         'output_folder': output_path # Speichert den Ausgabeordner aus GUI Eingabe
-    #     }
-
-    #     save_settings_to_file(settings_to_save)
-        
-    #     # holt alle Einstellungen aus der GUI
-    #     nrow_wert = settings['nrow'].get()
-    #     h_H_plot = settings['h_H_plot'].get()
-    #     tip_clearance_mm_rotor = settings['tip_clearance_rotor'].get()
-    #     #tip_clearance_mm_stator = settings['tip_clearance_stator'].get()
-    #     KM_grid_density = int(settings['km_selection'].get())
-    #     IM_grid_density = int(settings['im_selection'].get())
-    #     JM_grid_density = int(settings['JM_grid_density'].get())
-    #     inlet_percentage = settings['inlet_percentage'].get()
-    #     outlet_percentage = settings['outlet_percentage'].get()
-    #     ref_chord_length = settings['ref_chord_length'].get()
-    #     Q3D_value = settings['Q3D_mode'].get()
-        
-    #     # if tip_clearance_mm_rotor > 0:
-    #     #     KM_grid_density += 3
-        
-    #     if Q3D_value:
-    #         KM_grid_density = 2 # Setzt KM auf 2 wenn Q3D aktiv ist
-    #     else: 
-    #         KM_grid_density = KM_grid_density # Ansonsten bleibt KM wie ausgewählt
-        
-        # Berechnung der Spaltgröße in Multall
-    
-    
-
-   
-        # dialog = MultallPathDialog(window)
-        # multall_executable_path = dialog.result_path
-        
-        # if multall_executable_path:
-        #     print(f"Multall executable path: {multall_executable_path}")
-        #     run_multall_simulation(full_output_path, multall_executable_path)
-        #     print("Multall simulation completed.")
-        
-    #     window.destroy()
-        
-        
-    # confirm_button = ttk.Button(main_frame, text="Generate Grid", command=on_confirm)
-    # confirm_button.pack(pady=15, fill="x")
-
-    # window.mainloop()
