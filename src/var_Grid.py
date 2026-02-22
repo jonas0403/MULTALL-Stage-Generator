@@ -625,23 +625,14 @@ def process_grid_data(json_path, CompressorGui):
     SA_Mode = grid_data_gui['SA_mode']
 
     RPM = meanline_data_gui['n']
-    D_S1 = meanline_data_gui['D_S1']
-    D_S2 = meanline_data_gui['D_S2']
-    D_S3 = meanline_data_gui['D_S3']
-    D_H1 = meanline_data_gui['D_H1']
-    D_H2 = meanline_data_gui['D_H2']
-    D_H3 = meanline_data_gui['D_H3']
     
     output_path = Metadata['output_folder']
     levels = Metadata['levels']
 
-    total_height_1 = (Stage.D_S1[0] - Stage.D_H1[0]) / 2.0
-    total_height_2 = (Stage.D_S2[0] - Stage.D_H2[0]) / 2.0
-    total_height_3 = (Stage.D_S3[0] - Stage.D_H3[0]) / 2.0
+    tip_clearance_multall = [tip_clearance_mm_rotor / x for x in CompressorGui.meanline_data['b2']]
 
-    tip_clearance_multall_1 = (tip_clearance_mm_rotor / total_height_1)
-    tip_clearance_multall_2 = (tip_clearance_mm_rotor / total_height_2)
-    tip_clearance_multall_3 = (tip_clearance_mm_rotor / total_height_3)
+
+    
 
     enable_bleed_air = bleed_air_data['enable_bleed_air']
     
@@ -685,7 +676,7 @@ def process_grid_data(json_path, CompressorGui):
         
         current_stage = (i / 2) + 1
      
-        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_mm_rotor, levels, CompressorGui, RPM)
+        multall_grid_data_head_row(full_output_path, NSEC_new, row_num, JLE, JM_row, JTE, KM_grid_density, tip_clearance_multall, levels, CompressorGui, RPM)
         write_coordinates(x_coords, rtheta_coords, d_coords, r_coords, full_output_path, row_num, 0, NSEC_new, JM_row)
         print(f"Grid data for row {row_num} written successfully.")
     
