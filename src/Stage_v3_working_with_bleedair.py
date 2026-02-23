@@ -403,6 +403,76 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):# approa
     Defining the values calculated by the radial equilibrium function
     
     '''
+    
+    '''
+    ### New logic for radial equilibrium because it needs to calculated all stages ###
+    
+    
+    radial_data_S = {}
+    radial_data_R = {}
+
+    for s in range(1, compressor_gui_data.stages_to_calc + 1):
+        compressor_gui_data.stage = s
+        
+        (h_rel_s, l_S_s, c_m_S_in_s, c_m_S_out_s, c_u_S_in_s, c_u_S_out_s, c_S_out_s,
+        T_S_in_s, T_S_out_s, p_S_in_s, p_S_out_s, alpha_S_in_s, beta_S_in_s, 
+        alpha_S_out_s, beta_blade_S_in_s, beta_blade_S_out_s, D_S_s) = radial_equilibrium_S(
+            s, approach, constant_r_parameter,
+            D_S1[s-1], D_S2[s-1], D_S3[s-1],
+            D_H1[s-1], D_H2[s-1], D_H3[s-1],
+            D_m1[s-1], D_m2[s-1], D_m3[s-1],
+            b1[s-1], b2[s-1], b3[s-1],
+            cu1[s-1], cu2[s-1], cu3[s-1],
+            u1[s-1], u2[s-1], u3[s-1],
+            cm1[s-1], cm2[s-1], cm3[s-1],
+            delta_h_t[s-1], T_t1[s-1], T_t2[s-1], T_t3[s-1],
+            p_t1[s-1], p_t2[s-1], p_t3[s-1],
+            compressor_gui_data)
+        
+        radial_data_S[s] = {
+            'h_rel': h_rel_s, 'l_S': l_S_s, 'c_m_S_in': c_m_S_in_s,
+            'c_m_S_out': c_m_S_out_s, 'c_u_S_in': c_u_S_in_s, 'c_u_S_out': c_u_S_out_s,
+            'c_S_out': c_S_out_s, 'T_S_in': T_S_in_s, 'T_S_out': T_S_out_s,
+            'p_S_in': p_S_in_s, 'p_S_out': p_S_out_s, 'alpha_S_in': alpha_S_in_s,
+            'beta_S_in': beta_S_in_s, 'alpha_S_out': alpha_S_out_s,
+            'beta_blade_S_in': beta_blade_S_in_s, 'beta_blade_S_out': beta_blade_S_out_s,
+            'D_S': D_S_s
+        }
+
+        (h_rel_r, l_R_r, r_R_out_r, c_m_R_in_r, c_m_R_out_r, c_u_R_in_r, c_u_R_out_r,
+        c_R_out_r, u_R_in_r, u_R_out_r, T_R_in_r, T_R_out_r, p_R_in_r, p_R_out_r,
+        Ma_abs_R_in_r, Ma_rel_R_in_r, roh_R_in_r, alpha_R_in_r, beta_R_in_r,
+        alpha_R_out_r, beta_R_out_r, beta_blade_R_in_r, beta_blade_R_out_r, D_R_r) = radial_equilibrium_R(
+            s, approach, constant_r_parameter,
+            D_S1[s-1], D_S2[s-1], D_S3[s-1],
+            D_H1[s-1], D_H2[s-1], D_H3[s-1],
+            D_m1[s-1], D_m2[s-1], D_m3[s-1],
+            b1[s-1], b2[s-1], b3[s-1],
+            cu1[s-1], cu2[s-1], cu3[s-1],
+            u1[s-1], u2[s-1], u3[s-1],
+            cm1[s-1], cm2[s-1], cm3[s-1],
+            delta_h_t[s-1], T_t1[s-1], T_t2[s-1], T_t3[s-1],
+            p_t1[s-1], p_t2[s-1], p_t3[s-1],
+            compressor_gui_data)
+
+        radial_data_R[s] = {
+            'h_rel': h_rel_r, 'l_R': l_R_r, 'r_R_out': r_R_out_r,
+            'c_m_R_in': c_m_R_in_r, 'c_m_R_out': c_m_R_out_r,
+            'c_u_R_in': c_u_R_in_r, 'c_u_R_out': c_u_R_out_r,
+            'c_R_out': c_R_out_r, 'u_R_in': u_R_in_r, 'u_R_out': u_R_out_r,
+            'T_R_in': T_R_in_r, 'T_R_out': T_R_out_r,
+            'p_R_in': p_R_in_r, 'p_R_out': p_R_out_r,
+            'Ma_abs_R_in': Ma_abs_R_in_r, 'Ma_rel_R_in': Ma_rel_R_in_r,
+            'roh_R_in': roh_R_in_r, 'alpha_R_in': alpha_R_in_r,
+            'beta_R_in': beta_R_in_r, 'alpha_R_out': alpha_R_out_r,
+            'beta_R_out': beta_R_out_r, 'beta_blade_R_in': beta_blade_R_in_r,
+            'beta_blade_R_out': beta_blade_R_out_r, 'D_R': D_R_r
+        }
+
+    print("Successfully calculated meanline and radial equilibrium for all stages")
+    
+    '''
+    
     h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     print("Successfully calculated meanline and radial equilibrium")
