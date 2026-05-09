@@ -264,7 +264,9 @@ def save_profile(source_filename):
             print(f"Error {e} beim speichern")                                                        
 
 channel_data = {}
-
+# Move the declarations to module level
+radial_data_R = {}   
+radial_data_S = {}
 
 def init_channel_data(compressor_gui_data):
     '''
@@ -298,6 +300,9 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):# approa
     global h_rel, l_S_rad, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S
     global l_R_rad, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
     global x_values, r_values, m_prime_values, x0
+    
+    # Needed for correct calling of radial equilibrium values
+    global radial_data_R, radial_data_S
 
     
     #results_meanline = meanline()
@@ -403,8 +408,6 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):# approa
     Defining the values calculated by the radial equilibrium function
     
     '''
-    
-    '''
     ### New logic for radial equilibrium because it needs to calculated all stages ###
     
     
@@ -470,12 +473,17 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):# approa
         }
 
     print("Successfully calculated meanline and radial equilibrium for all stages")
+    ### Debugging Screen to verify correct stage wise implementation of correct calling order
     
-    '''
+    print(f"VERIFY radial_data_R keys: {list(radial_data_R.keys())}")
+    for s in radial_data_R:
+        print(f"  stage {s}: l_R[10]={radial_data_R[s]['l_R'][10]:.2f}")
     
+    """
     h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S = radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R = radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, compressor_gui_data)
     print("Successfully calculated meanline and radial equilibrium")
+    """
     # --- DEBUG PRINT START ---
     print("\n" + "="*50)
     print(f"DEBUG: radial_equilibrium_S Results")
@@ -954,10 +962,29 @@ def calculation_of_section_0_5(row):
     '''
     Defining coordinates for all stages
     '''
-    x0 = channel_data[stage]['x0']
+    stage_to_calc = (row - 1) // 2 + 1
+    x0 = channel_data[stage_to_calc]['x0']
+    
+    print(f"  VERIFY calc_0_5 [row={row}, stage={stage}]: x0[2]={x0[2]:.4f}") # Debug to see if stage per stage calls are working 
 
     beta_M_a, beta_M_2, beta_M_3,  beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP= blade_metal_BP(row)
-    z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
+    
+    
+    
+    '''
+    ### Chaning the calling for the calculation of the overall values from scalar first stage values to values that are depending on the current stage.
+    For that using the row numbering to calcualte the current stage to be calculated and accesing the correct values of the current stage
+    '''
+    stage = (row - 1) // 2 + 1
+    _l_R = radial_data_R[stage]['l_R']
+    _l_S = radial_data_S[stage]['l_S']
+    _z_R = radial_data_R[stage].get('z_R', z_R)  # fallback to global if not in dict
+    _z_S = radial_data_S[stage].get('z_S', z_S)
+    z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, _z_R, _l_R, _l_S)
+    print(f"  VERIFY overall_values [row={row}]: s_1D={s_1D:.4f}") # Temporary Debug call 
+    
+    
+    # Old logic z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
     
     LE_TE_fac_1 = [0.0, 2.0, 5.0, 9.0, 15.0, 22.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0]
      
@@ -1248,8 +1275,9 @@ def mLE_TE_cntr(row):
     '''
     Defining coordinates for all stages
     '''
-    x0 = channel_data[stage]['x0']
-    
+    stage_to_calc = (row - 1) // 2 + 1
+    x0 = channel_data[stage_to_calc]['x0']
+    print(f"  VERIFY mLE_TE_cntr [row={row}, stage={stage}]: x0[2]={x0[2]:.4f}, m_LE_0_5 will be={x0[2 if row%2!=0 else 5]:.4f}") # Same verification for correct implemntation of stage by stage calling
     
     if row % 2 != 0:
         k = 2
@@ -1275,7 +1303,20 @@ def calculation_of_section(rel_h, row):
 
     m_LE_0_5, m_TE_0_5, m_cntr_0_5, m_prime_cntr = mLE_TE_cntr(row)
     beta_M_a, beta_M_2, beta_M_3,  beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP= blade_metal_BP(row)
-    z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
+    
+    '''
+    ### Chaning the calling for the calculation of the overall values from scalar first stage values to values that are depending on the current stage.
+    For that using the row numbering to calcualte the current stage to be calculated and accesing the correct values of the current stage
+    '''
+    stage = (row - 1) // 2 + 1
+    _l_R = radial_data_R[stage]['l_R']
+    _l_S = radial_data_S[stage]['l_S']
+    _z_R = radial_data_R[stage].get('z_R', z_R)  # fallback to global if not in dict
+    _z_S = radial_data_S[stage].get('z_S', z_S)
+    z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, _z_R, _l_R, _l_S)
+    print(f"  VERIFY overall_values [row={row}]: s_1D={s_1D:.4f}") # Temporary Debug call 
+    
+    # Old logic z, s_1D, s_0_5, x_LE, elipse_LE, elipse_TE = overall_values(row, z_R, l_R, l_S)
     
     LE_TE_fac_1 = [0.0, 2.0, 5.0, 9.0, 15.0, 22.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0]
     
@@ -2123,6 +2164,21 @@ def write_head_file(file, NSEC, NROW, section, enable_bleed_air):
 
 # writes head of the row
 def write_head_row(file, row, JM, JLE, JTE, RPM, section, NSEC):
+    
+    
+    '''
+    ### Parameters were used as globals values and never reassigned the value. So calling the writing for the second or third stage the global parameters were still using stage one values thus writing completly wrong values 
+    '''
+    
+    stage = (row - 1) // 2 + 1                          # ADD
+    _rad = radial_data_R[stage] if row % 2 != 0 else radial_data_S[stage]  # ADD
+    h_rel   = _rad['h_rel']     # shadows the global
+    p_R_in  = _rad.get('p_R_in',  p_R_in)
+    p_R_out = _rad.get('p_R_out', p_R_out)
+    p_S_in  = _rad.get('p_S_in',  p_S_in)
+    p_S_out = _rad.get('p_S_out', p_S_out)
+    
+    
     if section == 0:
         if row % 2 != 0:
             x = round(p_1[0], 1)

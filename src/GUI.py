@@ -2746,7 +2746,12 @@ class CompressorGui:
     def show_startup_dialog(self):
         dialog = tk.Tk()
         dialog.title("Startup")
-        dialog.resizable(False, False)
+        dialog.resizable(True, True)
+        
+        # Configure grid weights so content stays centered/fills space 
+        dialog.columnconfigure(0, weight=1)
+        dialog.columnconfigure(1, weight=1)
+        for i in range(4): dialog.rowconfigure(i, weight=1)
 
         # Asks for the amount of stages
         ttk.Label(dialog, text="Number of Stages:").grid(row=0, column=0, padx=10, pady=10, sticky='w')

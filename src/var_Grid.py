@@ -672,6 +672,26 @@ def process_grid_data(json_path, CompressorGui):
     
     all_rows_grid_data = generate_var_grid_data(nrow_wert, IM_grid_density, KM_grid_density, JM_grid_density, inlet_percentage, outlet_percentage, ref_chord_length, levels, CompressorGui)
     
+    
+    ''' 
+    ### Debugging Screen to see the current stage indicies and if the correct calling order is followed
+    # Temportary needs to be deleted
+    '''
+    print("\n--- X RANGE MONOTONICITY CHECK ---")
+    prev_max_x = -float('inf')
+    all_ok = True
+    for data in all_rows_grid_data:
+        min_x = min(data['x_new'][0])
+        max_x = max(data['x_new'][0])
+        status = "OK" if min_x > prev_max_x else "*** OVERLAP ***"
+        print(f"  Row {data['row_num']}: x=[{min_x:.4f}, {max_x:.4f}]  {status}")
+        if status != "OK":
+            all_ok = False
+        prev_max_x = max_x
+    print(f"  Result: {'PASSED' if all_ok else 'FAILED'}\n")
+    
+    
+    
     # old hardcoded first value
     #JM_dynamic_rotor = all_rows_grid_data[0]['JM_dynamic']
     JM_dynamic_rotor = [row['JM_dynamic'] for row in all_rows_grid_data[::2]]
