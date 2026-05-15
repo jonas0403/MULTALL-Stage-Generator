@@ -2642,9 +2642,9 @@ class CompressorGui:
                 run_main_logic({'main_choice': 'default'}, self, json_path)
             except Exception as e:
                 import traceback
-                print("\n--- FEHLER BEIM LADEN DER 1D-DATEN ---")
+                print("\n--- Error Loading the 1-D Data ---")
                 traceback.print_exc()
-                messagebox.showerror("Error", "Bitte berechne und speichere zuerst die 1D-Meanline-Daten!")
+                messagebox.showerror("Error", "Please calculate and save the Meanline data first!")
                 return
             
             print("Generating Grid...")
@@ -2655,8 +2655,7 @@ class CompressorGui:
         '''
         GUI Logic
         '''
-            
-
+        
         for row_index, config in enumerate(ui_config):
             
             ttk.Label(self.settings_frame, text=config["label"]).grid(row=row_index, column=0, sticky="w", pady=5)

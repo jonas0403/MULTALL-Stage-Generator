@@ -402,20 +402,79 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):# approa
     
     ##### Hugh error dimension of all variables to short because they are defined as one stage and for one stage only 
     
-    
-
+    to_check = [
+        'D_S1', 'D_S2', 'D_S3', 'D_H1', 'D_H2', 'D_H3', 'D_m1', 'D_m2', 'D_m3',
+        'b1', 'b2', 'b3', 'cu1', 'cu2', 'cu3', 'u1', 'u2', 'u3', 'cm1', 'cm2', 'cm3',
+        'delta_h_t', 'T_t1', 'T_t2', 'T_t3', 'p_t1', 'p_t2', 'p_t3'
+    ]
+    """
+    for var_name in to_check:
+        # Get the value from the local variables
+        val = locals()[var_name]
+        # If it's a single number, turn it into a list
+        if isinstance(val, (int, float)):
+            locals()[var_name] = [val]
+    """
     '''
     Defining the values calculated by the radial equilibrium function
     
     '''
     ### New logic for radial equilibrium because it needs to calculated all stages ###
     
+    # --- STANDARDIZATION BLOCK ---
+    # Explicitly check and wrap variables in lists if they are single floats.
+    # This ensures the [s-1] indexing in the loop below never fails.
+    
+    # 1. Geometry
+    D_S1 = [D_S1] if isinstance(D_S1, (int, float)) else D_S1
+    D_S2 = [D_S2] if isinstance(D_S2, (int, float)) else D_S2
+    D_S3 = [D_S3] if isinstance(D_S3, (int, float)) else D_S3
+    D_H1 = [D_H1] if isinstance(D_H1, (int, float)) else D_H1
+    D_H2 = [D_H2] if isinstance(D_H2, (int, float)) else D_H2
+    D_H3 = [D_H3] if isinstance(D_H3, (int, float)) else D_H3
+    D_m1 = [D_m1] if isinstance(D_m1, (int, float)) else D_m1
+    D_m2 = [D_m2] if isinstance(D_m2, (int, float)) else D_m2
+    D_m3 = [D_m3] if isinstance(D_m3, (int, float)) else D_m3
+    b1 = [b1] if isinstance(b1, (int, float)) else b1
+    b2 = [b2] if isinstance(b2, (int, float)) else b2
+    b3 = [b3] if isinstance(b3, (int, float)) else b3
+
+    # 2. Velocities
+    cu1 = [cu1] if isinstance(cu1, (int, float)) else cu1
+    cu2 = [cu2] if isinstance(cu2, (int, float)) else cu2
+    cu3 = [cu3] if isinstance(cu3, (int, float)) else cu3
+    u1  = [u1]  if isinstance(u1,  (int, float)) else u1
+    u2  = [u2]  if isinstance(u2,  (int, float)) else u2
+    u3  = [u3]  if isinstance(u3,  (int, float)) else u3
+    cm1 = [cm1] if isinstance(cm1, (int, float)) else cm1
+    cm2 = [cm2] if isinstance(cm2, (int, float)) else cm2
+    cm3 = [cm3] if isinstance(cm3, (int, float)) else cm3
+
+    # 3. Thermo & Energetics
+    delta_h_t = [delta_h_t] if isinstance(delta_h_t, (int, float)) else delta_h_t
+    T_t1 = [T_t1] if isinstance(T_t1, (int, float)) else T_t1
+    T_t2 = [T_t2] if isinstance(T_t2, (int, float)) else T_t2
+    T_t3 = [T_t3] if isinstance(T_t3, (int, float)) else T_t3
+    p_t1 = [p_t1] if isinstance(p_t1, (int, float)) else p_t1
+    p_t2 = [p_t2] if isinstance(p_t2, (int, float)) else p_t2
+    p_t3 = [p_t3] if isinstance(p_t3, (int, float)) else p_t3
+
+
+    # --- DEBUGGING CHECK ---
+    print(f"DEBUG LOOP START: stage_to_calc={compressor_gui_data.stages_to_calc}")
+    print(f"DEBUG TYPE CHECK: b1 is {type(b1)}, cu1 is {type(cu1)}, cm1 is {type(cm1)}")
     
     radial_data_S = {}
     radial_data_R = {}
 
     for s in range(1, compressor_gui_data.stages_to_calc + 1):
+        print(f"--- Processing Stage {s} ---")
+        # Verify indexing will work
+        print(f"DEBUG Stage {s}: b1[s-1]={b1[s-1]}")
+
         compressor_gui_data.stage = s
+
+        
         
         (h_rel_s, l_S_s, c_m_S_in_s, c_m_S_out_s, c_u_S_in_s, c_u_S_out_s, c_S_out_s,
         T_S_in_s, T_S_out_s, p_S_in_s, p_S_out_s, alpha_S_in_s, beta_S_in_s, 
@@ -486,30 +545,32 @@ def run_main_logic(new_adjustment_data, compressor_gui_data, json_path):# approa
     """
     # --- DEBUG PRINT START ---
     print("\n" + "="*50)
-    print(f"DEBUG: radial_equilibrium_S Results")
+    print(f"DEBUG: radial_equilibrium_S Results (Last Stage Calculated: {s})")
     print("="*50)
 
+    # Use the variables ending in _s as they represent the data from the last loop iteration
     debug_vars = {
-        "Geometry": {"h_rel": h_rel, "l_S": l_S, "D_S": D_S},
-        "Velocities (cm)": {"c_m_S_in": c_m_S_in, "c_m_S_out": c_m_S_out},
-        "Velocities (cu/c)": {"c_u_S_in": c_u_S_in, "c_u_S_out": c_u_S_out, "c_S_out": c_S_out},
-        "Thermodynamics": {"T_S_in": T_S_in, "T_S_out": T_S_out, "p_S_in": p_S_in, "p_S_out": p_S_out},
-        "Angles (Deg)": {"alpha_S_in": alpha_S_in, "alpha_S_out": alpha_S_out, "beta_S_in": beta_S_in},
-        "Blade Angles": {"beta_blade_S_in": beta_blade_S_in, "beta_blade_S_out": beta_blade_S_out}
+        "Geometry": {"h_rel": h_rel_s, "l_S": l_S_s, "D_S_param": D_S_s},
+        "Velocities (cm)": {"c_m_S_in": c_m_S_in_s, "c_m_S_out": c_m_S_out_s},
+        "Velocities (cu/c)": {"c_u_S_in": c_u_S_in_s, "c_u_S_out": c_u_S_out_s, "c_S_out": c_S_out_s},
+        "Thermodynamics": {"T_S_in": T_S_in_s, "T_S_out": T_S_out_s, "p_S_in": p_S_in_s, "p_S_out": p_S_out_s},
+        "Angles (Deg)": {"alpha_S_in": alpha_S_in_s, "alpha_S_out": alpha_S_out_s, "beta_S_in": beta_S_in_s},
+        "Blade Angles": {"beta_blade_S_in": beta_blade_S_in_s, "beta_blade_S_out": beta_blade_S_out_s}
     }
 
-    for category, vars in debug_vars.items():
+    for category, vars_dict in debug_vars.items():
         print(f"\n[{category}]")
-        for name, value in vars.items():
-            # Check if it's a list/array to prevent flooding the console
-            if hasattr(value, "__len__") and not isinstance(value, str):
-                print(f"  {name:<18} : {value[:3]}... (Length: {len(value)})")
+        for name, value in vars_dict.items():
+            # Handle list/array printing safely
+            if isinstance(value, (list, np.ndarray)) and len(value) > 0:
+                print(f"  {name:20}: {value[0]:.4f} ... {value[-1]:.4f} (len: {len(value)})")
             else:
-                print(f"  {name:<18} : {value}")
+                print(f"  {name:20}: {value}")
+    
     print("="*50 + "\n")
-    # --- DEBUG PRINT END ---
 
-    main_choice = new_adjustment_data.get('main_choice', 'default')
+    # main_choice = new_adjustment_data.get('main_choice', 'default')
+    main_choice = new_adjustment_data['main_choice']
     #path = settings.get("output_folder", ".")
     #NROW = int(settings.get("nrow", 2))
     #levels_input = new_adjustment_data.get("levels", "0.0, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.95, 1.00")
@@ -965,7 +1026,7 @@ def calculation_of_section_0_5(row):
     stage_to_calc = (row - 1) // 2 + 1
     x0 = channel_data[stage_to_calc]['x0']
     
-    print(f"  VERIFY calc_0_5 [row={row}, stage={stage}]: x0[2]={x0[2]:.4f}") # Debug to see if stage per stage calls are working 
+    #print(f"  VERIFY calc_0_5 [row={row}, stage={stage}]: x0[2]={x0[2]:.4f}") # Debug to see if stage per stage calls are working 
 
     beta_M_a, beta_M_2, beta_M_3,  beta_M_e, d_l_a, d_l_2, d_l_3, d_l_e, m_star_BP= blade_metal_BP(row)
     
