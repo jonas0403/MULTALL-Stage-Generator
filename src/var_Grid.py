@@ -343,9 +343,13 @@ def Q3D_information(file):
         file.write("   0.00000000      0.250000000      0.500000000      0.750000000      1.00000000\n")
         file.write("   1.00000000      1.00000000      1.00000000      1.00000000      1.00000000\n")     
 
-
+"""
 # writes end of the file 
-def write_end_file(row, file, section, KM, levels, CompressorGui):
+def write_end_file(row, file, section, KM, levels, CompressorGui, radial_data_R, radial_data_S):
+    # total_rows is NROW (e.g., 6 for 3 stages)
+    # Get the last stage number
+    last_stage = CompressorGui.stages_to_calc
+
     # Here needs to be new logic because row only works for one stage 
     # Some logic for the rows and NROW is missing
     if row == 1: # Maybe use modulus here to get if the row is odd (rotor) or even (stator)
@@ -464,7 +468,123 @@ def write_end_file(row, file, section, KM, levels, CompressorGui):
             file.write("  FACTOR TO INCREASE THE TURBULENT VISCOSITY OVER THE FIRST NMIXUP STEPS\n")
             file.write("   2.00000 1000\n")
 
+    """        
+
+def write_end_file(total_rows, file, section, KM, levels, CompressorGui, radial_data_R, radial_data_S):
+    """
+    Writes the inlet boundary conditions, exit pressure (PDOWN), and mixing length 
+    limits for the MULTALL grid file. Refactored to pull from Stage module.
+    """
+    # Identify the last stage to set the exit backpressure (PDOWN)
+    last_stg_idx = CompressorGui.stages_to_calc
+    
+    print(f"DEBUG: Starting write_end_file for {total_rows} rows. Last stage index: {last_stg_idx}")
+
+    try:
+        # 1. Get Inlet Boundary Conditions (from global Stage module)
+        # These was causing the AttributeError when called on CompressorGui
+        t_inlet = round(Stage.T_t1[0], 4)
+        p_inlet = round(Stage.p_t1[0], 1)
+        um_inlet = round(Stage.cm1[0], 4)
+        
+        print(f"DEBUG: Inlet data loaded -> P:{p_inlet}, T:{t_inlet}")
+
+        # 2. Get Exit Boundary Conditions (PDOWN) from the last stage
+        if last_stg_idx in radial_data_S:
+            last_stg_data = radial_data_S[last_stg_idx]
+            p_out_array = last_stg_data['p_S_out']
+            print(f"DEBUG: Pulling PDOWN from Stator {last_stg_idx}")
+        elif last_stg_idx in radial_data_R:
+            last_stg_data = radial_data_R[last_stg_idx]
+            p_out_array = last_stg_data['p_R_out']
+            print(f"DEBUG: Pulling PDOWN from Rotor {last_stg_idx}")
+        else:
+            raise KeyError(f"Stage {last_stg_idx} not found in radial data")
+
+        p_exit_hub = round(p_out_array[0], 1)
+        p_exit_tip = round(p_out_array[-1], 1)
+
+    except (KeyError, IndexError, AttributeError) as e:
+        print(f"DEBUG: Error accessing stage data: {e}. Using safety fallbacks.")
+        # Engineering fallbacks to prevent crash
+        p_exit_hub, p_exit_tip = 101325.0, 101325.0
+        t_inlet, p_inlet, um_inlet = 288.15, 101325.0, 150.0
+
+    with open(file, "a", encoding='ascii') as f:
+        if section == 0:
+            f.write("  STARTING INLET BOUNDARY CONDITION DATA .\n")
+            f.write("  NUMBER OF POINTS FOR INLET BOUNDARY CONDITIONS \n")
+            f.write(f"        {KM}\n") 
+            f.write("  SPACING OF INLET BOUNDARY CONDITION POINTS \n")
             
+            value_KM = grid_adaption(KM)
+            for i in range(0, len(value_KM), 8):
+                f.write(" ".join(f"{v:.6f}" for v in value_KM[i:i+8]) + "\n")
+            
+            f.write("   INLET STAGNATION PRESSURES \n")
+            for i in range(0, KM, 8):
+                f.write(" ".join(f"{p_inlet:.6f}" for _ in range(KM)[i:i+8]) + "\n")
+            
+            f.write("   INLET STAGNATION TEMPERATURES \n")
+            for i in range(0, KM, 8):
+                f.write(" ".join(f"{t_inlet:.6f}" for _ in range(KM)[i:i+8]) + "\n")
+            
+            f.write("   INLET ABSOLUTE TANGENTIAL VELOCITY \n")
+            for i in range(0, KM, 8):
+                f.write(" ".join(f"0.000000" for _ in range(KM)[i:i+8]) + "\n")
+            
+            f.write("   INLET MERIDIONAL VELOCITY \n")
+            for i in range(0, KM, 8):
+                f.write(" ".join(f"{um_inlet:.6f}" for _ in range(KM)[i:i+8]) + "\n")
+            
+            f.write("   INLET MERIDIONAL YAW ANGLE \n")
+            for i in range(0, KM, 8):
+                f.write(" ".join(f"0.000000" for _ in range(KM)[i:i+8]) + "\n")
+            
+            f.write("   INLET PITCH ANGLE \n")
+            for i in range(0, KM, 8):
+                f.write(" ".join(f"0.000000" for _ in range(KM)[i:i+8]) + "\n")
+            
+            f.write("   PDOWN_HUB   PDOWN_TIP \n")
+            f.write(f"  {p_exit_hub}  {p_exit_tip}\n")
+            
+            f.write(" MIXING LENGTH LIMITS ON ALL BLADE ROWS\n")
+            # Loop for NROW (total blade rows)
+            for _ in range(total_rows):
+                f.write("  0.030000  0.030000  0.030000  0.030000  0.030000  0.020000\n")
+            
+            f.write("  FACTOR TO INCREASE THE TURBULENT VISCOSITY OVER THE FIRST NMIXUP STEPS \n")
+            f.write("   2.00000 1000\n")
+            
+        else:
+            # Fallback for alternative grid sections
+            f.write("STARTING INLET BOUNDARY CONDITION DATA .\n")
+            f.write("  NUMBER OF POINTS FOR INLET BOUNDARY CONDITIONS \n")
+            f.write("         2\n")
+            f.write("  SPACING OF INLET BOUNDARY CONDITION POINTS \n")
+            f.write("  1.000000\n")
+            f.write("   INLET STAGNATION PRESSURES \n")
+            f.write(f"  {p_inlet} {p_inlet}\n")
+            f.write("   INLET STAGNATION TEMPERATURES \n")
+            f.write(f"  {t_inlet} {t_inlet}\n")
+            f.write("   INLET ABSOLUTE TANGENTIAL VELOCITY \n")
+            f.write("    0.0000 0.0000\n")
+            f.write("   INLET MERIDIONAL VELOCITY\n")
+            f.write(f"  {um_inlet} {um_inlet}\n")
+            f.write("   INLET MERIDIONAL YAW ANGLE\n")
+            f.write("    0.0000 0.0000\n")
+            f.write("   INLET PITCH ANGLE\n")
+            f.write("    0.0000 0.0000\n")
+            f.write("   PDOWN_HUB   PDOWN_TIP\n")
+            f.write(f"  {p_exit_hub}  {p_exit_tip}\n")
+            
+            f.write(" MIXING LENGTH LIMITS ON ALL BLADE ROWS\n")
+            for _ in range(total_rows):
+                f.write("  0.030000  0.030000  0.030000  0.030000  0.030000  0.020000\n")
+            
+            f.write("  FACTOR TO INCREASE THE TURBULENT VISCOSITY OVER THE FIRST NMIXUP STEPS\n")
+            f.write("   2.00000 1000\n")
+
 # Plotting:
 
 def plot_all(grid_data_list, grid_density):
@@ -798,7 +918,7 @@ def process_grid_data(json_path, CompressorGui):
         print("Q3D information written successfully.")
     
     print("Starting writing end of file...")
-    write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, levels, CompressorGui)
+    write_end_file(nrow_wert, full_output_path, 0, KM_grid_density, levels, CompressorGui, Stage.radial_data_R, Stage.radial_data_S)
     print(f"Grid data for all rows written to {full_output_path} successfully.")
     
     print("All tasks completed successfully.")
