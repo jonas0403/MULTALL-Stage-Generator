@@ -146,10 +146,10 @@ The "Other-Settings" tab provides tools for running parametric MULTALL studies:
 | File | Purpose |
 |------|---------|
 | `static/Populated_data.json` | Main project file — all design parameters |
-| `static/Setting.txt` | Default output folder path |
-| `static/Meanline_Initial_Values.txt` | Default meanline parameters |
-| `static/Thermo_Initial_Values.txt` | Default thermodynamic parameters |
-| `static/Diameter_Values.txt` | Default diameter/hub/shroud values |
+| `static/Populated_data.template.json` | Template with placeholder values for new projects |
+| `static/Setting.txt` | Persisted GUI settings (output folder, bezier options, bleed air, levels, etc.) |
+| `static/Meanline_Initial_Values.txt` | Default meanline parameters (standalone `meanline.py` only) |
+| `static/Thermo_Initial_Values.txt` | Default thermodynamic parameters (standalone `thermodynamic_calculation.py` only) |
 
 ---
 
@@ -187,10 +187,9 @@ MULTALL-Stage-Generator/
 ├── static/
 │   ├── Populated_data.json                  # Main project data file
 │   ├── Populated_data.template.json         # Template with placeholder values
-│   ├── Setting.txt                          # Default output folder configuration
-│   ├── Meanline_Initial_Values.txt          # Default meanline values
-│   ├── Thermo_Initial_Values.txt            # Default thermodynamic values
-│   ├── Diameter_Values.txt                  # Default diameter values
+│   ├── Setting.txt                          # Persisted GUI settings
+│   ├── Meanline_Initial_Values.txt          # Default meanline values (standalone)
+│   ├── Thermo_Initial_Values.txt            # Default thermodynamic values (standalone)
 │   ├── bezier_control_points_R.txt          # Rotor bezier control points
 │   ├── bezier_control_points_S.txt          # Stator bezier control points
 │   └── image/                               # Screenshots and visualizations
@@ -243,7 +242,7 @@ A template file with placeholder values is available at `static/Populated_data.t
 | 1 | MULTALL output file generator validation across all configurations |
 | 2 | Extensive code validation — verify calculation correctness across all configurations |
 | 3 | Autonomous headless running — prevent plots from opening during headless mode so agents and optimization scripts can run without manual intervention |
-| 4 | Fix `main.py` GUI launch — currently broken when running with the GUI |
+| 4 | Fix bleed air 0-patches bug — setting 0 patches doesn't update properly, output still contains bleed cards |
 
 ### Planned
 

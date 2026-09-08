@@ -1,18 +1,19 @@
+import argparse
 import os
 
 # --- Configuration ---
-# Define the target directory ONCE. This is where it will look for .dat files
-# and where it will save the output .bat file.
-target_directory = r'C:\Users\Jonas\sciebo\Geometriegenerator\Studenten\Scholz\Code\Multall\Ergebnisse\Bleedair\aspirated_stators_v2\08xRPM\aspirated_stators_5mflow_08xRPM'
+# The default target directory is the current working directory.
+# Override it with --directory.
+DEFAULT_TARGET_DIRECTORY = os.getcwd()
 
 # The name of the batch file to create.
 output_filename = 'run_files.bat'
 # The title for the batch file window.
 batch_title = 'aspirated_stators_08xRPM_5mflow_1st_run'
- 
+
 # --- Script Logic ---
 
-def create_batch_file():
+def create_batch_file(target_directory):
     """
     Finds all .dat files in the specified directory and creates a batch script
     to run Multall simulations for each one.
@@ -79,4 +80,10 @@ def create_batch_file():
 
 # --- Run the main function ---
 if __name__ == "__main__":
-    create_batch_file()
+    parser = argparse.ArgumentParser(
+        description="Create a batch file to run Multall for every hPa.dat in a directory."
+    )
+    parser.add_argument("--directory", default=DEFAULT_TARGET_DIRECTORY,
+                        help="Directory containing the .dat files (default: current directory)")
+    args = parser.parse_args()
+    create_batch_file(os.path.abspath(args.directory))

@@ -373,7 +373,7 @@ def check_r_monotonicity_spanwise(data):
         JM = len(valid[0]["r"])
         for j in range(JM):
             r_col = [valid[s]["r"][j] for s in range(len(valid))]
-            for s in range(1, n_sec):
+            for s in range(1, len(valid)):
                 if r_col[s] < r_col[s - 1] - 1e-10:
                     issues.append(
                         f"  Row {row} J={j}: Sec {sections[s]['sec']} r={r_col[s]:.4f} < Sec {sections[s-1]['sec']} r={r_col[s-1]:.4f}"

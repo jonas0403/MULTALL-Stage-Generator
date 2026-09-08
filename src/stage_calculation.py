@@ -30,13 +30,6 @@ from Interpolation import intpol, intp_new
 from channel import channel
 
 wdpath = os.getcwd()
-   
-#print(wdpath)
-
-scriptpath = os.path.dirname(sys.argv[0])
-
-#print(scriptpath)
-os.chdir(scriptpath)
 
 ''' Here needs to be a fix radial equilibirium needs to be called for all stages
 # parameter for radial equilibrium

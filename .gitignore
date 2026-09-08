@@ -58,6 +58,7 @@ Run_Multall/*.log
 Run_Multall/*.dat
 Run_Multall/*.csv
 Run_Multall/*.tec
+Run_Multall/*.txt
 Run_Multall/*.bat
 Run_Multall/Output/
 
@@ -98,6 +99,6 @@ Docs/Root_Cause_Investigation_Plan.md
 Docs/Output/
 
 # Debug command output logs
-Docs/cmdoutput.txt
+Docs/*.txt
 Run_Multall/cmdoutput*.txt
 Run_Multall/output_*.txt

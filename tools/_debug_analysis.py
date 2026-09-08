@@ -1,9 +1,18 @@
-"""Temporary debug script to analyze x-monotonicity failures."""
+"""Temporary debug script to analyze x-monotonicity failures.
+
+Usage:
+    python -m tools._debug_analysis <path_to_dat_file> [additional_dat_files...]
+"""
 import sys
 sys.path.insert(0, ".")
 from tools.dat_validator import parse_dat
 
-filepath = r"D:\Uni\Bachelorarbeit\test2\Bachelorarbeit\outputFiles\multall_grid_IM_37_KM_37_R_[96, 96]_S_[97, 97]_rows_2.dat"
+if len(sys.argv) < 2:
+    print("Usage: python -m tools._debug_analysis <path_to_dat_file> [additional_dat_files...]")
+    sys.exit(1)
+
+filepath = sys.argv[1]
+print(f"=== ANALYZING: {filepath} ===")
 data = parse_dat(filepath)
 
 print("=== X-MONOTONICITY PER SECTION ===")
@@ -39,17 +48,18 @@ for sec in data["sections"]:
             print(f"  J={j} (1-based): x={x[j]:.6f}{marker}")
         break
 
-# Also check 1-stage file Row 2 for comparison
-print("\n=== 1-STAGE FILE: Row 2 x-near-TE (for comparison) ===")
-data1 = parse_dat(r"D:\Uni\Bachelorarbeit\test2\Bachelorarbeit\outputFiles\multall_grid_IM_37_KM_37_R_[96]_S_[97]_rows_2.dat")
-for sec in data1["sections"]:
-    if sec["row"] == 2 and sec["sec"] == 1:
-        x = sec["x"]
-        JTE = data1["row_meta"][2]["JTE"]
-        for j in range(JTE - 2, min(JTE + 10, len(x))):
-            marker = " <-- TE" if j == JTE - 1 else ""
-            print(f"  J={j} (1-based): x={x[j]:.6f}{marker}")
-        break
+# Also check 1-stage file Row 2 for comparison (if a second file was given)
+if len(sys.argv) > 2:
+    print("\n=== SECOND FILE: Row 2 x-near-TE (for comparison) ===")
+    data1 = parse_dat(sys.argv[2])
+    for sec in data1["sections"]:
+        if sec["row"] == 2 and sec["sec"] == 1:
+            x = sec["x"]
+            JTE = data1["row_meta"][2]["JTE"]
+            for j in range(JTE - 2, min(JTE + 10, len(x))):
+                marker = " <-- TE" if j == JTE - 1 else ""
+                print(f"  J={j} (1-based): x={x[j]:.6f}{marker}")
+            break
 
 # Also check Row 3 (Stage 2 rotor)
 print("\n=== ROW 3 (Stage 2 Rotor) X-MONOTONICITY ===")

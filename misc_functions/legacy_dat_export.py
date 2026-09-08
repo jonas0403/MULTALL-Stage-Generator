@@ -1,10 +1,12 @@
+import argparse
 import os
 
 # --- 1. CONFIGURATION ---
-# Please change these values to match your setup.
+# Override any value via command line; defaults are relative to the current
+# working directory.
 
 # Specify the folder where your template file is located.
-SOURCE_FOLDER = r'C:\Users\Jonas\sciebo\Geometriegenerator\Studenten\Scholz\Code\Multall\Ergebnisse\Bleedair\aspirated_stators_v2\08xRPM\aspirated_stators_5mflow_08xRPM'
+SOURCE_FOLDER = os.getcwd()
 
 # Specify the folder where you want to save the new files.
 OUTPUT_FOLDER = SOURCE_FOLDER
@@ -30,16 +32,49 @@ SPECIAL_INTERVAL_END = 120000.0
 SPECIAL_STEP_VALUE = 2500.0
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate multiple .dat files with varying pressure values."
+    )
+    parser.add_argument("--source-folder", default=SOURCE_FOLDER,
+                        help="Folder containing the template .dat file (default: current directory)")
+    parser.add_argument("--output-folder", default=None,
+                        help="Folder to write generated files (default: same as source folder)")
+    parser.add_argument("--base-filename", default=BASE_FILENAME,
+                        help="Template file to modify (default: %(default)s)")
+    parser.add_argument("--target-line", type=int, default=TARGET_LINE_NUMBER,
+                        help="Line number to modify (1-based, default: %(default)s)")
+    parser.add_argument("--filename-template", default=OUTPUT_FILENAME_TEMPLATE,
+                        help="Output filename template using {} as pressure placeholder (default: %(default)s)")
+    parser.add_argument("--start", type=float, default=START_VALUE,
+                        help="Start pressure value (default: %(default)s)")
+    parser.add_argument("--end", type=float, default=END_VALUE,
+                        help="End pressure value (default: %(default)s)")
+    parser.add_argument("--step", type=float, default=STEP_VALUE,
+                        help="Standard pressure step (default: %(default)s)")
+    parser.add_argument("--special-end", type=float, default=SPECIAL_INTERVAL_END,
+                        help="End value of the special (finer-step) interval (default: %(default)s)")
+    parser.add_argument("--special-step", type=float, default=SPECIAL_STEP_VALUE,
+                        help="Step size inside the special interval (default: %(default)s)")
+    return parser.parse_args()
+
+
 # --- 2. SCRIPT LOGIC (No need to edit below this line) ---
 
-def generate_files():
+def generate_files(args=None):
     """
     Reads a base file, modifies a specific line with a range of values
     using different step sizes for different intervals, and saves new files.
     """
+    args = args or parse_args()
     print("--- Starting File Generation ---")
 
-    full_base_path = os.path.join(SOURCE_FOLDER, BASE_FILENAME)
+    source_folder = os.path.abspath(args.source_folder)
+    output_folder = os.path.abspath(args.output_folder or source_folder)
+    base_filename = args.base_filename
+    target_line = args.target_line
+
+    full_base_path = os.path.join(source_folder, base_filename)
 
     # --- Read the base template file into memory ---
     try:
@@ -48,29 +83,29 @@ def generate_files():
         print(f"Successfully read base file: '{full_base_path}'")
     except FileNotFoundError:
         print(f"Error: The base file '{full_base_path}' was not found.")
-        print("Please check the SOURCE_FOLDER and BASE_FILENAME variables.")
+        print("Please check the source folder and --base-filename arguments.")
         return
 
     # --- Validate the file length ---
-    if len(lines) < TARGET_LINE_NUMBER:
-        print(f"Error: The file '{BASE_FILENAME}' has only {len(lines)} lines, but the script needs to modify line {TARGET_LINE_NUMBER}.")
+    if len(lines) < target_line:
+        print(f"Error: The file '{base_filename}' has only {len(lines)} lines, but the script needs to modify line {target_line}.")
         return
 
     # --- Create the output directory if it doesn't exist ---
-    if not os.path.exists(OUTPUT_FOLDER):
+    if not os.path.exists(output_folder):
         try:
-            os.makedirs(OUTPUT_FOLDER)
-            print(f"Created output directory: '{OUTPUT_FOLDER}'")
+            os.makedirs(output_folder)
+            print(f"Created output directory: '{output_folder}'")
         except OSError as e:
-            print(f"Error: Could not create output directory '{OUTPUT_FOLDER}'. Reason: {e}")
+            print(f"Error: Could not create output directory '{output_folder}'. Reason: {e}")
             return
 
     # --- Loop through the specified range using a while loop for flexibility ---
-    current_value = START_VALUE
+    current_value = args.start
     file_counter = 0
 
     print("\n--- Generating Files ---")
-    while current_value <= END_VALUE:
+    while current_value <= args.end:
         # Create the new line content and filename
         # The formatting ensures the value has one decimal place, e.g., 100000.0
         new_line = f"  {current_value:.1f}  {current_value:.1f}\n"
@@ -78,13 +113,13 @@ def generate_files():
         # Format the pressure code for the filename (e.g., 1000hPa, 1025hPa)
         # It takes the integer part of the value and divides by 100
         pressure_code = int(current_value / 100)
-        new_filename = OUTPUT_FILENAME_TEMPLATE.format(pressure_code)
+        new_filename = args.filename_template.format(pressure_code)
         
-        full_output_path = os.path.join(OUTPUT_FOLDER, new_filename)
+        full_output_path = os.path.join(output_folder, new_filename)
 
         # Create a new list of lines with the modification
         new_lines = list(lines)
-        new_lines[TARGET_LINE_NUMBER - 1] = new_line
+        new_lines[target_line - 1] = new_line
 
         # Write the new file to disk
         try:
@@ -97,11 +132,11 @@ def generate_files():
 
         # --- Logic to determine the next step size ---
         # If the current value is within the special interval, use the special step.
-        if current_value < SPECIAL_INTERVAL_END:
-            current_value += SPECIAL_STEP_VALUE
+        if current_value < args.special_end:
+            current_value += args.special_step
         # Otherwise, use the standard step.
         else:
-            current_value += STEP_VALUE
+            current_value += args.step
 
     print(f"\n--- File Generation Complete ---")
     print(f"Total files created: {file_counter}")

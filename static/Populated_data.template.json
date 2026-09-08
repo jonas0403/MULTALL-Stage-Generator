@@ -40,8 +40,12 @@
   },
   "Diameter_data": {},
   "Bezier_point_data": {},
-  "Metadata": {},
-  "Grid_data": {},
+  "Metadata": {
+    "output_folder": "outputFiles"
+  },
+  "Grid_data": {
+    "output_folder": "Run_Multall"
+  },
   "Bleed_air_data": {},
   "Intake_Outtake_area": {}
 }

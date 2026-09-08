@@ -13,16 +13,9 @@ from tkinter import ttk
 from pathlib import Path
 
 wdpath = os.getcwd()
-   
-#print(wdpath)
-
-scriptpath = os.path.dirname(sys.argv[0])
 
 current_dir = Path(__file__).parent.parent
-static_folder = current_dir/ "static"
-
-#print(scriptpath)
-os.chdir(scriptpath)
+static_folder = current_dir / "static"
 
 def read_initial_values(filename):
     global p_t_in, T_t_in, mflow, R, cp, TPR

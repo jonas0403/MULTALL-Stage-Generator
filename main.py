@@ -65,8 +65,11 @@ def _run_headless(json_path, output_path):
 
 def _run_gui():
     """Launch the Tkinter GUI."""
-    from src.GUI import render_gui
-    render_gui()
+    from src.GUI import CompressorGui
+
+    my_gui = CompressorGui()
+    my_gui.loading_prepopulated_data()
+    my_gui.show_startup_dialog()
 
 
 if __name__ == "__main__":
