@@ -85,10 +85,10 @@ This tool replaces both with a modern, interactive GUI, making the preprocessing
 - Third-party packages:
 
 ```bash
-pip install numpy matplotlib scipy
+pip install -r requirements.txt
 ```
 
-The following packages are part of the Python standard library: `tkinter`, `os`, `sys`, `shutil`, `json`, `math`, `csv`, `subprocess`, `pathlib`, `atexit`.
+The following packages are part of the Python standard library: `tkinter`, `os`, `sys`, `shutil`, `json`, `math`, `csv`, `subprocess`, `pathlib`.
 
 > **Note:** `tkinter` is included with most standard Python installations. If missing, install via your OS package manager (e.g. `sudo apt install python3-tk` on Ubuntu).
 
@@ -99,6 +99,12 @@ git clone https://github.com/jonas0403/MULTALL-Stage-Generator.git
 cd MULTALL-Stage-Generator
 python main.py
 ```
+
+> **First run:** the repo ships only the template `static/Populated_data.template.json`. Copy it to `static/Populated_data.json` before the first run — the template is only a structural reference with placeholder values to help you understand the file format, not a real design.
+
+> ```powershell
+> Copy-Item static/Populated_data.template.json static/Populated_data.json
+> ```
 
 ### Headless Pipeline (No GUI)
 
@@ -145,11 +151,8 @@ The "Other-Settings" tab provides tools for running parametric MULTALL studies:
 
 | File | Purpose |
 |------|---------|
-| `static/Populated_data.json` | Main project file — all design parameters |
-| `static/Populated_data.template.json` | Template with placeholder values for new projects |
-| `static/Setting.txt` | Persisted GUI settings (output folder, bezier options, bleed air, levels, etc.) |
-| `static/Meanline_Initial_Values.txt` | Default meanline parameters (standalone `meanline.py` only) |
-| `static/Thermo_Initial_Values.txt` | Default thermodynamic parameters (standalone `thermodynamic_calculation.py` only) |
+| `static/Populated_data.json` | Main project file — all design parameters (created from the template on first run) |
+| `static/Populated_data.template.json` | Template with placeholder values — reference for the JSON structure |
 
 ---
 
@@ -157,57 +160,34 @@ The "Other-Settings" tab provides tools for running parametric MULTALL studies:
 
 ```
 MULTALL-Stage-Generator/
-├── main.py                                  # Entry point (GUI or headless)
+├── main.py                              # Entry point (GUI or headless)
+├── requirements.txt                     # Python package dependencies
 ├── src/
-│   ├── GUI.py                               # Main Tkinter GUI application (3050+ lines)
-│   ├── stage_calculation.py                 # Core stage calculation & coordinate pipeline
-│   ├── grid_generator.py                    # MULTALL grid generation & .dat file export
-│   ├── channel.py                           # Flow channel geometry (annulus contour)
-│   ├── Radial_equilibrium.py                # Radial equilibrium solver
-│   ├── meanline.py                          # Meanline calculation module
-│   ├── thermodynamic_calculation.py         # Thermodynamic cycle calculations
-│   ├── Bezier_curve.py                      # Bezier curve interpolation
-│   ├── cubic_spline.py                      # Cubic spline interpolation
-│   ├── Interpolation.py                     # Interpolation utilities
-│   ├── loss_models.py                       # Loss model functions
-│   ├── debug_log.py                         # Structured debug logging module
-│   ├── plot_channel.py                      # Channel geometry visualization
-│   ├── run_multall.py                       # MULTALL solver interface
+│   ├── GUI.py                           # Main Tkinter GUI application
+│   ├── stage_calculation.py             # Core stage calculation & coordinate pipeline
+│   ├── grid_generator.py                # MULTALL grid generation & .dat file export
+│   ├── channel.py                       # Flow channel geometry (annulus contour)
+│   ├── Radial_equilibrium.py            # Radial equilibrium solver
+│   ├── meanline.py                      # Meanline calculation module
+│   ├── thermodynamic_calculation.py     # Thermodynamic cycle calculations
+│   ├── Bezier_curve.py                  # Bezier curve interpolation
+│   ├── cubic_spline.py                  # Cubic spline interpolation
+│   ├── Interpolation.py                 # Interpolation utilities
+│   ├── loss_models.py                   # Loss model functions
+│   ├── debug_log.py                     # Structured debug logging module
+│   ├── plot_channel.py                  # Channel geometry visualization
+│   ├── run_multall.py                   # MULTALL solver interface
 │   └── __init__.py
-├── misc_functions/
-│   ├── run_headless.py                      # Headless pipeline runner
-│   ├── generate_dat_files_multiple.py       # Compressor map DAT file generation
-│   ├── generate_run_batch.py                # Batch script creation for MULTALL runs
-│   ├── run_multall_solver.py                # MULTALL solver launcher
-│   ├── compressor_map_plotting.py           # Compressor map plotting
-│   ├── plotting_program.py                  # General plotting utilities
-│   ├── data_importer.py                     # Data import utilities
-│   ├── legacy_dat_export.py                 # Legacy DAT file creation
-│   └── create_run_config.py                 # Run configuration file creation
+├── misc_functions/                      # Standalone helper scripts (headless runner, plots, compressor maps, data import/export)
+├── tools/                               # Development & validation utilities (.dat validator, debug analysis)
 ├── static/
-│   ├── Populated_data.json                  # Main project data file
-│   ├── Populated_data.template.json         # Template with placeholder values
-│   ├── Setting.txt                          # Persisted GUI settings
-│   ├── Meanline_Initial_Values.txt          # Default meanline values (standalone)
-│   ├── Thermo_Initial_Values.txt            # Default thermodynamic values (standalone)
-│   ├── bezier_control_points_R.txt          # Rotor bezier control points
-│   ├── bezier_control_points_S.txt          # Stator bezier control points
-│   └── image/                               # Screenshots and visualizations
-├── tools/
-│   ├── dat_validator.py                     # MULTALL .dat file validation
-│   └── _debug_analysis.py                   # Debug analysis utilities
-├── Docs/
-│   ├── AGENTS.md                            # Development session log
-│   ├── BugInvestigation.md                  # Bug analysis documentation
-│   ├── Negative_Volume_Debug_Log.md         # Negative volume root cause analysis
-│   ├── Root_Cause_Investigation_Plan.md     # Investigation methodology
-│   ├── 10stg-compr-17.4.dat                 # Reference 10-stage compressor output
-│   └── README.pdf                           # MULTALL system overview (original docs)
-├── Run_Multall/                             # MULTALL solver binaries & runtime
-│   ├── multall.exe                          # MULTALL CFD solver
-│   ├── multall2dat.exe                      # MULTALL output converter
-│   └── multall2py.exe                       # MULTALL Python interface
-└── outputFiles/                             # Generated grid output files (gitignored)
+│   ├── Populated_data.json              # Main project data file (created from the template)
+│   ├── Populated_data.template.json     # Template with placeholder values
+│   └── image/                           # Screenshots and visualizations
+├── old/                                 # Archived/legacy files, kept for reference (not used)
+├── Docs/                                # MULTALL reference documentation (PDFs, example .dat files)
+├── Run_Multall/                         # MULTALL solver binaries & runtime files
+└── outputFiles/                         # Generated grid output files (gitignored)
 ```
 
 ---
