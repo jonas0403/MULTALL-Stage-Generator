@@ -693,7 +693,15 @@ class CompressorGui:
             plot_channel_contour = False
             
             def on_close(changed_diamtere_data):
-                
+                # FIX (2026-09-08): without `nonlocal` the assignments below created
+                # local variables inside on_close(), so the outer run_diameter_gui()
+                # variables kept their initial values (empty lists / "" / False). After
+                # root.mainloop() returned, that reset self.prepop_diameter_data to the
+                # empty defaults (GUI.py:759-763): the edited diameters were discarded
+                # in memory and the "Plot the channel contour" checkbox never reached
+                # meanline() -> plot_channel(). Declaring nonlocal forwards the values
+                # to the enclosing function so they survive past the dialog close.
+                nonlocal D_f1, D_f2, D_f3, fixed_radius_type, plot_channel_contour
                 D_f1 = changed_diamtere_data["D_f1"]
                 D_f2 = changed_diamtere_data["D_f2"]
                 D_f3 = changed_diamtere_data["D_f3"]

@@ -16,8 +16,14 @@ def bezier(Points, t, yy):
         yb = yy[0] * (1 - t) ** 3 + 3 * yy[1] * t * (1 - t) ** 2 + 3 * yy[2] * t ** 2 * (1 - t) + yy[3] * t ** 3
     elif Points == 5:
         # Bezier with 5 points
+        # FIX (2026-09-08): the last term used t**5, but a 5-point Bezier curve is
+        # degree 4, so the final Bernstein weight is t**4 (binom(4,4)=1). The wrong
+        # exponent made the curve sag toward the 4th control point near t=1.
+        # This branch is currently unused (every caller uses bezier(4, ...)), so the
+        # fix changes no existing results — it only makes the branch mathematically
+        # correct for any future 5-control-point use.
         yb = yy[0] * (1 - t) ** 4 + 4 * yy[1] * t * (1 - t) ** 3 + 6 * yy[2] * t ** 2 * (1 - t) ** 2 + \
-             4 * yy[3] * t ** 3 * (1 - t) + yy[4] * t ** 5
+             4 * yy[3] * t ** 3 * (1 - t) + yy[4] * t ** 4
     elif Points == 6:
         # Bezier with 6 points
         yb = yy[0] * (1 - t) ** 5 + 5 * yy[1] * t * (1 - t) ** 4 + 20 * yy[2] * t ** 2 * (1 - t) ** 3 + \
