@@ -91,10 +91,8 @@ static/*.bak
 static/history/
 
 # Agent session tracking & investigation docs (keep local, don't commit)
-Docs/AGENTS.md
-Docs/BugInvestigation.md
-Docs/Negative_Volume_Debug_Log.md
-Docs/Root_Cause_Investigation_Plan.md
+Docs/*.md
+
 
 # Documentation PDFs and reference files
 Docs/Output/
