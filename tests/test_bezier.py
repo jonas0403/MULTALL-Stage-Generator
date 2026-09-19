@@ -8,7 +8,7 @@ endpoints hold and the midpoint of symmetric control points is exact.
 import numpy as np
 import pytest
 
-from Bezier_curve import bezier
+from source.core.geometry.bezier import bezier
 
 
 def test_bezier4_endpoints(control_4):

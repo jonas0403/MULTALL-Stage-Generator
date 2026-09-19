@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+# ------------------------------------------------------------------
+# File:    main.py
+# Author:  Jonas Scholz
+# Purpose: Entry point — GUI or headless pipeline on the source/ tree.
+# ------------------------------------------------------------------
 """MULTALL Stage Generator — Entry Point
 
 Launches the GUI application by default. Supports headless mode for
@@ -17,10 +21,10 @@ import argparse
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(_ROOT)
 
-# Ensure src/ is on the path
-_SRC = os.path.join(_ROOT, "src")
-if _SRC not in sys.path:
-    sys.path.insert(0, _SRC)
+# Repo root on the path so the `source` package resolves.
+# (Old src/ tree is retired; its launcher lives in old/.)
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
 
 def main():
@@ -49,23 +53,23 @@ def main():
 
 
 def _run_headless(json_path, output_path):
-    """Launch the headless pipeline in a subprocess."""
+    """Headless source/ pipeline in a subprocess (keeps GUI state isolated)."""
     import subprocess
 
-    headless_script = os.path.join(_ROOT, "misc_functions", "run_headless.py")
-    cmd = [sys.executable, headless_script]
+    # -m from the repo root so the absolute source.* imports resolve.
+    cmd = [sys.executable, "-m", "source.headless"]
 
     if json_path:
         cmd += ["--json", os.path.abspath(json_path)]
     if output_path:
         cmd += ["--output", os.path.abspath(output_path)]
 
-    sys.exit(subprocess.call(cmd))
+    sys.exit(subprocess.call(cmd, cwd=_ROOT))
 
 
 def _run_gui():
-    """Launch the Tkinter GUI."""
-    from src.GUI import CompressorGui
+    """Launch the Tkinter GUI (source/ tree)."""
+    from source.gui.app import CompressorGui
 
     my_gui = CompressorGui()
     my_gui.loading_prepopulated_data()

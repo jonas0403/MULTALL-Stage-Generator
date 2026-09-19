@@ -16,7 +16,7 @@ import math
 
 import pytest
 
-from Radial_equilibrium import radial_equilibrium_R
+from source.core.radial.radial_equilibrium import radial_equilibrium_R
 
 R_OUTPUT_LENGTH_HINT = "h_rel"  # outputs are lists of spanwise values
 
@@ -73,16 +73,13 @@ def test_stage_outputs_differ(radial_outputs):
 
 
 def test_documented_duplicate_definitions_exist():
-    """Findings note: the module keeps obsolete function copies inside string
-    comment blocks. Only the FIRST occurrence of each is executed; this test
-    pins that the commented-out copies are still preserved (a maintenance
-    hazard — someone could edit them thinking they are live, or a future
-    cleanup could remove them)."""
+    """Phase C deleted the obsolete string-block copies, so exactly one live
+    definition of each function must remain in the source/ module."""
     import inspect
 
-    import Radial_equilibrium
+    from source.core.radial import radial_equilibrium as re_module
 
-    source = inspect.getsource(Radial_equilibrium)
-    assert source.count("def radial_equilibrium_R(") == 2
-    assert source.count("def radial_equilibrium_S(") == 2
-    assert source.count("def references(") == 2
+    source = inspect.getsource(re_module)
+    assert source.count("def radial_equilibrium_R(") == 1
+    assert source.count("def radial_equilibrium_S(") == 1
+    assert source.count("def references(") == 1

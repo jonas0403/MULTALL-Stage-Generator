@@ -1,7 +1,7 @@
 """Shared fixtures for the MULTALL Stage Generator test suite.
 
 All tests run against copies of the project input JSON in pytest temp dirs.
-No existing source code is modified; tests only import from src/ and tools/.
+Tests import from source/ and tools/ only (never the frozen src/ tree).
 """
 
 import contextlib
@@ -15,26 +15,23 @@ from types import SimpleNamespace
 
 import pytest
 
-# Force a non-interactive matplotlib backend BEFORE any src/ module imports
-# matplotlib: channel.py hardcodes channelPlot = 1 and would otherwise try to
-# open a Tk window on every call (broken Tk in some installs -> TclError).
+# Non-interactive backend before any source/ import (stage.py pulls in
+# pyplot at module level).
 os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib
 
 matplotlib.use("Agg", force=True)
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src"
 SOURCE_JSON = ROOT / "static" / "Populated_data.template.json"
 
-for _p in (str(ROOT), str(SRC)):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _stay_in_project_root():
-    """src/ modules assume CWD = project root; keep it fixed for the whole run."""
+    """Keep CWD at the project root for the whole run."""
     os.chdir(ROOT)
     yield
 
@@ -43,16 +40,16 @@ def require_source_json():
     if not SOURCE_JSON.exists():
         pytest.fail(
             f"{SOURCE_JSON.relative_to(ROOT)} not found. The test suite reads the"
-            " committed template — restore it (git checkout -- static/Populated_data.template.json) "
+            " committed template — restore it (see static/Populated_data.template.json) "
             "before running the suite."
         )
 
 
 def make_input_json(target_dir: Path) -> Path:
-    """Copy the template JSON into a temp dir and force output into temp.
+    """Copy the template JSON into a temp dir and point its output there.
 
-    The grid is written to Metadata['output_folder'] (grid_generator.py:826); an
-    absolute temp path guarantees the test never touches the real outputFiles/.
+    The grid lands in Metadata['output_folder'], so an absolute temp path
+    keeps the test off the real outputFiles/.
     """
     require_source_json()
     data = json.loads(SOURCE_JSON.read_text(encoding="utf-8"))
@@ -66,38 +63,37 @@ def make_input_json(target_dir: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def pipeline_run(tmp_path_factory):
-    """One real headless pipeline run, shared by smoke + regression tests (~10s).
+    """One real headless pipeline run, shared by smoke + regression tests.
 
-    Runs run_headless.py as a subprocess (it mutates CWD/sys.path at import time
-    and creates a withdrawn tk.Tk() root — subprocess keeps that out of pytest).
+    Runs source/headless.py as a subprocess (it owns its tk root and cwd),
+    on the temp JSON whose Metadata already points at the temp grid dir —
+    no --output flag, single knob, no ambiguity.
     """
     base = tmp_path_factory.mktemp("pipeline")
     json_path = make_input_json(base)
-    out_dir = base / "out"
+    grid_dir = base / "grid"
     proc = subprocess.run(
         [
             sys.executable,
-            str(ROOT / "misc_functions" / "run_headless.py"),
+            "-m",
+            "source.headless",
             "--json",
             str(json_path),
-            "--output",
-            str(out_dir),
         ],
         cwd=str(ROOT),
-        env={**os.environ, "MPLBACKEND": "Agg"},
+        env={**os.environ, "MPLBACKEND": "Agg", "MULTALL_HEADLESS": "1"},
         capture_output=True,
         text=True,
         timeout=180,
     )
-    grid_dir = base / "grid"
     dat_candidates = sorted(grid_dir.glob("*.dat")) if grid_dir.exists() else []
     return {
         "base": base,
         "json_path": json_path,
-        "out_dir": out_dir,
+        "out_dir": grid_dir,
         "grid_dir": grid_dir,
         "dat_path": dat_candidates[0] if dat_candidates else None,
-        "debug_log": out_dir / "debug_headless.txt",
+        "debug_log": grid_dir / "debug_headless.txt",
         "returncode": proc.returncode,
         "stdout": proc.stdout,
         "stderr": proc.stderr,
@@ -108,8 +104,8 @@ def pipeline_run(tmp_path_factory):
 def meanline_data():
     """3-stage meanline result dict built from the template JSON (~3-5s)."""
     require_source_json()
-    from thermodynamic_calculation import Thermo
-    from meanline import meanline
+    from source.core.meanline.thermodynamics import Thermo
+    from source.core.meanline.meanline import meanline
 
     data = json.loads(SOURCE_JSON.read_text(encoding="utf-8"))
     ti = data["Thermodynamic_input_data"]

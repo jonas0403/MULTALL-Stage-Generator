@@ -1,0 +1,396 @@
+# ------------------------------------------------------------------
+# File:    source/core/radial/radial_equilibrium.py
+# Author:  Marco Wiens
+# Purpose: Radial equilibrium calculation (rotor/stator).
+# ------------------------------------------------------------------
+
+# Author: Marco Wiens
+# Version: 05.12.2024
+# Radial-equilibrium
+# Programm for calculation of radial equilibrium
+
+import math
+import numpy as np
+import matplotlib as plt
+from source.logging import debug_log
+
+Pi = math.pi
+
+
+from source.core.meanline.losses import  angle_blade_in, angle_blade_out 
+#from GUI import CompressorGui cant be used here because it closes the circle 
+
+
+#function for meridional velocity
+def rad_eq_cm(appr, position, r, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref, Dh_t):
+    switch = 1
+    if position == 1:
+        switch = -1
+    
+    r_rel = max(r_ref / r, 0.0000001)
+    cu_inf = (cu_ref_in + cu_ref_out) / 2
+    
+    # Free Vortex approach
+    cm = cm_ref
+    A = cu_inf * r_ref
+    B = r_ref * Dh_t / (2 * u_ref)
+    
+    # Constant Reaction approach
+    if appr == 2:
+        A = cu_inf / r_ref
+        cmq = cm_ref ** 2 + 2 * A ** 2 * (r_ref ** 2 - r ** 2 + switch * 2 * B / A * math.log(r_rel))
+        if cmq <= 0:
+            cmq = 0
+        cm = math.sqrt(cmq)
+
+    # Exponential Method approach
+    if appr == 3:
+        A = cu_inf
+        cmq = cm_ref ** 2 + 2 * A * (A * math.log(r_rel) + switch * 2 * B * (1 / r - 1 / r_rel))
+        if cmq <= 0:
+            cmq = 0
+        cm = math.sqrt(cmq)
+    
+    return cm
+
+#function for circumferential velocity
+def rad_eq_cu(appr, position, r, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref, Dh_t):
+    switch = 1
+    if position == 1:
+        switch = -1
+
+    r_rel = max(r_ref / r, 0.0000001)
+    cu_inf = (cu_ref_in + cu_ref_out) / 2
+
+    # Free Vortex approach
+    exponent = -1
+    A = cu_inf * r_ref
+    B = r_ref * Dh_t / (2 * u_ref)
+    cu = A * r**exponent + switch * B / r
+
+    # Constant Reaction approach
+    if appr == 2:
+        exponent = 1
+        A = cu_inf / r_ref
+        cu = A * r**exponent + switch * B / r
+
+    # Exponential Method approach
+    if appr == 3:
+        exponent = 0
+        A = cu_inf
+        cu = A * r**exponent + switch * B / r
+
+    return cu
+
+def references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3, CompressorGui):
+    # --- DEBUG START ---
+    # print(f"DEBUG references: Requested stage={stage}, len(cu1)={len(cu1)}")
+    # --- DEBUG END ---
+
+    # SAFETY LOGIC: If stage+1 is requested for the exit of the last stage,
+    # we must clamp the index to the last available stage data.
+    calc_idx = stage - 1
+    if calc_idx >= len(cu1):
+        # print(f"DEBUG references: Index {calc_idx} out of range. Clamping to {len(cu1)-1}")
+        calc_idx = len(cu1) - 1
+    elif calc_idx < 0:
+        calc_idx = 0
+
+    cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = [], [], [], [], []
+    
+    # Use calc_idx instead of stage-1
+    cu_ref_in.append(cu1[calc_idx])
+    cu_ref_out.append(cu2[calc_idx])
+    cm_ref.append(cm2[calc_idx])
+    r_ref.append(D_m2[calc_idx] / 2.0)
+    u_ref.append(u2[calc_idx])
+    
+    return None, None, None, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref
+
+# radial equilibrium for the rotor
+def radial_equilibrium_R(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui):
+
+    # --- DATA STANDARDIZATION ---
+    # This block ensures that all stage-dependent parameters are subscriptable (lists/arrays).
+    # This allows the function to be called with full compressor lists (from main logic) 
+    # or single stage values (from internal calls in radial_equilibrium_S).
+    params_to_fix = {
+        'D_S1': D_S1, 'D_S2': D_S2, 'D_S3': D_S3, 
+        'D_H1': D_H1, 'D_H2': D_H2, 'D_H3': D_H3, 
+        'D_m1': D_m1, 'D_m2': D_m2, 'D_m3': D_m3, 
+        'b1': b1, 'b2': b2, 'b3': b3, 
+        'cu1': cu1, 'cu2': cu2, 'cu3': cu3, 
+        'u1': u1, 'u2': u2, 'u3': u3, 
+        'cm1': cm1, 'cm2': cm2, 'cm3': cm3, 
+        'delta_h_t': delta_h_t, 'T_t1': T_t1, 'T_t2': T_t2, 'T_t3': T_t3, 
+        'p_t1': p_t1, 'p_t2': p_t2, 'p_t3': p_t3
+    }
+    
+    # If a parameter is a float, wrap it in a list. 
+    # If it is already a list, keep it.
+    fixed = {k: ([v] if isinstance(v, (int, float, np.float64)) else v) for k, v in params_to_fix.items()}
+    
+    # Re-assign variables to the fixed versions
+    D_S1, D_S2, D_S3 = fixed['D_S1'], fixed['D_S2'], fixed['D_S3']
+    D_H1, D_H2, D_H3 = fixed['D_H1'], fixed['D_H2'], fixed['D_H3']
+    D_m1, D_m2, D_m3 = fixed['D_m1'], fixed['D_m2'], fixed['D_m3']
+    b1, b2, b3 = fixed['b1'], fixed['b2'], fixed['b3']
+    cu1, cu2, cu3 = fixed['cu1'], fixed['cu2'], fixed['cu3']
+    u1, u2, u3 = fixed['u1'], fixed['u2'], fixed['u3']
+    cm1, cm2, cm3 = fixed['cm1'], fixed['cm2'], fixed['cm3']
+    delta_h_t = fixed['delta_h_t']
+    T_t1, T_t2, T_t3 = fixed['T_t1'], fixed['T_t2'], fixed['T_t3']
+    p_t1, p_t2, p_t3 = fixed['p_t1'], fixed['p_t2'], fixed['p_t3']
+
+    # ── Indexing note ────────────────────────────────────────────────────
+    # Wrapped inputs (b1, D_H1, D_S1, …) are 1‑element lists because the
+    # caller passes stage‑specific scalars (e.g. b1[s-1]).  Always use
+    # index 0 for those.
+    # Meanline arrays (l_R_t_R, z_R, …) have one entry per stage, so use
+    # stage‑1 for them.
+    # ──────────────────────────────────────────────────────────────────────
+    local_idx = 0          # wrapped stage‑specific inputs
+    meanline_idx = stage - 1  # per‑stage meanline arrays
+    # ----------------------------
+    
+    meanline = CompressorGui.meanline_data
+    kappa = meanline['kappa']
+    R = meanline['R']
+    cp = meanline['cp']
+    
+    l_R_t_R = meanline['l_R_t_R']
+    d_R_l_R = meanline['d_R_l_R']
+    incidence_R = meanline['incidence_R']
+    z_R = meanline['z_R']
+    
+    # Clamp meanline_idx to prevent out-of-range errors when stage+1
+    # is called via radial_equilibrium_S for the last compressor stage.
+    if meanline_idx >= len(l_R_t_R):
+        meanline_idx = len(l_R_t_R) - 1
+    elif meanline_idx < 0:
+        meanline_idx = 0
+    
+    h_H = [0.0, 0.2, 0.5, 0.8, 1.0]
+
+    # Use 'stage' here because references() likely handles its own indexing logic
+    _, _, _, cu_ref_in, cu_ref_out, cm_ref, r_ref, u_ref = references(stage, cu1, cu2, cu3, cm1, cm2, cm3, D_m2, u1, u2, u3, CompressorGui)
+    
+    dh = 0.05
+    h_rel = np.arange(0.0, 1.0 + dh, dh)
+    
+    # Rotor inlet
+    r_R_in = []
+    for i in range(len(h_rel)): 
+        # wrapped inputs use local_idx (=0) because they are 1-element lists
+        b1_m = b1[local_idx] / 1000
+        
+        if constant_r_parameter == 0:
+            r_R_in.append(D_H1[local_idx]/2.0 + h_rel[i]*b1_m)
+        elif constant_r_parameter == 1:
+            r_R_in.append(D_m1[local_idx]/2.0 + (h_rel[i]-0.5)*b1_m)
+        elif constant_r_parameter == 2:
+            r_R_in.append(D_S1[local_idx]/2.0 + (h_rel[i]-1)*b1_m)
+        else:
+            radius_err = "Allowed constant radius parameter: 0, 1 and 2."
+            print(radius_err)
+            debug_log.debug(radius_err, context="radial_equilibrium_R")
+
+    c_m_R_in, c_u_R_in, u_R_in, w_R_in, T_R_in, p_R_in, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in = [], [], [], [], [], [], [], [], [], [], []
+    for i in range(len(h_rel)):
+        # Using [0] for ref values as references() typically returns the specific stage data already
+        c_m_R_in.append(rad_eq_cm(approach, 1, r_R_in[i], cu_ref_in[0], cu_ref_out[0], cm_ref[0], r_ref[0], u_ref[0], delta_h_t[local_idx]))
+        c_u_R_in.append(rad_eq_cu(approach, 1, r_R_in[i], cu_ref_in[0], cu_ref_out[0], cm_ref[0], r_ref[0], u_ref[0], delta_h_t[local_idx]))
+        u_R_in.append(r_R_in[i] / r_ref[0] * u_ref[0])
+        w_R_in.append(math.sqrt(c_m_R_in[i]**2 + (u_R_in[i] - c_u_R_in[i])**2))
+        T_R_in.append(T_t1[local_idx] - (c_m_R_in[i]**2 + c_u_R_in[i]**2) / (2 * cp))
+        p_R_in.append(p_t1[local_idx] * (T_R_in[i] / T_t1[local_idx])**(kappa / (kappa - 1)))
+        Ma_abs_R_in.append(math.sqrt(c_m_R_in[i]**2 + c_u_R_in[i]**2) / math.sqrt(kappa * R * T_R_in[i]))
+        Ma_rel_R_in.append(w_R_in[i] / math.sqrt(kappa * R * T_R_in[i]))
+        roh_R_in.append(p_R_in[i] / (T_R_in[i] * R))
+        alpha_R_in.append(math.acos(c_u_R_in[i] / math.sqrt(c_u_R_in[i]**2 + c_m_R_in[i]**2)) / Pi * 180)
+        beta_R_in.append(math.acos((c_u_R_in[i] - u_R_in[i]) / (math.sqrt((c_u_R_in[i] - u_R_in[i])**2 + c_m_R_in[i]**2))) / Pi * 180)
+
+    MF_Integral_R_in = []
+    for i in range(len(h_rel)-1):
+        MF_Integral_R_in.append(Pi*(r_R_in[i+1]**2-r_R_in[i]**2)*(c_m_R_in[i+1]*roh_R_in[i+1]+c_m_R_in[i]*roh_R_in[i])/2)
+
+    MF_R_in = sum(MF_Integral_R_in)
+
+
+    # Rotor outlet/ stator inlet
+    r_R_out = []
+    for i in range(len(h_rel)): 
+        b2_m = b2[local_idx] / 1000.0
+        if constant_r_parameter == 0:
+            r_R_out.append(D_H2[local_idx]/2.0 + h_rel[i]*b2_m)
+        elif constant_r_parameter == 1:
+            r_R_out.append(D_m2[local_idx]/2.0 + (h_rel[i]-0.5)*b2_m)
+        elif constant_r_parameter == 2:
+            r_R_out.append(D_S2[local_idx]/2.0 + (h_rel[i]-1)*b2_m)
+        else:
+            radius_err = "Allowed constant radius parameter: 0, 1 and 2."
+            print(radius_err)
+            debug_log.debug(radius_err, context="radial_equilibrium_R")
+
+    c_m_R_out, c_u_R_out, c_R_out, u_R_out, w_R_out, T_R_out, p_R_out, Ma_abs_R_out, Ma_rel_R_out, roh_R_out, alpha_R_out, beta_R_out = [], [], [], [], [], [], [], [], [], [], [], []
+    for i in range(len(h_rel)):
+        c_m_R_out.append(rad_eq_cm(approach, 2, r_R_out[i], cu_ref_in[0], cu_ref_out[0], cm_ref[0], r_ref[0], u_ref[0], delta_h_t[local_idx]))
+        c_u_R_out.append(rad_eq_cu(approach, 2, r_R_out[i], cu_ref_in[0], cu_ref_out[0], cm_ref[0], r_ref[0], u_ref[0], delta_h_t[local_idx]))
+        c_R_out.append(math.sqrt(c_m_R_out[i]**2 + c_u_R_out[i]**2))            
+        u_R_out.append(r_R_out[i] / r_ref[0] * u_ref[0])
+        w_R_out.append(math.sqrt(c_m_R_out[i]**2 + (u_R_out[i] - c_u_R_out[i])**2))
+        T_R_out.append(T_t2[local_idx] - (c_m_R_out[i]**2 + c_u_R_out[i]**2) / (2 * cp)) 
+        Ma_abs_R_out.append(math.sqrt(c_m_R_out[i]**2 + c_u_R_out[i]**2) / math.sqrt(kappa * R * T_R_out[i]))
+        Ma_rel_R_out.append(u_R_out[i] / math.sqrt(kappa * R * T_R_out[i]))
+        p_R_out.append(p_t2[local_idx] * (T_R_out[i] / T_t2[local_idx])**(kappa / (kappa - 1)))
+        roh_R_out.append(p_R_out[i] / (T_R_out[i] * R))
+        alpha_R_out.append(math.acos(c_u_R_out[i] / math.sqrt(c_u_R_out[i]**2 + c_m_R_out[i]**2)) / Pi * 180)
+        beta_R_out.append(math.acos((c_u_R_out[i] - u_R_out[i]) / (math.sqrt((c_u_R_out[i] - u_R_out[i])**2 + c_m_R_out[i]**2))) / Pi * 180)
+    
+
+    MF_Integral_R_out = []
+    for i in range(len(h_rel)-1):
+        MF_Integral_R_out.append(Pi*(r_R_out[i+1]**2-r_R_out[i]**2)*(c_m_R_out[i+1]*roh_R_out[i+1]+c_m_R_out[i]*roh_R_out[i])/2)
+        
+    MF_S = sum(MF_Integral_R_out)
+
+    beta_blade_R_in, beta_blade_R_out = [], []
+    for i in range(len(h_rel)):
+        beta_blade_R_in.append(angle_blade_in(beta_R_in[i], beta_R_out[i], w_R_in[i], w_R_out[i], T_R_in[i], T_R_out[i], l_R_t_R[meanline_idx],  d_R_l_R[meanline_idx], incidence_R[meanline_idx], R, kappa))
+        beta_blade_R_out.append(angle_blade_out(beta_R_in[i], beta_R_out[i],  w_R_in[i], w_R_out[i], T_R_in[i], T_R_out[i], l_R_t_R[meanline_idx],  d_R_l_R[meanline_idx], incidence_R[meanline_idx], R, kappa))
+    
+    # Rotor data
+    solidity_R = [l_R_t_R[meanline_idx]]*len(h_rel)
+    l_R, axial_length_R, delta_beta_R, w_R_out_w_R_in, D_R = [], [], [], [], []
+    for i in range(len(h_rel)):
+        l_R.append(solidity_R[i]*2*Pi*(r_R_out[i]+r_R_in[i])/(2*z_R[meanline_idx])*1000)
+        axial_length_R.append(l_R[i]*math.sin((beta_blade_R_out[i]+beta_blade_R_in[i])/(2*180)*Pi))
+        delta_beta_R.append(beta_R_out[i]-beta_R_in[i])
+        w_R_out_w_R_in.append(w_R_out[i]/w_R_in[i])
+        D_R.append(1-w_R_out_w_R_in[i]+abs((c_u_R_out[i]-u_R_out[i])-(c_u_R_in[i]-u_R_in[i]))/(2*solidity_R[i]*w_R_in[i]))
+    
+    return h_rel, l_R, r_R_out, c_m_R_in, c_m_R_out, c_u_R_in, c_u_R_out, c_R_out, u_R_in, u_R_out, T_R_in, T_R_out, p_R_in, p_R_out, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, alpha_R_in, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, beta_blade_R_out, D_R
+
+
+# radial equilibrium for the stator 
+def radial_equilibrium_S(stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui):        
+    
+    # --- DATA STANDARDIZATION ---
+    # This block ensures all stage-dependent inputs are treated as subscriptable collections.
+    # It allows the function to handle both multi-stage lists and single-stage scalars.
+    input_params = {
+        'D_S1': D_S1, 'D_S2': D_S2, 'D_S3': D_S3, 
+        'D_H1': D_H1, 'D_H2': D_H2, 'D_H3': D_H3, 
+        'D_m1': D_m1, 'D_m2': D_m2, 'D_m3': D_m3, 
+        'b1': b1, 'b2': b2, 'b3': b3, 
+        'cu1': cu1, 'cu2': cu2, 'cu3': cu3, 
+        'u1': u1, 'u2': u2, 'u3': u3, 
+        'cm1': cm1, 'cm2': cm2, 'cm3': cm3, 
+        'delta_h_t': delta_h_t, 
+        'T_t1': T_t1, 'T_t2': T_t2, 'T_t3': T_t3, 
+        'p_t1': p_t1, 'p_t2': p_t2, 'p_t3': p_t3
+    }
+    
+    # Wrap single floats into lists; keep existing lists/arrays as they are.
+    fixed = {k: ([v] if isinstance(v, (int, float, np.float64)) else v) for k, v in input_params.items()}
+    
+    # Re-assign variables to ensure downstream compatibility
+    D_S1, D_S2, D_S3 = fixed['D_S1'], fixed['D_S2'], fixed['D_S3']
+    D_H1, D_H2, D_H3 = fixed['D_H1'], fixed['D_H2'], fixed['D_H3']
+    D_m1, D_m2, D_m3 = fixed['D_m1'], fixed['D_m2'], fixed['D_m3']
+    b1, b2, b3 = fixed['b1'], fixed['b2'], fixed['b3']
+    cu1, cu2, cu3 = fixed['cu1'], fixed['cu2'], fixed['cu3']
+    u1, u2, u3 = fixed['u1'], fixed['u2'], fixed['u3']
+    cm1, cm2, cm3 = fixed['cm1'], fixed['cm2'], fixed['cm3']
+    delta_h_t = fixed['delta_h_t']
+    T_t1, T_t2, T_t3 = fixed['T_t1'], fixed['T_t2'], fixed['T_t3']
+    p_t1, p_t2, p_t3 = fixed['p_t1'], fixed['p_t2'], fixed['p_t3']
+
+    # ── Indexing note ────────────────────────────────────────────────────
+    # Wrapped inputs (b1, D_H1, D_S1, …) are 1‑element lists because the
+    # caller passes stage‑specific scalars (e.g. b1[s-1]).  Always use
+    # index 0 for those.
+    # Meanline arrays (l_S_t_S, z_S, …) have one entry per stage, so use
+    # stage‑1 for them.
+    # ──────────────────────────────────────────────────────────────────────
+    local_idx = 0          # wrapped stage‑specific inputs
+    meanline_idx = stage - 1  # per‑stage meanline arrays
+    # ----------------------------
+    
+    # Inlet values of the stator are the outlet values of the current rotor
+    # Using standardized variables ensures the internal radial_equilibrium_R call doesn't crash.
+    (h_rel, l_R, r_S_in, c_m_R_in, c_m_S_in, c_u_R_in, c_u_S_in, c_S_in, u_R_in, 
+     u_S_in, T_R_in, T_S_in, p_R_in, p_S_in, Ma_abs_R_in, Ma_rel_R_in, roh_R_in, 
+     alpha_R_in, beta_R_in, alpha_S_in, beta_S_in, beta_blade_R_in, 
+     beta_blade_R_out, D_R) = radial_equilibrium_R(
+         stage, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, 
+         D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, 
+         delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui
+    )
+    
+    # Outlet values of the stator correspond to the inlet values of the following rotor.
+    # Note: If stage+1 exceeds the list length, radial_equilibrium_R standardization 
+    # will catch the index and redirect it appropriately.
+    (h_rel, l_R, r_R_out, c_m_S_out, c_m_R_out, c_u_S_out, c_u_R_out, c_R_out, 
+     u_S_out, u_R_out, T_S_out, T_R_out, p_S_out, p_R_out, Ma_abs_S_out, Ma_rel_S_out, 
+     roh_S_out, alpha_S_out, beta_R_in, alpha_R_out, beta_R_out, beta_blade_R_in, 
+     beta_blade_R_out, D_R) = radial_equilibrium_R(
+         stage+1, approach, constant_r_parameter, D_S1, D_S2, D_S3, D_H1, D_H2, D_H3, 
+         D_m1, D_m2, D_m3, b1, b2, b3, cu1, cu2, cu3, u1, u2, u3, cm1, cm2, cm3, 
+         delta_h_t, T_t1, T_t2, T_t3, p_t1, p_t2, p_t3, CompressorGui
+    )
+    
+    meanline = CompressorGui.meanline_data
+    kappa = meanline['kappa']
+    R = meanline['R']
+    
+    l_S_t_S = meanline['l_S_t_S']
+    d_S_l_S = meanline['d_S_l_S']
+    incidence_S = meanline['incidence_S']
+    z_S = meanline['z_S']
+    
+    if meanline_idx >= len(l_S_t_S):
+        meanline_idx = len(l_S_t_S) - 1
+    elif meanline_idx < 0:
+        meanline_idx = 0
+    
+    # Stator Geometry and Velocity Triangles
+    r_S_out = []
+    for i in range(len(h_rel)):
+        # wrapped inputs use local_idx (=0) because they are 1-element lists
+        b3_m = b3[local_idx] / 1000.0 
+        if constant_r_parameter == 0:
+            r_S_out.append(D_H3[local_idx]/2.0 + h_rel[i]*b3_m)
+        elif constant_r_parameter == 1:
+            r_S_out.append(D_m3[local_idx]/2.0 + (h_rel[i]-0.5)*b3_m)
+        elif constant_r_parameter == 2:
+            r_S_out.append(D_S3[local_idx]/2.0 + (h_rel[i]-1)*b3_m)
+        else:
+            radius_err = "Allowed constant radius parameter: 0, 1 and 2."
+            print(radius_err)
+            debug_log.debug(radius_err, context="radial_equilibrium_S")
+
+    c_S_out = [math.sqrt(c_m_S_out[i]**2 + c_u_S_out[i]**2) for i in range(len(h_rel))]
+    
+    beta_blade_S_in, beta_blade_S_out = [], []
+    for i in range(len(h_rel)):
+        # Meanline arrays have one entry per stage — use meanline_idx
+        beta_blade_S_in.append(angle_blade_in(
+            alpha_S_in[i], alpha_S_out[i], c_S_in[i], c_S_out[i], T_S_in[i], T_S_out[i], 
+            l_S_t_S[meanline_idx], d_S_l_S[meanline_idx], incidence_S[meanline_idx], R, kappa))
+        beta_blade_S_out.append(angle_blade_out(
+            alpha_S_in[i], alpha_S_out[i], c_S_in[i], c_S_out[i], T_S_in[i], T_S_out[i], 
+            l_S_t_S[meanline_idx], d_S_l_S[meanline_idx], incidence_S[meanline_idx], R, kappa))
+    
+    # Stator Performance Data (Solidity, Diffusion Factor, etc.)
+    solidity_S = [l_S_t_S[meanline_idx]] * len(h_rel)
+    l_S, axial_length_S, delta_beta_S, c_S_out_c_S_in, D_S = [], [], [], [], []
+    for i in range(len(h_rel)):
+        l_S.append(solidity_S[i]*2*Pi*(r_S_in[i]+r_S_out[i])/(2*z_S[meanline_idx])*1000)
+        axial_length_S.append(l_S[i]*math.sin((beta_blade_S_out[i]+beta_blade_S_in[i])/(2*180)*Pi))
+        delta_beta_S.append(beta_blade_S_out[i]-beta_blade_S_in[i])
+        c_S_out_c_S_in.append(c_S_out[i]/c_S_in[i])
+        D_S.append(1-c_S_out_c_S_in[i]+abs(c_u_S_out[i]-c_u_S_in[i])/(2*solidity_S[i]*c_S_in[i]))
+    
+    return h_rel, l_S, c_m_S_in, c_m_S_out, c_u_S_in, c_u_S_out, c_S_out, T_S_in, T_S_out, p_S_in, p_S_out, alpha_S_in, beta_S_in, alpha_S_out, beta_blade_S_in, beta_blade_S_out, D_S
+

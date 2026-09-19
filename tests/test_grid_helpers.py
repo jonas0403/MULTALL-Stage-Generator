@@ -10,7 +10,7 @@ import io
 import numpy as np
 import pytest
 
-from grid_generator import grid_adaption, write_values_in_block
+from source.core.grid.writers import grid_adaption, write_values_in_block
 
 
 @pytest.mark.parametrize("count", [50, 100, 200])

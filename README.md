@@ -49,6 +49,9 @@ This tool replaces both with a modern, interactive GUI, making the preprocessing
 - **Headless pipeline** — Run the full workflow from the command line without the GUI
 - **Compressor maps** — Generate multiple `.dat` files with varying pressure ratios and batch run scripts
 - **Debug logging** — Comprehensive debug output with timestamps, sections, and context tags
+- **Config history** — Every successful generation snapshots to `static/history/` with one-click import
+- **Turbulence & Q3D options** — Spalart–Allmaras model switch and quasi-3D single-section mode
+- **Input guardrails** — Blade-profile validation fails fast with a clear message instead of a solver crash
 
 ---
 
@@ -114,12 +117,23 @@ For automated or debugging runs without the GUI:
 python main.py --headless --json static/Populated_data.json --output outputFiles
 ```
 
-This runs the full workflow — meanline, radial equilibrium, blade profiling, and grid generation — and writes the MULTALL `.dat` file and a debug log to the output directory. The JSON file is updated in place with the generated metadata and grid data.
+This runs the full workflow — meanline, radial equilibrium, blade profiling, and grid generation — and writes the MULTALL `.dat` file and a debug log to the output directory. The JSON file is updated in place with the regenerated blade profiles, metadata, and grid data.
 
-> **Tip:** Back up your JSON before a headless run:
-> ```powershell
-> Copy-Item static/Populated_data.json static/Populated_data.json.bak
-> ```
+> **Tip:** the headless run writes results back into the JSON file. Always run
+> it on a copy, never the live file. (The GUI path instead snapshots every
+> successful generation into `static/history/`.)
+
+### Testing
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+43 tests covering splines, Bezier math, meanline, radial equilibrium, channel
+geometry, grid helpers, plus an end-to-end headless pipeline run with `.dat`
+validation. Tests run on temp copies only — they never touch `static/*.json`,
+`outputFiles/`, or `Run_Multall/`.
 
 ---
 
@@ -129,22 +143,25 @@ This runs the full workflow — meanline, radial equilibrium, blade profiling, a
 
 1. Launch the application: `python main.py`
 2. On startup, values are loaded from the project JSON file into the GUI input fields
-3. Configure your turbomachinery design across the input tabs (thermodynamics, meanline, geometry, bleed air, grid settings)
+3. Configure your design across the tabs (0D-Settings, 1D-Settings, 3D-Settings, Grid-Settings, Other-Settings)
 4. Save your configuration at any time via the GUI
 5. Run the meanline and radial equilibrium calculations
 6. Review results in the visualization panels
 7. Generate blade profiles from the radial equilibrium data
 8. Export the MULTALL-compatible `.dat` output file
 
-### Compressor Map Generation
+### Parametric MULTALL Studies
 
-The "Other-Settings" tab provides tools for running parametric MULTALL studies:
+The "Other-Settings" tab provides tools for running parametric MULTALL studies.
+It generates and solves multiple cases (e.g. across back pressures) whose
+results can then be postprocessed into a compressor map — map plotting itself
+is future work (see Roadmap).
 
 1. Generate a single grid `.dat` file via the grid generation workflow
 2. Enable "Create multiple DAT files for compressor map"
 3. Configure the pressure range (start, end, step) and filename template
 4. Click "Generate Outputfile" to create multiple `.dat` files with varying back pressure
-5. Optionally generate a batch script (`run_all.bat`) to execute all cases through MULTALL
+5. A batch script (`run_multall_files.bat`) is generated to execute all cases through MULTALL
 6. Check "Run MULTALL after generation" to launch the solver automatically
 
 ### Configuration Files
@@ -153,6 +170,7 @@ The "Other-Settings" tab provides tools for running parametric MULTALL studies:
 |------|---------|
 | `static/Populated_data.json` | Main project file — all design parameters (created from the template on first run) |
 | `static/Populated_data.template.json` | Template with placeholder values — reference for the JSON structure |
+| `static/history/` | Auto-saved config snapshots from every successful generation (gitignored) |
 
 ---
 
@@ -160,34 +178,31 @@ The "Other-Settings" tab provides tools for running parametric MULTALL studies:
 
 ```
 MULTALL-Stage-Generator/
-├── main.py                              # Entry point (GUI or headless)
-├── requirements.txt                     # Python package dependencies
-├── src/
-│   ├── GUI.py                           # Main Tkinter GUI application
-│   ├── stage_calculation.py             # Core stage calculation & coordinate pipeline
-│   ├── grid_generator.py                # MULTALL grid generation & .dat file export
-│   ├── channel.py                       # Flow channel geometry (annulus contour)
-│   ├── Radial_equilibrium.py            # Radial equilibrium solver
-│   ├── meanline.py                      # Meanline calculation module
-│   ├── thermodynamic_calculation.py     # Thermodynamic cycle calculations
-│   ├── Bezier_curve.py                  # Bezier curve interpolation
-│   ├── cubic_spline.py                  # Cubic spline interpolation
-│   ├── Interpolation.py                 # Interpolation utilities
-│   ├── loss_models.py                   # Loss model functions
-│   ├── debug_log.py                     # Structured debug logging module
-│   ├── plot_channel.py                  # Channel geometry visualization
-│   ├── run_multall.py                   # MULTALL solver interface
-│   └── __init__.py
-├── misc_functions/                      # Standalone helper scripts (headless runner, plots, compressor maps, data import/export)
-├── tools/                               # Development & validation utilities (.dat validator, debug analysis)
+├── main.py                              # Entry point (GUI or headless, source/ tree)
+├── requirements.txt                     # Runtime dependencies (numpy, matplotlib)
+├── requirements-dev.txt                 # Dev dependencies (pytest)
+├── pytest.ini                           # Test configuration
+├── source/                              # Working code (refactored, ~500 lines/file max)
+│   ├── headless.py                      # Headless pipeline driver (python -m source.headless)
+│   ├── solver_run.py                    # MULTALL solver launcher dialog
+│   ├── core/
+│   │   ├── meanline/                    # 0D/1D: thermodynamics, meanline solver (split)
+│   │   ├── radial/                      # Radial equilibrium solver
+│   │   ├── geometry/                    # Channel, splines, Bezier, interpolation, plots
+│   │   ├── stage/                       # Blade profiles, sections, coordinates, grid prep (split)
+│   │   └── grid/                        # MULTALL .dat writers (incl. bleed, Q3D, SA cards)
+│   ├── gui/                             # Tkinter GUI: app shell, tab modules, dialogs, widgets
+│   ├── io/                              # Path resolution (repo root, static, output)
+│   └── logging/                         # Structured debug logging
+├── src/                                 # Frozen original (pre-refactor reference, read-only)
+├── tests/                               # Pytest suite (43 tests, mirrors source/ imports)
+├── tools/                               # .dat validator, debug analysis helpers
+├── misc_functions/                      # Headless runner (src/), compressor-map + plotting helpers
 ├── static/
-│   ├── Populated_data.json              # Main project data file (created from the template)
-│   ├── Populated_data.template.json     # Template with placeholder values
+│   ├── Populated_data.template.json     # Committed template with placeholder values
 │   └── image/                           # Screenshots and visualizations
-├── old/                                 # Archived/legacy files, kept for reference (not used)
-├── Docs/                                # MULTALL reference documentation (PDFs, example .dat files)
-├── Run_Multall/                         # MULTALL solver binaries & runtime files
-└── outputFiles/                         # Generated grid output files (gitignored)
+├── Docs/                                # MULTALL reference documentation
+└── Run_Multall/                         # MULTALL solver binaries
 ```
 
 ---
@@ -219,10 +234,8 @@ A template file with placeholder values is available at `static/Populated_data.t
 
 | # | Feature |
 |---|---------|
-| 1 | MULTALL output file generator validation across all configurations |
-| 2 | Extensive code validation — verify calculation correctness across all configurations |
-| 3 | Autonomous headless running — prevent plots from opening during headless mode so agents and optimization scripts can run without manual intervention |
-| 4 | Fix bleed air 0-patches bug — setting 0 patches doesn't update properly, output still contains bleed cards |
+| 1 | **`src/` port backlog** — apply the source/-only fixes to the frozen tree before the final swap |
+| 2 | **Extensive code validation** — verify calculation correctness across all configurations |
 
 ### Planned
 
@@ -234,6 +247,7 @@ A template file with placeholder values is available at `static/Populated_data.t
 | 4 | **User-defined blade profiles** — import custom blade angle distributions from CSV |
 | 5 | **Plotting dashboard** — dedicated tab with real-time plots of velocity triangles, stage loading, reaction, efficiency vs. stage |
 | 6 | **Design of Experiments** — parametric sweeps over multiple variables (chord, solidity, RPM) for automated trade studies |
+| 7 | **Automated map pipeline** — auto-solve variants with live progress GUI, postprocessing loop, configurable compressor-map plot |
 
 ---
 

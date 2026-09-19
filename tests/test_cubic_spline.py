@@ -14,7 +14,7 @@ import math
 import numpy as np
 import pytest
 
-from cubic_spline import spline, splint, cubspline
+from source.core.geometry.cubic_spline import spline, splint, cubspline
 
 
 def test_spline_recovers_control_points():

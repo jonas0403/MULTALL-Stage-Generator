@@ -11,7 +11,7 @@ import pytest
 
 
 def _channel_for_stage(cg, stage):
-    from channel import channel
+    from source.core.geometry.channel import channel
 
     local_cg = SimpleNamespace(**cg.__dict__)
     local_cg.stage = stage
